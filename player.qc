@@ -104,7 +104,7 @@ void () player_stand1 =[17, player_stand1] {
 
 void () player_run =[6, player_run] {
     self.weaponframe = 0;
-    if (!self.velocity_x && !self.velocity_y) {
+    if not(self.velocity_x && self.velocity_y) {
         self.walkframe = 0;
         player_stand1();
         return;
