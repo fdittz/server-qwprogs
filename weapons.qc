@@ -2406,8 +2406,13 @@ void () ImpulseCommands = {
         TeamFortress_Discard_DropAmmo();
     else if (self.impulse == TF_DASH)
         CF_Scout_Dash();
-    else if (self.impulse == TF_PB_DETONATE)
+    else if (self.impulse == TF_PB_DETONATE) {
+        if (oztf_detpipe) {
+            if (time < self.pipecooldown)
+                return;
+        }
         TeamFortress_DetonatePipebombs(0);
+    }
     else if (self.impulse == TF_DETPACK_STOP)
         TeamFortress_DetpackStop();
     else if (self.impulse == TF_MEDIC_AURA_TOGGLE)
