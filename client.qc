@@ -498,9 +498,6 @@ void () DecodeLevelParms = {
         // use old ROF for nailguns
         old_ng_rof = CF_GetSetting("ongrof", "old_ng_rof", "off");
 
-        // oztf-style detpipe
-        oztf_detpipe = CF_GetSetting("oztfdetpipe", "oztf_detpipe", "off");
-
         st = infokey(world, "default");
         if (st == "on") {
             server_default = TRUE;
@@ -549,7 +546,6 @@ void () DecodeLevelParms = {
             old_hp_armor = FALSE;
             ng_velocity = 1500;
             old_ng_rof = FALSE;
-            oztf_detpipe = FALSE;
         }
 
         st = infokey(world, "faithful");
@@ -599,7 +595,6 @@ void () DecodeLevelParms = {
             old_hp_armor = TRUE;
             ng_velocity = 1000;
             old_ng_rof = TRUE;
-            oztf_detpipe = FALSE;
         }
 
     }

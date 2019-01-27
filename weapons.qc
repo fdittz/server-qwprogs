@@ -2407,10 +2407,8 @@ void () ImpulseCommands = {
     else if (self.impulse == TF_DASH)
         CF_Scout_Dash();
     else if (self.impulse == TF_PB_DETONATE) {
-        if (oztf_detpipe) {
-            if (time < self.pipecooldown)
-                return;
-        }
+        if (time < self.pipecooldown)
+            return;        
         TeamFortress_DetonatePipebombs(0);
     }
     else if (self.impulse == TF_DETPACK_STOP)
