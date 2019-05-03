@@ -2009,10 +2009,52 @@ void () PlayerPostThink = {
     }
 };
 
+void () tstamp =
+{
+    local string padding;
+    local string timeuse = strftime(0,"%Y-%m-%dT%H:%M:%S.");
+    local float randmillis = rint((random()*1000*random()));
+    if (randmillis < 10)
+        padding = "00";
+    else if (randmillis < 100)
+        padding = "0";
+    local string padded = strcat(padding, ftos(randmillis));
+    timeuse = strcat(timeuse, padded);
+    timeuse = strcat(timeuse, "Z");
+    bprint(2, timeuse);
+
+    /*tokenizebyseparator(timeuse,",");
+    local string tstamp = ftos(getUnixTimeStamp( stof(argv(0)), stof(argv(1)), stof(argv(2)), stof(argv(3)), stof(argv(4)), stof(argv(5)) ));
+    local string padding = "";
+    
+    if (randmillis < 10)
+        padding = "00";
+    else if (randmillis < 100)
+        padding = "0";
+    local string str = ftos(randmillis);
+    float s1 = strstrofs(str, ".", 0);
+    str = substring(str, 0, s1);
+    str = strcat(padding, str);
+    bprint(2,argv(5));*/
+    /*bprint(2,"\n");
+    bprint(2,tstamp);
+    bprint(2,"\n");*/
+}
 void () ClientConnect = {
     local entity te;
     local string st;
     local float got_one;
+
+    //
+
+
+tstamp();
+
+
+
+
+
+    //
 
     stuffcmd(self, "set fortressone 1\n");
     bprint(PRINT_HIGH, self.netname, " entered the game\n");
