@@ -112,6 +112,13 @@ string vote_list_filter;
 .float max_val;
 .float votecount;
 .float localmap;
+.float current_weapon;
+.float currentammo;
+.float tfstate;
+.float attack_finished;
+entity player;
+.float clientframe;
+.float has_exploded;
 
 float(string) GetDrawPanel;
 void(string id, string identify) Hud_DrawIdentifyPanel;

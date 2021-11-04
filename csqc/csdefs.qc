@@ -155,7 +155,7 @@ noref float(float entnum, float channel, string soundname, float vol, float atte
 noref float(string resname, string restype) CSQC_LoadResource;	/* Called each time some resource is being loaded. CSQC can invoke various draw calls to provide a loading screen, until WorldLoaded is called. */
 noref float() CSQC_Parse_TempEntity;	/* Please don't use this. Use CSQC_Parse_Event and multicasts instead. */
 noref void(string cmdtext) GameCommand;
-var float physics_mode = 2;	/* 0: original csqc - physics are not run
+__used var float physics_mode = 2;	/* 0: original csqc - physics are not run
 1: DP-compat. Thinks occur, but not true movetypes.
 2: movetypes occur just as they do in ssqc. */
 float gamespeed;	/* Set by the engine, this is the value of the sv_gamespeed cvar */

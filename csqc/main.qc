@@ -89,6 +89,7 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init = {
     current_vote = world;
     vote_list_filter = "";
     MouseDown = 0;
+    player = spawn();
 };
 
 noref void() CSQC_WorldLoaded = {
@@ -162,7 +163,6 @@ noref float(string cmd) CSQC_ConsoleCommand = {
     float val;
     string key1, key2;
     local float grentype;
-
     switch(argv(0)) {
         case "fo_hud_editor":
             FO_Hud_Editor();
@@ -367,6 +367,10 @@ noref void CSQC_Input_Frame() {
                 frames_since_onground = frames_since_onground + 1;
             }
         }
+    }
+
+    if (input_buttons & 1) {
+        W_Attack();
     }
 }
 
