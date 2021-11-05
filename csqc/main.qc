@@ -340,7 +340,7 @@ void(float isnew) CSQC_Ent_Update = {
         case MSG_FLAGINFO:
             s = readstring();
             print("CSQC_Ent_Update, Flag info: ", s, "\n");
-            break;
+            break;        
         default:
             error("Unhandled CSQC entity\n"); //you can change it to a print, but if you're not using sv_csqcdebug 1 doing so would just confuse people over the real cause.
             return;

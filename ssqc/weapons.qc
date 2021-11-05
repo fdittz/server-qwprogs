@@ -1068,13 +1068,35 @@ void () T_MissileTouch = {
         T_RadiusDamage(self, self.owner, 92, other);
 
     self.origin = self.origin - 8 * normalize(self.velocity);
+    
+    if (project_weapons) {
+        #if 1
+            WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET); 
+            WriteByte(MSG_MULTICAST, MSG_EXPLOSION);
+            WriteCoord(MSG_MULTICAST, self.origin_x);
+            WriteCoord(MSG_MULTICAST, self.origin_y);
+            WriteCoord(MSG_MULTICAST, self.origin_z);
+            WriteString(MSG_MULTICAST, self.fakeprojectile);
+            multicast(self.origin, MULTICAST_PHS);
+        #else
+            WriteByte(MSG_MULTICAST, SVC_TEMPENTITY);
+            WriteByte(MSG_MULTICAST, TE_EXPLOSION);
+            WriteCoord(MSG_MULTICAST, self.origin_x);
+            WriteCoord(MSG_MULTICAST, self.origin_y);
+            WriteCoord(MSG_MULTICAST, self.origin_z);
+            multicast(self.origin, MULTICAST_PHS);
+        #endif
 
-    WriteByte(MSG_MULTICAST, SVC_TEMPENTITY);
-    WriteByte(MSG_MULTICAST, TE_EXPLOSION);
-    WriteCoord(MSG_MULTICAST, self.origin_x);
-    WriteCoord(MSG_MULTICAST, self.origin_y);
-    WriteCoord(MSG_MULTICAST, self.origin_z);
-    multicast(self.origin, MULTICAST_PHS);
+    }
+    else {
+        WriteByte(MSG_MULTICAST, SVC_TEMPENTITY);
+        WriteByte(MSG_MULTICAST, TE_EXPLOSION);
+        WriteCoord(MSG_MULTICAST, self.origin_x);
+        WriteCoord(MSG_MULTICAST, self.origin_y);
+        WriteCoord(MSG_MULTICAST, self.origin_z);
+        multicast(self.origin, MULTICAST_PHS);
+    }
+
 
     dremove(self);
 };
@@ -1104,7 +1126,7 @@ void () W_FireRocket = {
     newmis.weapon = DMSG_ROCKETL;
     newmis.classname = "proj_rocket";
     FO_SetModel(newmis, "progs/missile.mdl");
-    setsize(newmis, '0 0 0', '0 0 0');
+    setsize(newmis, '0 0 0', '0 0 0');    
     setorigin(newmis, self.origin + v_forward * 8 + '0 0 16');
 
     if (project_weapons) {

@@ -304,6 +304,9 @@ void() CSQC_Parse_Event = {
         case MSG_VOTE_MAP_DELETE:
             RemoveVoteMap(readstring(), FALSE);
             break;
+        case MSG_EXPLOSION:
+            ParseExplosion();
+            break;
     }
 }
 

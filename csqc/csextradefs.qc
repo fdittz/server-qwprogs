@@ -119,6 +119,9 @@ string vote_list_filter;
 entity player;
 .float clientframe;
 .float has_exploded;
+.float is_hidden;
+.string digest;
+.float starttime;
 
 float(string) GetDrawPanel;
 void(string id, string identify) Hud_DrawIdentifyPanel;

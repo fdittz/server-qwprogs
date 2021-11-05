@@ -25,6 +25,13 @@ void AL_ProjectProjectile (entity projectile, float velocity) {
       if (trace_fraction < 1) {
           projected_origin = trace_endpos;
       }
-
+      if (self.pendingfakeprojectile != string_null) {
+        newmis.fakeprojectile = self.pendingfakeprojectile;
+        self.pendingfakeprojectile = string_null;
+      }
       setorigin(newmis, projected_origin);
+}
+
+void CSEv_ReceiveProjectile_ss(string classname, string digest) {
+  self.pendingfakeprojectile = digest;
 }
