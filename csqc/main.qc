@@ -40,6 +40,7 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init = {
     registercvar(FOCMD_GRENTIMER, "1");
     registercvar(FOCMD_OLDSCOREBOARD, "0");
     registercvar(FOCMD_FTE_HUD, "0");
+    registercvar(FOCMD_CSQC_PROJECTILES, "0");
 
     registercommand("fo_menu_game");
     registercommand("fo_main_menu");
@@ -369,7 +370,7 @@ noref void CSQC_Input_Frame() {
         }
     }
 
-    if (input_buttons & 1) {
+    if (cvar(FOCMD_CSQC_PROJECTILES) && (input_buttons & 1)) {
         W_Attack();
     }
 }
