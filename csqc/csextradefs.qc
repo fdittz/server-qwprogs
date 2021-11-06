@@ -527,6 +527,7 @@ enum {
 #define FOCMD_GRENTIMER "fo_grentimer"
 #define FOCMD_ADMIN_MENU_UPDATE_TIME "fo_adminrefresh"
 #define FOCMD_FTE_HUD "fo_fte_hud"
+#define FOCMD_CSQC_PROJECTILES "fo_csqc_projectiles"
 
 float team_no;
 float is_spectator;
