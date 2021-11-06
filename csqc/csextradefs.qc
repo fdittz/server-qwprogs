@@ -112,6 +112,16 @@ string vote_list_filter;
 .float max_val;
 .float votecount;
 .float localmap;
+.float current_weapon;
+.float currentammo;
+.float tfstate;
+.float attack_finished;
+entity player;
+.float clientframe;
+.float has_exploded;
+.float is_hidden;
+.string digest;
+.float starttime;
 
 float(string) GetDrawPanel;
 void(string id, string identify) Hud_DrawIdentifyPanel;
@@ -517,6 +527,7 @@ enum {
 #define FOCMD_GRENTIMER "fo_grentimer"
 #define FOCMD_ADMIN_MENU_UPDATE_TIME "fo_adminrefresh"
 #define FOCMD_FTE_HUD "fo_fte_hud"
+#define FOCMD_CSQC_PROJECTILES "fo_csqc_projectiles"
 
 float team_no;
 float is_spectator;

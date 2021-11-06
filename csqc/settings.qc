@@ -6,6 +6,7 @@ void FO_WriteSettings()
     string line = FormatCfgString("", FOCMD_AUTOHOP, ftos(cvar(FOCMD_AUTOHOP)));
     line = FormatCfgString(line, FOCMD_GRENTIMER, ftos(cvar(FOCMD_GRENTIMER)));
     line = FormatCfgString(line, FOCMD_OLDSCOREBOARD, ftos(cvar(FOCMD_OLDSCOREBOARD)));
+    line = FormatCfgString(line, FOCMD_CSQC_PROJECTILES, ftos(cvar(FOCMD_CSQC_PROJECTILES)));
     fputs(filehandle, line);
     fclose(filehandle);
 }
@@ -15,6 +16,7 @@ void FO_LoadDefaultSettings()
     cvar_set(FOCMD_AUTOHOP, "0");
     cvar_set(FOCMD_GRENTIMER, "1");
     cvar_set(FOCMD_OLDSCOREBOARD, "0");
+    cvar_set(FOCMD_CSQC_PROJECTILES, "0");
 }
 
 void FO_LoadSettings()
@@ -51,6 +53,9 @@ void FO_LoadSettings()
                         break;
                     case FOCMD_OLDSCOREBOARD:
                         cvar_set(FOCMD_OLDSCOREBOARD, val);
+                        break;
+                    case FOCMD_CSQC_PROJECTILES:
+                        cvar_set(FOCMD_CSQC_PROJECTILES, val);
                         break;
                 }
             }

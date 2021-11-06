@@ -40,6 +40,7 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init = {
     registercvar(FOCMD_GRENTIMER, "1");
     registercvar(FOCMD_OLDSCOREBOARD, "0");
     registercvar(FOCMD_FTE_HUD, "0");
+    registercvar(FOCMD_CSQC_PROJECTILES, "0");
 
     registercommand("fo_menu_game");
     registercommand("fo_main_menu");
@@ -89,6 +90,7 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init = {
     current_vote = world;
     vote_list_filter = "";
     MouseDown = 0;
+    player = spawn();
 };
 
 noref void() CSQC_WorldLoaded = {
@@ -162,7 +164,6 @@ noref float(string cmd) CSQC_ConsoleCommand = {
     float val;
     string key1, key2;
     local float grentype;
-
     switch(argv(0)) {
         case "fo_hud_editor":
             FO_Hud_Editor();
@@ -340,7 +341,7 @@ void(float isnew) CSQC_Ent_Update = {
         case MSG_FLAGINFO:
             s = readstring();
             print("CSQC_Ent_Update, Flag info: ", s, "\n");
-            break;
+            break;        
         default:
             error("Unhandled CSQC entity\n"); //you can change it to a print, but if you're not using sv_csqcdebug 1 doing so would just confuse people over the real cause.
             return;
@@ -367,6 +368,10 @@ noref void CSQC_Input_Frame() {
                 frames_since_onground = frames_since_onground + 1;
             }
         }
+    }
+
+    if (cvar(FOCMD_CSQC_PROJECTILES) && (input_buttons & 1)) {
+        W_Attack();
     }
 }
 
