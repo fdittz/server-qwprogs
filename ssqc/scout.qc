@@ -871,7 +871,7 @@ void (entity inflictor, entity attacker, float bounce,
                         if (head.flags & FL_ONGROUND)
                             head.flags = head.flags - FL_ONGROUND;
                     } else {
-                        if (head.playerclass == PC_MEDIC)
+                        if ((head.playerclass == PC_MEDIC || PC_SCOUT) || inflictor.owner.playerclass == PC_MEDIC )
                         {
                             if ((NewBalanceActive() && NB_UseNewConc()) || NB_NoCap()) {
                                 head = head.chain;

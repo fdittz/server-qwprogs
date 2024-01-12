@@ -646,6 +646,7 @@ float grenade_lockout;
 float fo_projectiles;
 
 float fo_concuss;
+float fo_healthpack_medic;
 
 float numlocs;
 typedef struct {vector pos; string desc;} loc_t;

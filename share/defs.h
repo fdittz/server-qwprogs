@@ -878,8 +878,8 @@ enum {
 // Class Details for SCOUT
 #define PC_SCOUT_SKIN			4 	// Skin for this class when Classkin is on.
 #define PC_SCOUT_MAXHEALTH		100	// Maximum Health Level
-#define PC_SCOUT_MAXSPEED		450	// Maximum movement speed
-#define PC_SCOUT_MAXARMOR		25 	// Maximum Armor Level, of any armor class
+#define PC_SCOUT_MAXSPEED		350	// Maximum movement speed
+#define PC_SCOUT_MAXARMOR		100 // Maximum Armor Level, of any armor class
 #define PC_SCOUT_INITARMOR		0 	// Armor level when respawned
 #define PC_SCOUT_MAXARMORTYPE		0.3	// Maximum level of Armor absorption
 #define PC_SCOUT_INITARMORTYPE		0.3	// Absorption Level of armor when respawned
@@ -894,9 +894,9 @@ enum {
 #define PC_SCOUT_INITAMMO_CELL		50 	// Amount of cell ammo this class has when respawned
 #define PC_SCOUT_INITAMMO_ROCKET	0 	// Amount of rocket ammo this class has when respawned
 #define PC_SCOUT_GRENADE_INIT_1		2 	// Number of grenades of Type 1 this class has when respawned
-#define PC_SCOUT_GRENADE_INIT_2		3 	// Number of grenades of Type 2 this class has when respawned
-#define PC_SCOUT_GRENADE_MAX_1		3
-#define PC_SCOUT_GRENADE_MAX_2		4
+#define PC_SCOUT_GRENADE_INIT_2		1 	// Number of grenades of Type 2 this class has when respawned
+#define PC_SCOUT_GRENADE_MAX_1		4
+#define PC_SCOUT_GRENADE_MAX_2		1
 #define PC_SCOUT_TF_ITEMS		NIT_SCANNER  // <- TeamFortress Items this class has
 
 #define PC_SCOUT_MOTION_MIN_I		0.5 	// < Short range
@@ -906,7 +906,7 @@ enum {
 #define PC_SNIPER_SKIN			5
 #define PC_SNIPER_MAXHEALTH		100
 #define PC_SNIPER_MAXSPEED		300
-#define PC_SNIPER_MAXARMOR		40
+#define PC_SNIPER_MAXARMOR		100
 #define PC_SNIPER_INITARMOR		0
 #define PC_SNIPER_MAXARMORTYPE		0.3
 #define PC_SNIPER_INITARMORTYPE		0.3
@@ -921,9 +921,9 @@ enum {
 #define PC_SNIPER_INITAMMO_CELL		0
 #define PC_SNIPER_INITAMMO_ROCKET	0
 #define PC_SNIPER_GRENADE_INIT_1	2
-#define PC_SNIPER_GRENADE_INIT_2	3
+#define PC_SNIPER_GRENADE_INIT_2	1
 #define PC_SNIPER_GRENADE_MAX_1	        4
-#define PC_SNIPER_GRENADE_MAX_2	        4
+#define PC_SNIPER_GRENADE_MAX_2	        1
 #define PC_SNIPER_TF_ITEMS		0
 
 #define PC_SNIPER_MAXDAM		401
@@ -931,8 +931,8 @@ enum {
 // Class Details for SOLDIER
 #define PC_SOLDIER_SKIN			6
 #define PC_SOLDIER_MAXHEALTH		100
-#define PC_SOLDIER_MAXSPEED		240
-#define PC_SOLDIER_MAXARMOR		200
+#define PC_SOLDIER_MAXSPEED		280
+#define PC_SOLDIER_MAXARMOR		150
 #define PC_SOLDIER_INITARMOR		100
 #define PC_SOLDIER_MAXARMORTYPE		0.8
 #define PC_SOLDIER_INITARMORTYPE	0.8
@@ -957,7 +957,7 @@ enum {
 #define PC_DEMOMAN_SKIN			1
 #define PC_DEMOMAN_MAXHEALTH		100
 #define PC_DEMOMAN_MAXSPEED		280
-#define PC_DEMOMAN_MAXARMOR		110
+#define PC_DEMOMAN_MAXARMOR		150
 #define PC_DEMOMAN_INITARMOR		40
 #define PC_DEMOMAN_MAXARMORTYPE		0.6
 #define PC_DEMOMAN_INITARMORTYPE	0.6
@@ -974,17 +974,17 @@ enum {
 #define PC_DEMOMAN_INITAMMO_ROCKET	20
 #define PC_DEMOMAN_INITAMMO_DETPACK	1
 #define PC_DEMOMAN_GRENADE_INIT_1	4
-#define PC_DEMOMAN_GRENADE_INIT_2	4
+#define PC_DEMOMAN_GRENADE_INIT_2	1
 #define PC_DEMOMAN_GRENADE_MAX_1	4
-#define PC_DEMOMAN_GRENADE_MAX_2	4
+#define PC_DEMOMAN_GRENADE_MAX_2	2
 #define PC_DEMOMAN_TF_ITEMS		0
 
 // Class Details for COMBAT MEDIC
 #define PC_MEDIC_SKIN			3
 #define PC_MEDIC_MAXHEALTH		100
-#define PC_MEDIC_MAXSPEED		320
+#define PC_MEDIC_MAXSPEED		280
 #define PC_BLASTMEDIC_MAXSPEED		280
-#define PC_MEDIC_MAXARMOR		90
+#define PC_MEDIC_MAXARMOR		100
 #define PC_MEDIC_INITARMOR		40
 #define PC_MEDIC_MAXARMORTYPE		0.6
 #define PC_MEDIC_INITARMORTYPE		0.3
@@ -1000,10 +1000,10 @@ enum {
 #define PC_MEDIC_INITAMMO_CELL		0
 #define PC_MEDIC_INITAMMO_ROCKET	0
 #define PC_MEDIC_INITAMMO_MEDIKIT	50
-#define PC_MEDIC_GRENADE_INIT_1		3
-#define PC_MEDIC_GRENADE_INIT_2		3
+#define PC_MEDIC_GRENADE_INIT_1		4
+#define PC_MEDIC_GRENADE_INIT_2		1
 #define PC_MEDIC_GRENADE_MAX_1		4
-#define PC_MEDIC_GRENADE_MAX_2		3
+#define PC_MEDIC_GRENADE_MAX_2		1
 #define PC_MEDIC_TF_ITEMS		0
 #define PC_MEDIC_REGEN_TIME		3	// Number of seconds between each regen.
 #define PC_MEDIC_REGEN_AMOUNT		2	// Amount of health regenerated each regen.
@@ -1021,8 +1021,8 @@ enum {
 // Class Details for HVYWEAP
 #define PC_HVYWEAP_SKIN			2
 #define PC_HVYWEAP_MAXHEALTH		100
-#define PC_HVYWEAP_MAXSPEED		230
-#define PC_HVYWEAP_MAXARMOR		300
+#define PC_HVYWEAP_MAXSPEED		280
+#define PC_HVYWEAP_MAXARMOR		150
 #define PC_HVYWEAP_INITARMOR		150
 #define PC_HVYWEAP_MAXARMORTYPE		0.8
 #define PC_HVYWEAP_INITARMORTYPE	0.8
@@ -1047,8 +1047,8 @@ enum {
 // Class Details for PYRO
 #define PC_PYRO_SKIN			21
 #define PC_PYRO_MAXHEALTH		100
-#define PC_PYRO_MAXSPEED		300
-#define PC_PYRO_MAXARMOR		150
+#define PC_PYRO_MAXSPEED		280
+#define PC_PYRO_MAXARMOR		100
 #define PC_PYRO_INITARMOR		50
 #define PC_PYRO_MAXARMORTYPE		0.6
 #define PC_PYRO_INITARMORTYPE		0.6
@@ -1062,10 +1062,10 @@ enum {
 #define PC_PYRO_INITAMMO_NAIL		0
 #define PC_PYRO_INITAMMO_CELL		120
 #define PC_PYRO_INITAMMO_ROCKET		15
-#define PC_PYRO_GRENADE_INIT_1		1
-#define PC_PYRO_GRENADE_INIT_2		4
+#define PC_PYRO_GRENADE_INIT_1		4
+#define PC_PYRO_GRENADE_INIT_2		1
 #define PC_PYRO_GRENADE_MAX_1		4
-#define PC_PYRO_GRENADE_MAX_2		4
+#define PC_PYRO_GRENADE_MAX_2		1
 #define PC_PYRO_TF_ITEMS		0
 #define PC_PYRO_AIRBLAST_RANGE	        400
 #define PC_PYRO_AIRBLAST_CELLS			55
@@ -1082,8 +1082,8 @@ enum {
 // Class Details for SPY
 #define PC_SPY_SKIN			22
 #define PC_SPY_MAXHEALTH		100
-#define PC_SPY_MAXSPEED			300
-#define PC_SPY_MAXARMOR			90
+#define PC_SPY_MAXSPEED			280
+#define PC_SPY_MAXARMOR			100
 #define PC_SPY_INITARMOR		15
 #define PC_SPY_MAXARMORTYPE		0.6
 #define PC_SPY_INITARMORTYPE		0.6
@@ -1097,10 +1097,10 @@ enum {
 #define PC_SPY_INITAMMO_NAIL		50
 #define PC_SPY_INITAMMO_CELL		10
 #define PC_SPY_INITAMMO_ROCKET		0
-#define PC_SPY_GRENADE_INIT_1		2
-#define PC_SPY_GRENADE_INIT_2		2
+#define PC_SPY_GRENADE_INIT_1		4
+#define PC_SPY_GRENADE_INIT_2		1
 #define PC_SPY_GRENADE_MAX_1		4
-#define PC_SPY_GRENADE_MAX_2		2
+#define PC_SPY_GRENADE_MAX_2		1
 #define PC_SPY_TF_ITEMS			0
 #define PC_SPY_CELL_REGEN_TIME		5
 #define PC_SPY_CELL_REGEN_AMOUNT	1
@@ -1111,8 +1111,8 @@ enum {
 // Class Details for ENGINEER
 #define PC_ENGINEER_SKIN		22	// Not used anymore
 #define PC_ENGINEER_MAXHEALTH		100
-#define PC_ENGINEER_MAXSPEED		300
-#define PC_ENGINEER_MAXARMOR		30
+#define PC_ENGINEER_MAXSPEED		280
+#define PC_ENGINEER_MAXARMOR		100
 #define PC_ENGINEER_INITARMOR		5
 #define PC_ENGINEER_MAXARMORTYPE	0.6
 #define PC_ENGINEER_INITARMORTYPE	0.3
@@ -1126,10 +1126,10 @@ enum {
 #define PC_ENGINEER_INITAMMO_NAIL	25
 #define PC_ENGINEER_INITAMMO_CELL	100	// synonymous with metal
 #define PC_ENGINEER_INITAMMO_ROCKET	0
-#define PC_ENGINEER_GRENADE_INIT_1	2
-#define PC_ENGINEER_GRENADE_INIT_2	2
+#define PC_ENGINEER_GRENADE_INIT_1	4
+#define PC_ENGINEER_GRENADE_INIT_2	1
 #define PC_ENGINEER_GRENADE_MAX_1	4
-#define PC_ENGINEER_GRENADE_MAX_2	4
+#define PC_ENGINEER_GRENADE_MAX_2	2
 #define PC_ENGINEER_TF_ITEMS		0
 #define PC_ENGINEER_RAILSPEED		1500
 

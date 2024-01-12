@@ -864,6 +864,8 @@ void () DecodeLevelParms = {
         engineer_move = CF_GetSetting("em","engineer_move", "1");
 		grenade_lockout = CF_GetSetting("gl","grenade_lockout", "0.1");
 
+        fo_healthpack_medic = CF_GetSetting("fhm", "fo_healthpack_medic", "1")
+
         max_active_gren2_soldier = CF_GetSetting("mg2s","max_active_gren2_soldier", "3");
 
         st = infokey(world, "default");
@@ -2345,7 +2347,7 @@ void () PutClientInServer = {
     }
 
     // Activate medic aura by default when changing to class and off
-    if (self.playerclass == PC_MEDIC && prev_playerclass != PC_MEDIC &&
+    if (!fo_healthpack_medic self.playerclass == PC_MEDIC && prev_playerclass != PC_MEDIC &&
         !self.aura_active)
         CF_Medic_AuraToggle();
 

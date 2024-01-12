@@ -43,7 +43,7 @@ void () TeamFortress_StatusQuery;
 void () CF_Scout_Dash;
 void () CF_Spy_DisguiseStop;
 void () TeamFortress_DetpackMenu;
-void () CF_Medic_AuraToggle;
+void () FO_CreateHealthPack;
 void () FO_LockToggle;
 void () FO_Airblast;
 void () TeamFortress_EngineerBuild;
@@ -2045,8 +2045,12 @@ void () ImpulseCommands = {
         clearImpulse = TeamFortress_DetonatePipebombs(0);
     else if (self.impulse == TF_DETPACK_STOP) {
         TeamFortress_DetpackStop();
-    } else if (self.impulse == TF_MEDIC_AURA_TOGGLE)
-        CF_Medic_AuraToggle();
+    } else if (self.impulse == TF_MEDIC_AURA_TOGGLE) {
+        if (fo_healthpack_medic)
+            FO_CreateHealthPack();
+        else
+            CF_Medic_AuraToggle();
+    }
     else if (self.impulse == TF_HVYWEAP_LOCK_TOGGLE && self.playerclass == PC_HVYWEAP)
         FO_LockToggle();
     else if (self.impulse == TF_AIRBLAST && self.playerclass == PC_PYRO)
@@ -2345,6 +2349,9 @@ void () ButtonFrame = {
         } else {
             switch (self.playerclass) {
                 case PC_MEDIC:
+                if (fo_healthpack_medic)
+                    FO_CreateHealthPack();
+                else
                     CF_Medic_AuraToggle();
                     break;
                 case PC_HVYWEAP:

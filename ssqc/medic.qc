@@ -198,3 +198,43 @@ void () BioInfection_MonsterDecay = {
     if (self.enemy.health < 1)
         dremove(self);
 };
+
+void () FO_healthpack_touch = {
+    if ((other == self.enemy) || (time < (self.health + 2)))
+        return;
+    health_touch();
+}
+
+void () FO_CreateHealthPack = {
+    if (self.ammo_cells < 25) {
+        sprint(self, PRINT_MEDIUM, "Not enough cells to create a health pack\n");
+        return;
+    }
+    self.ammo_cells -= 50;
+    newmis = spawn();
+    newmis.enemy = self;
+    newmis.noise = "items/health1.wav";
+    newmis.healamount = 25;
+    newmis.healtype = 1;
+    newmis.health = time;
+    newmis.movetype = 6;
+    newmis.solid = 1;
+    newmis.team_no = self.team_no;
+    makevectors(self.v_angle);
+    if (self.v_angle_x) {
+        newmis.velocity = v_forward * 400 + v_up * 200;
+    } else {
+        newmis.velocity = aim(self, 10000);
+        newmis.velocity = newmis.velocity * 400;
+        newmis.velocity_z = 200;
+    }
+    newmis.avelocity = '0 300 0';
+    setsize(newmis, '0 0 0', '0 0 0');
+    setorigin(newmis, self.origin);
+    newmis.nextthink = time + 30;
+    newmis.think = SUB_Remove;
+    newmis.touch = FO_healthpack_touch;   
+
+
+    FO_SetModel(newmis, "maps/b_bh25.bsp");
+}
