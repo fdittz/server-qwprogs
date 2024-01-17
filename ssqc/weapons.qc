@@ -824,6 +824,23 @@ void () W_FireSuperShotgun = {
     FireBullets(14, dir, '0.14 0.08 0');
 };
 
+void () W_FireHeavyCannon = {
+
+    local vector dir;
+
+    Pred_Sound(SND_ASSCAN_FIRE);
+    
+    KickPlayer(-4, self);
+    self.ammo_shells = self.ammo_shells - 2;
+    dir = aim(self, 100000);
+    deathmsg = DMSG_ASSAULTCANNON;
+
+    WeapPred_FireAssCan(input_angles, 12, '0.14 0.10 0');
+
+    LogEventAttack(self);
+
+}
+
 void (vector direction, float damage) FireSniperBullet = {
     local vector src;
 
@@ -1625,6 +1642,8 @@ void () player_autorifle1;
 
 void () player_asscan_up1;
 
+void () player_heavcan1;
+
 void () player_medikit1;
 void () player_medikitb1;
 
@@ -1716,6 +1735,8 @@ void () W_Attack = {
     } else if (ws.weapon == WEAP_AUTO_RIFLE) {
         player_autorifle1();
         W_FireAutoRifle();
+    } else if (ws.weapon == WEAP_HEAVY_CANNON) {
+        player_heavcan1();
     } else if (ws.weapon == WEAP_ASSAULT_CANNON) {
         self.immune_to_check = time + 5;
         if (!AssCanTryBeginFire())

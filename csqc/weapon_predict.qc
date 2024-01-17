@@ -695,6 +695,10 @@ float WP_CheckAmmo(FO_WeapInfo* wi) {
 
     if (wi->weapon == WEAP_ASSAULT_CANNON && WP_GetAmmo(AMMO_CELLS) < 7)
         return FALSE;
+    
+    if (wi->weapon == WEAP_HEAVY_CANNON && WP_GetAmmo(AMMO_CELLS) < 6)
+        return FALSE;
+        
 
     int ammo = WP_GetAmmo(wi->ammo_type);
     return ammo >= wi->ammo_per_shot;
@@ -1581,6 +1585,10 @@ void W_FireAssaultCannon() {
         return;
 
     WeapPred_FireAssCan(input_angles, 5, '0.04 0.04 0');
+}
+
+void W_FireHeavyCannon() {
+    WeapPred_FireAssCan(input_angles, 12, '0.14 0.10 0');
 }
 
 void (float ox) W_FireSpikes = {

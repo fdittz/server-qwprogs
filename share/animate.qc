@@ -308,6 +308,15 @@ void asscan_down_extra() {
     Attack_Finished(wi->attack_time);
 };
 
+void () W_FireHeavyCannon;
+void heavcan_extra_csqc_ssqc() {
+    if (!is_attacking() || is_intermission()) {
+        player_run();
+        return;
+    }
+    W_FireHeavyCannon();    
+}
+
 anim_t anim_rocket = { 6, 6, {107}, {1}, TRUE };
 void player_rocketN() { client_anim_frames(player_rocketN, think_nop, &anim_rocket); }
 void player_rocket1() { *thinkindex() = 1; player_rocketN(); }
@@ -315,6 +324,10 @@ void player_rocket1() { *thinkindex() = 1; player_rocketN(); }
 anim_t anim_shotgun = { 6, 6, {113}, {1}, TRUE };
 void player_shotN() { client_anim_frames(player_shotN, think_nop, &anim_shotgun); }
 void player_shot1() { *thinkindex() = 1; player_shotN(); }
+
+anim_t anim_heavcan = { 6, 6, {113}, {1}, FALSE}
+void player_heavcanN() { client_anim_frames(player_heavcanN, think_nop, &anim_heavcan); }
+void player_heavcan1() { *thinkindex() = 1; player_heavcanN(); heavcan_extra_csqc_ssqc(); }
 
 anim_t anim_autorifle = { 3, 3, {113, 114, 118}, {1, 2, 6}, TRUE };
 void player_autorifleN() { client_anim_frames(player_autorifleN, think_nop, &anim_autorifle); }
