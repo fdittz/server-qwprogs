@@ -39,6 +39,7 @@ static void ApplyRadius(vector org, float rad,
 
 void RemovePrimedGrenades(entity player);
 
+/* Disabled new-balance remove chaser ammo mechanic
 static void EffStrip(entity player) {
   player.ammo_cells = 0;
   player.ammo_rockets = 0;
@@ -54,7 +55,7 @@ static void EffStrip(entity player) {
   stuffcmd(player, "bf\n");
   sprint(player, PRINT_HIGH, msg, "\n");
   centerprint(player, msg);
-}
+}*/
 
 float IsEngEnt(entity ent);
 void RemoveEngEnt(entity bld, float explode);
@@ -97,7 +98,7 @@ void TeamPlay_Cap(vector origin, entity player) {
   if (!org_game || !new_balance)
     return;
 
-  ApplyRadius(origin, 1500,
-      FilTeamNEQ[player.team_no - 1], EffStrip,
-      FilOwnerTeamNEQ[player.team_no - 1], EffRemove);
+  //ApplyRadius(origin, 1500,
+  //    FilTeamNEQ[player.team_no - 1], EffStrip,
+  //    FilOwnerTeamNEQ[player.team_no - 1], EffRemove);
 }
