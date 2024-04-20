@@ -719,7 +719,7 @@ void () DecodeLevelParms = {
         Role_None.gren1_limits[6]  = CF_GetSetting("mg1_6", "max_gren1_hwguy", ftos(PC_HVYWEAP_GRENADE_MAX_1));
         Role_None.gren1_limits[7]  = CF_GetSetting("mg1_7", "max_gren1_pyro", ftos(PC_PYRO_GRENADE_MAX_1));
         Role_None.gren1_limits[8]  = CF_GetSetting("mg1_8", "max_gren1_spy", ftos(PC_SPY_GRENADE_MAX_1));
-        Role_None.gren1_limits[9]  = CF_GetSetting("mg2_9", "max_gren1_engineer", ftos(PC_ENGINEER_GRENADE_MAX_1));
+        Role_None.gren1_limits[9]  = CF_GetSetting("mg1_9", "max_gren1_engineer", ftos(PC_ENGINEER_GRENADE_MAX_1));
 
         // Maximum number of secondary grenades per class
         Role_None.gren2_limits[1] = CF_GetSetting("mg2_1", "max_gren2_scout", ftos(PC_SCOUT_GRENADE_MAX_2));
