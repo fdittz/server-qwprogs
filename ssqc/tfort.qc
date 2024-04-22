@@ -133,15 +133,21 @@ void () RemoveAutoIdTimer = {
     }
 };
 
+void RemovePrimedGrenades(entity player) {
+    entity* ents;
+    int count;
+
+    ents = find_list(classname, "primetimer", EV_STRING, count);
+    for (int i = 0; i < count; i++)
+        if (ents[i].owner == player)
+            dremove(ents[i]);
+
+    player.tfstate &= ~(TFSTATE_GREN1_PRIMED | TFSTATE_GREN2_PRIMED);
+}
+
 void () RemovePrimeTimers = {
-    if (!drop_grenades) {
-        local entity te = find(world, classname, "primetimer");
-        while (te != world) {
-            if (te.owner == self)
-                dremove(te);
-            te = find(te, classname, "primetimer");
-        }
-    }
+    if (!drop_grenades)
+        RemovePrimedGrenades(self);
 };
 
 void () RemoveGasTimers = {
@@ -2045,11 +2051,12 @@ void (float Suicided) TeamFortress_SetupRespawn = {
         if (Suicided) {
             if (self.lives > 0)
                 self.lives = self.lives - 1;
-            
-		if(!allowpracspawns)
-			restime = restime + 7;
+
+            if (!allowpracspawns)
+                restime = restime + (new_balance ? 5 : 7);
         }
     }
+
     if (cb_prematch) {
         if (self.lives > 0)
             self.lives = self.lives - 1;

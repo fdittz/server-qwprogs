@@ -241,7 +241,7 @@ static float NB_UseMinPing() {
     return TRUE;
 }
 
-void ActivateNewBalance() {
+void ActivateOrgGame() {
     disable_resup_gren = 2;  // No gren2 pickups
 
     drop_gren1 = 0;  // No grenades in backpacks
@@ -250,17 +250,17 @@ void ActivateNewBalance() {
     for (i = 1; i <= 9; i++) // 3 gren spawn
         SetAllRoles(i, 1, 3);
 
-    SetAllRoles(4, 2, 1);  // 1 mirv for demoman
-    SetAllRoles(6, 2, 1);  // 1 mirv for hwguy
-    SetAllRoles(9, 2, 1);  // 1 emp for engineer
-    SetAllRoles(9, 1, 4);  // 4 gren1 for engineer
-    SetAllRoles(3, 1, 4);  // 4 gren1 for soldier
+    SetAllRoles(4, 2, CF_GetSetting("mg2_4", "max_gren2_demoman", ftos(1)));  // 1 mirv for demoman
+    SetAllRoles(6, 2, CF_GetSetting("mg2_6", "max_gren2_hwguy", ftos(1)));    // 1 mirv for hwguy
+    SetAllRoles(9, 2, CF_GetSetting("mg2_9", "max_gren2_engineer", ftos(1))); // 1 emp for engineer
+    SetAllRoles(9, 1, CF_GetSetting("mg1_9", "max_gren1_engineer", ftos(4))); // 4 gren1 for engineer
+    SetAllRoles(3, 1, CF_GetSetting("mg1_3", "max_gren1_soldier", ftos(4)));  // 4 gren1 for soldier
 
     PC_PYRO_AIRBLAST_COOLDOWN = 10;
     PC_ENGINEER_GRENADE_TYPE_2_RANGE = 200;
 
-    float use_new_cap = CF_GetSetting("nbcc", "new_balance_conc_cap", "4");
-    if (use_new_cap == 4 && ServerRegion() == kRegionOCE)
+    float use_new_cap = CF_GetSetting("nbcc", "new_balance_conc_cap", "0");
+    if (use_new_cap == 4)
         use_new_cap = 1;
     else
         use_new_cap = 0;
@@ -383,6 +383,7 @@ void () DecodeLevelParms = {
         duelmode = CF_GetSetting("duelmode", "duelmode", "off");
 
         disable_voting = clanbattle || quadmode;
+        org_game = clanbattle || quadmode;
 
         rounds = CF_GetSetting("rounds","rounds","on");
         if (!rounds)
@@ -711,14 +712,14 @@ void () DecodeLevelParms = {
         */
         Role_None.gren1_limits[0] = 0; 
         Role_None.gren1_limits[1] = CF_GetSetting("mg1_1", "max_gren1_scout", ftos(PC_SCOUT_GRENADE_MAX_1));
-        Role_None.gren1_limits[2]  = CF_GetSetting("mg1_2", "max_gren1_sniper", ftos(PC_SNIPER_GRENADE_MAX_1));
-        Role_None.gren1_limits[3]  = CF_GetSetting("mg1_3", "max_gren1_soldier", ftos(PC_SOLDIER_GRENADE_MAX_1));
-        Role_None.gren1_limits[4]  = CF_GetSetting("mg1_4", "max_gren1_demoman", ftos(PC_DEMOMAN_GRENADE_MAX_1));
-        Role_None.gren1_limits[5]  = CF_GetSetting("mg1_5", "max_gren1_medic", ftos(PC_MEDIC_GRENADE_MAX_1));
-        Role_None.gren1_limits[6]  = CF_GetSetting("mg1_6", "max_gren1_hwguy", ftos(PC_HVYWEAP_GRENADE_MAX_1));
-        Role_None.gren1_limits[7]  = CF_GetSetting("mg1_7", "max_gren1_pyro", ftos(PC_PYRO_GRENADE_MAX_1));
-        Role_None.gren1_limits[8]  = CF_GetSetting("mg1_8", "max_gren1_spy", ftos(PC_SPY_GRENADE_MAX_1));
-        Role_None.gren1_limits[9]  = CF_GetSetting("mg2_9", "max_gren1_engineer", ftos(PC_ENGINEER_GRENADE_MAX_1));
+        Role_None.gren1_limits[2] = CF_GetSetting("mg1_2", "max_gren1_sniper", ftos(PC_SNIPER_GRENADE_MAX_1));
+        Role_None.gren1_limits[3] = CF_GetSetting("mg1_3", "max_gren1_soldier", ftos(PC_SOLDIER_GRENADE_MAX_1));
+        Role_None.gren1_limits[4] = CF_GetSetting("mg1_4", "max_gren1_demoman", ftos(PC_DEMOMAN_GRENADE_MAX_1));
+        Role_None.gren1_limits[5] = CF_GetSetting("mg1_5", "max_gren1_medic", ftos(PC_MEDIC_GRENADE_MAX_1));
+        Role_None.gren1_limits[6] = CF_GetSetting("mg1_6", "max_gren1_hwguy", ftos(PC_HVYWEAP_GRENADE_MAX_1));
+        Role_None.gren1_limits[7] = CF_GetSetting("mg1_7", "max_gren1_pyro", ftos(PC_PYRO_GRENADE_MAX_1));
+        Role_None.gren1_limits[8] = CF_GetSetting("mg1_8", "max_gren1_spy", ftos(PC_SPY_GRENADE_MAX_1));
+        Role_None.gren1_limits[9] = CF_GetSetting("mg1_9", "max_gren1_engineer", ftos(PC_ENGINEER_GRENADE_MAX_1));
 
         // Maximum number of secondary grenades per class
         Role_None.gren2_limits[1] = CF_GetSetting("mg2_1", "max_gren2_scout", ftos(PC_SCOUT_GRENADE_MAX_2));
@@ -1096,11 +1097,12 @@ void () DecodeLevelParms = {
 
     // Overrides other settings.
     new_balance = CF_GetSetting("new_balance", "new_balance", "1");
-
     // mirror current state into desired state bit
     new_balance |= (new_balance << 1);
-    if (NewBalanceActive())
-        ActivateNewBalance();
+
+    if (org_game)  // This used to depend on new balance
+        ActivateOrgGame();
+
 };
 
 entity() FindIntermission =
