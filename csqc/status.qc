@@ -606,6 +606,26 @@ void(PanelID panelid, string text) drawReadyPanel = {
                     }
                 }
             }
+        } else if (pick_up_time && time < pick_up_time + 1.5) {
+            local vector alert_text_size = MENU_TEXT_MEDIUM * panel.Scale;
+            local vector alert_text_position;
+            alert_text_position.y = ScreenSize.y / 3;
+            alert_text_position.x = (ScreenSize.x / 2) - (size.x / 2);
+            local string alert_text_message = "You got the flag!";
+
+            pos_aligned = GetTextAlignOffset(
+                    alert_text_position.x,
+                    size.x,
+                    padding,
+                    alert_text_message,
+                    alert_text_size.x,
+                    panel.Orientation
+                    );
+
+            HRC_drawstring(
+                    [pos_aligned, alert_text_position.y],
+                    alert_text_message, alert_text_size, MENU_TEXT_GREEN, 1, 0
+                    );
         }
     }
     if(message) {

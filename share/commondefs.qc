@@ -213,6 +213,7 @@ const float SERVER_FRAME_MS = SERVER_FRAME_DT * 1000.0;
 #define MSG_LOGIN           26
 #define MSG_HITFLAG         27
 #define MSG_RELOADSOUND     28
+#define MSG_FLAG_PICKUP     29
 
 #define FLAGINFO_HOME       1
 #define FLAGINFO_CARRIED    2
