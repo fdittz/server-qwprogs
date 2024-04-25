@@ -950,7 +950,8 @@ void (entity Goal, entity Player, entity AP, float addb) Apply_Results = {
 
             if (stock_on_cap) {
                 if (Player == AP) {
-                    TeamPlay_Cap(AP.origin, AP);
+                    if (cap_strip)
+                        TeamPlay_Cap(AP.origin, AP);
 
                     if (Player.health > 0) {
                         T_Heal(Player, Player.max_health, 0);

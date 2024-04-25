@@ -177,6 +177,7 @@ sound files are found in `fortress/sound/hitaudio/` and  `fortress/sound/announc
 * Keys and flags glow their colour.
 * Option to adjust conussion grenade effect time in seconds. `localinfo cussgrentime`.
 * Option to fully restock player on cap. `localinfo stock_on_cap on`.
+* Option to strip ammo and grens from defenders within 1500 units of cap point when flag is capped. `localinfo cap_strip 1`.
 * Option for packs to fully restock health and armor of player. `localinfo stockfull on`.
 * Automatic server-side mvd recording of clan matches. Requires `localinfo serverdemo on`.
 * Map vote (4 random maps + current map) during last few minutes of game (shown for newly spawned or toggled with /togglevote).

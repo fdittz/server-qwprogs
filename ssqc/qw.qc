@@ -561,6 +561,7 @@ float scoutdash;
 float spawnfull;
 float stockfull;
 float stock_on_cap;
+float cap_strip;
 float stock_reload;
 float classtips;
 float cussgrentime;

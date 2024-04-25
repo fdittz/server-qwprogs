@@ -642,13 +642,16 @@ void () DecodeLevelParms = {
         // stock on cap [on]
         stock_on_cap = CF_GetSetting("soc", "stock_on_cap", "on");
 
+        // stock on cap [off]
+        cap_strip = CF_GetSetting("cs", "cap_strip", "off");
+
         // stock clip to full for reloading guns [on]
         stock_reload = CF_GetSetting("srd", "stock_reload", "on");
 
         // display class tips [on]
         classtips = CF_GetSetting("ct", "classtips", "on");
 
-        // concussion grenade effect time [19]
+        // concussion grenade effect time [10]
         cussgrentime = CF_GetSetting("cgt", "cussgrentime", "10");
 
         // concussion grenade effect time proportional to distance from explosion
@@ -936,6 +939,7 @@ void () DecodeLevelParms = {
             spawnfull = TRUE;
             stockfull = TRUE;
             stock_on_cap = TRUE;
+            cap_strip = FALSE;
             stock_reload = TRUE;
             classtips = TRUE;
             sniperpower = TRUE;
@@ -1004,6 +1008,7 @@ void () DecodeLevelParms = {
             spawnfull = FALSE;
             stockfull = FALSE;
             stock_on_cap = FALSE;
+            cap_strip = FALSE;
             stock_reload = FALSE;
             classtips = FALSE;
             sniperpower = FALSE;
@@ -1068,6 +1073,7 @@ void () DecodeLevelParms = {
             spawnfull = FALSE;
             stockfull = FALSE;
             stock_on_cap = FALSE;
+            cap_strip = FALSE;
             stock_reload = FALSE;
             classtips = FALSE;
             nohitsounds = TRUE;
@@ -1643,7 +1649,7 @@ void () ResetPlayers = {
                 //    DuelWin(te);
                 //    return;
                 //}
-            }            
+            }
             RemovePlayerOwnedEnts();
             setspawnparms(self);
             PutClientInServer();
