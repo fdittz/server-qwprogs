@@ -257,7 +257,7 @@ void FO_Hud_InitSystemPanels() {
         if (panel->System) {
             switch (panel->id) {
                 case HUDP_MOTD:
-                case HUDP_READY:
+                case HUDP_NOTIFICATION:
                     FO_Hud_ShowPanel(i);
                     break;
 

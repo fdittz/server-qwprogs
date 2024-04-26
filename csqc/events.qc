@@ -355,6 +355,10 @@ void() CSQC_Parse_Event = {
             local float weapon = readfloat();
             FO_ReloadSound(weapon);
             break;
+        case MSG_FLAG_PICKUP:
+            flag_team = readfloat();
+            pick_up_time = time;
+            break;
     }
 }
 

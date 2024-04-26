@@ -976,7 +976,7 @@ enum {
 #define PC_DEMOMAN_GRENADE_INIT_1	4
 #define PC_DEMOMAN_GRENADE_INIT_2	4
 #define PC_DEMOMAN_GRENADE_MAX_1	4
-#define PC_DEMOMAN_GRENADE_MAX_2	4
+#define PC_DEMOMAN_GRENADE_MAX_2	1
 #define PC_DEMOMAN_TF_ITEMS		0
 
 // Class Details for COMBAT MEDIC
@@ -1003,7 +1003,7 @@ enum {
 #define PC_MEDIC_GRENADE_INIT_1		3
 #define PC_MEDIC_GRENADE_INIT_2		3
 #define PC_MEDIC_GRENADE_MAX_1		4
-#define PC_MEDIC_GRENADE_MAX_2		3
+#define PC_MEDIC_GRENADE_MAX_2		2
 #define PC_MEDIC_TF_ITEMS		0
 #define PC_MEDIC_REGEN_TIME		3	// Number of seconds between each regen.
 #define PC_MEDIC_REGEN_AMOUNT		2	// Amount of health regenerated each regen.
@@ -1043,7 +1043,6 @@ enum {
 #define PC_HVYWEAP_TF_ITEMS		0
 #define PC_HVYWEAP_CELL_FIRE		7
 
-
 // Class Details for PYRO
 #define PC_PYRO_SKIN			21
 #define PC_PYRO_MAXHEALTH		100
@@ -1065,7 +1064,7 @@ enum {
 #define PC_PYRO_GRENADE_INIT_1		1
 #define PC_PYRO_GRENADE_INIT_2		4
 #define PC_PYRO_GRENADE_MAX_1		4
-#define PC_PYRO_GRENADE_MAX_2		4
+#define PC_PYRO_GRENADE_MAX_2		1
 #define PC_PYRO_TF_ITEMS		0
 #define PC_PYRO_AIRBLAST_RANGE	        400
 #define PC_PYRO_AIRBLAST_CELLS			55
@@ -1100,7 +1099,7 @@ enum {
 #define PC_SPY_GRENADE_INIT_1		2
 #define PC_SPY_GRENADE_INIT_2		2
 #define PC_SPY_GRENADE_MAX_1		4
-#define PC_SPY_GRENADE_MAX_2		2
+#define PC_SPY_GRENADE_MAX_2		1
 #define PC_SPY_TF_ITEMS			0
 #define PC_SPY_CELL_REGEN_TIME		5
 #define PC_SPY_CELL_REGEN_AMOUNT	1
@@ -1129,7 +1128,7 @@ enum {
 #define PC_ENGINEER_GRENADE_INIT_1	2
 #define PC_ENGINEER_GRENADE_INIT_2	2
 #define PC_ENGINEER_GRENADE_MAX_1	4
-#define PC_ENGINEER_GRENADE_MAX_2	4
+#define PC_ENGINEER_GRENADE_MAX_2	2
 #define PC_ENGINEER_TF_ITEMS		0
 #define PC_ENGINEER_RAILSPEED		1500
 
@@ -1396,7 +1395,7 @@ enum {
 #define FO_HUD_MOTD_NAME "MOTD"
 #define FO_HUD_MENU_HINT_NAME "Menu Hints"
 #define FO_HUD_GAME_MODE_NAME "Game Mode"
-#define FO_HUD_READY_NAME "Ready Status"
+#define FO_HUD_NOTIFICATION_NAME "Notification"
 #define FO_HUD_SHOWSCORES_NAME "Show Scores"
 #define FO_HUD_MAP_MENU_NAME "Map Menu"
 #define FO_HUD_HEALTH_NAME "Health"

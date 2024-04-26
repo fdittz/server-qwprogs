@@ -115,6 +115,8 @@ float vote_list_offset;
 entity current_vote;
 string vote_list_filter;
 float zoomed_in;
+float pick_up_time;
+float flag_team;
 
 float slot_history[MAX_SLOT_HISTORY_SIZE];
 float slot_history_top, slot_under_stack;
@@ -412,7 +414,7 @@ enum PanelID:float {
     HUDP_GRENTIMER,
     HUDP_MOTD,
     HUDP_GAME_MODE,
-    HUDP_READY,
+    HUDP_NOTIFICATION,
     HUDP_HEALTH,
     HUDP_FACE,
     HUDP_AMMO,

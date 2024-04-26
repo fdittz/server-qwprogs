@@ -26,7 +26,7 @@ void FO_Hud_Editor_LoadDefaultSettings()
     getHudPanel(HUDP_GAME_MODE)->Position = [width - getHudPanel(HUDP_GAME_MODE)->FillSize.x, 30];
     getHudPanel(HUDP_GAME_MODE)->Orientation = FO_HUD_INSERT_AFTER;
     getHudPanel(HUDP_MOTD)->Position = [(width / 2) - (getHudPanel(HUDP_MOTD)->FillSize.x / 2), 30];
-    getHudPanel(HUDP_READY)->Position = [(width / 2) - (getHudPanel(HUDP_READY)->FillSize.x / 2), 30];
+    getHudPanel(HUDP_NOTIFICATION)->Position = [(width / 2) - (getHudPanel(HUDP_NOTIFICATION)->FillSize.x / 2), 30];
     getHudPanel(HUDP_MENU_HINT)->Position = [(width / 2) - (getHudPanel(HUDP_MENU)->FillSize.x / 2), 80];
     getHudPanel(HUDP_MENU_HINT)->Orientation = FO_HUD_INSERT_MIDDLE;
     getHudPanel(HUDP_MENU)->Position = [(width / 2) - (getHudPanel(HUDP_MENU)->FillSize.x / 2), 120];

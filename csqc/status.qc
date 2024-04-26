@@ -508,7 +508,7 @@ void(PanelID panelid, string text) drawGameModePanel = {
     }
 }
 
-void(PanelID panelid, string text) drawReadyPanel = {
+void(PanelID panelid, string text) drawNotificationPanel = {
     FO_Hud_Panel* panel = getHudPanel(panelid);
 
     vector position = getPanelPosition(panel);
@@ -520,7 +520,7 @@ void(PanelID panelid, string text) drawReadyPanel = {
     local float pos_aligned;
     local string message = "";
     if (fo_hud_editor) {
-        message = "Ready Status";
+        message = "Notification panel";
         if (hud_panel(panelid, position, size, 0.3, panel.Display)) {
             // click event
         }
@@ -606,6 +606,49 @@ void(PanelID panelid, string text) drawReadyPanel = {
                     }
                 }
             }
+        } else if (pick_up_time && time < pick_up_time + 1.5) {
+            local vector alert_text_size = MENU_TEXT_MEDIUM * panel.Scale;
+            local vector alert_text_position;
+            alert_text_position.y = ScreenSize.y / 3;
+            alert_text_position.x = (ScreenSize.x / 2) - (size.x / 2);
+
+            local string flag_team_str = "the";
+            local vector menu_text_color = MENU_TEXT_4;
+
+            switch(flag_team) {
+                case 1:
+                    flag_team_str = "blue's";
+                    menu_text_color = MENU_TEXT_BLUE_FO;
+                    break;
+                case 2:
+                    flag_team_str = "red's";
+                    menu_text_color = MENU_TEXT_RED_FO;
+                    break;
+                case 3:
+                    flag_team_str = "yellow's";
+                    menu_text_color = MENU_TEXT_YELLOW_FO;
+                    break;
+                case 4:
+                    flag_team_str = "green's";
+                    menu_text_color = MENU_TEXT_GREEN_FO;
+                    break;
+            }
+
+            local string alert_text_message = sprintf("You got %s flag!", flag_team_str);
+
+            pos_aligned = GetTextAlignOffset(
+                    alert_text_position.x,
+                    size.x,
+                    padding,
+                    alert_text_message,
+                    alert_text_size.x,
+                    panel.Orientation
+                    );
+
+            HRC_drawstring(
+                    [pos_aligned, alert_text_position.y],
+                    alert_text_message, alert_text_size, menu_text_color, 1, 0
+                    );
         }
     }
     if(message) {
@@ -1110,7 +1153,7 @@ var FO_Hud_Panel Hud_Panels[] = {
     {HUDP_GRENTIMER, "grentimer", FO_HUD_GRENTIMER_NAME,   '100 110', '26 26',  1,0,1,0,0, drawGrenTimerPanel, {return "";}},
     {HUDP_MOTD, "motd", FO_HUD_MOTD_NAME,             '150 100', '100 24', 1,0,1,0,0, drawMOTDPanel, {return SBAR.MOTD;}},
     {HUDP_GAME_MODE, "gamemode", FO_HUD_GAME_MODE_NAME,    '100 140', '100 10', 1,0,1,0,0, drawGameModePanel, {return "";}},
-    {HUDP_READY, "ready", FO_HUD_READY_NAME,           '10 100',  '100 10', 2,0,1,FO_HUD_INSERT_MIDDLE, 1, drawReadyPanel, {return SBAR.Hint;}},
+    {HUDP_NOTIFICATION, "notification", FO_HUD_NOTIFICATION_NAME,           '10 100',  '100 10', 2,0,1,FO_HUD_INSERT_MIDDLE, 1, drawNotificationPanel, {return SBAR.Hint;}},
     {HUDP_HEALTH, "health", FO_HUD_HEALTH_NAME,         '-22 -2',  '72 24',  1,0,1,0,0, drawHealthArmourTextPanel, {return ftos(getstatf(STAT_HEALTH));}, 0, 34},
     {HUDP_FACE, "face", FO_HUD_FACE_NAME,             '-70 -2',  '24 24',  1,0,1,0,0, drawFacePanel, {return "";}, 0, 34},
     {HUDP_AMMO, "ammo", FO_HUD_AMMO_NAME,             '90 -2',   '72 24',  1,0,1,0,0, drawAmmoTextPanel, {return ftos(WP_CurrentAmmo());}, 0, 34},

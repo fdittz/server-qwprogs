@@ -604,6 +604,7 @@ void () TeamFortress_ShowTF = {
     CF_PrintSetting("Spawn with full health/armor", spawnfull, "", 1);
     CF_PrintSetting("Stock players with full health/armor", stockfull, "", 1);
     CF_PrintSetting("Stock player on cap", stock_on_cap, "", 1);
+    CF_PrintSetting("Strip chasers on cap", cap_strip, "", 1);
     CF_PrintSetting("Stock reloadable clip", stock_reload, "", 1);
     CF_PrintSetting("Old dropflag behaviour", old_dropflag, "", 1);
     CF_PrintSetting("Remember weapon", remember_weapon, "", 1);
