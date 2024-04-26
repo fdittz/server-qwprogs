@@ -611,7 +611,34 @@ void(PanelID panelid, string text) drawReadyPanel = {
             local vector alert_text_position;
             alert_text_position.y = ScreenSize.y / 3;
             alert_text_position.x = (ScreenSize.x / 2) - (size.x / 2);
-            local string alert_text_message = "You got the flag!";
+
+            local string flag_team_str;
+            local vector menu_text_color;
+
+            switch(flag_team) {
+                case 1:
+                    flag_team_str = "blue's";
+                    menu_text_color = MENU_TEXT_BLUE_FO;
+                    break;
+                case 2:
+                    flag_team_str = "red's";
+                    menu_text_color = MENU_TEXT_RED_FO;
+                    break;
+                case 3:
+                    flag_team_str = "yellow's";
+                    menu_text_color = MENU_TEXT_YELLOW_FO;
+                    break;
+                case 4:
+                    flag_team_str = "green's";
+                    menu_text_color = MENU_TEXT_GREEN_FO;
+                    break;
+                default:
+                    flag_team_str = "the";
+                    menu_text_color = MENU_TEXT_4;
+                    break;
+            }
+
+            local string alert_text_message = sprintf("You got %s flag!", flag_team_str);
 
             pos_aligned = GetTextAlignOffset(
                     alert_text_position.x,
@@ -624,7 +651,7 @@ void(PanelID panelid, string text) drawReadyPanel = {
 
             HRC_drawstring(
                     [pos_aligned, alert_text_position.y],
-                    alert_text_message, alert_text_size, MENU_TEXT_GREEN, 1, 0
+                    alert_text_message, alert_text_size, menu_text_color, 1, 0
                     );
         }
     }

@@ -2280,7 +2280,7 @@ void (entity Item, entity AP, entity Goal) tfgoalitem_GiveToPlayer = {
     DoItemGroupWork(Item, AP);
     AP.goalrunningtime = gametime;
     AP.has_flag = TRUE;
-    UpdateClientFlagPickUp(AP);
+    UpdateClientFlagPickUp(AP, Item.skin);
     LogEventPickupGoal(AP);
 };
 

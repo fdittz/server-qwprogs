@@ -116,6 +116,7 @@ entity current_vote;
 string vote_list_filter;
 float zoomed_in;
 float pick_up_time;
+float flag_team;
 
 float slot_history[MAX_SLOT_HISTORY_SIZE];
 float slot_history_top, slot_under_stack;

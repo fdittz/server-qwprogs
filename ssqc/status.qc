@@ -964,13 +964,14 @@ void UpdateClientStatusBar(entity pl)
     multicast('0 0 0', MULTICAST_ONE_NOSPECS); 
 }
 
-void (entity pl) UpdateClientFlagPickUp = {
+void (entity pl, float flag_team) UpdateClientFlagPickUp = {
     if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
         return;
 
     msg_entity = pl;
     WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
     WriteByte(MSG_MULTICAST, MSG_FLAG_PICKUP);
+    WriteFloat(MSG_MULTICAST, flag_team);
     multicast('0 0 0', MULTICAST_ONE_NOSPECS);
 }
 
