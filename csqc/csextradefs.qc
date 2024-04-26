@@ -414,7 +414,7 @@ enum PanelID:float {
     HUDP_GRENTIMER,
     HUDP_MOTD,
     HUDP_GAME_MODE,
-    HUDP_READY,
+    HUDP_NOTIFICATION,
     HUDP_HEALTH,
     HUDP_FACE,
     HUDP_AMMO,

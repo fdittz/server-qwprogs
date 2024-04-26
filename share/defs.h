@@ -1395,7 +1395,7 @@ enum {
 #define FO_HUD_MOTD_NAME "MOTD"
 #define FO_HUD_MENU_HINT_NAME "Menu Hints"
 #define FO_HUD_GAME_MODE_NAME "Game Mode"
-#define FO_HUD_READY_NAME "Ready Status"
+#define FO_HUD_NOTIFICATION_NAME "Notification"
 #define FO_HUD_SHOWSCORES_NAME "Show Scores"
 #define FO_HUD_MAP_MENU_NAME "Map Menu"
 #define FO_HUD_HEALTH_NAME "Health"
