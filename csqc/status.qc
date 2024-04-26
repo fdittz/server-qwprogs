@@ -612,8 +612,8 @@ void(PanelID panelid, string text) drawNotificationPanel = {
             alert_text_position.y = ScreenSize.y / 3;
             alert_text_position.x = (ScreenSize.x / 2) - (size.x / 2);
 
-            local string flag_team_str;
-            local vector menu_text_color;
+            local string flag_team_str = "the";
+            local vector menu_text_color = MENU_TEXT_4;
 
             switch(flag_team) {
                 case 1:
@@ -631,10 +631,6 @@ void(PanelID panelid, string text) drawNotificationPanel = {
                 case 4:
                     flag_team_str = "green's";
                     menu_text_color = MENU_TEXT_GREEN_FO;
-                    break;
-                default:
-                    flag_team_str = "the";
-                    menu_text_color = MENU_TEXT_4;
                     break;
             }
 
