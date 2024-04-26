@@ -2106,9 +2106,7 @@ void () item_tfgoal_touch = {
         return;
 
     if (CTF_Map == 1) {
-        printf("CTF_Map: %f\n", CTF_Map);
         if (self.goal_no == 1) {
-            printf("self.goal_no: %f\n", self.goal_no);
             if (self.origin != self.oldorigin) {
                 if (other.team_no == 1) {
                     bprint(2, other.netname);
@@ -2173,7 +2171,6 @@ void () item_tfgoal_touch = {
         }
     }
     if (Activated(self, other)) {
-        printf("activated\n");
         tfgoalitem_GiveToPlayer(self, other, self);
         if (other.health > 0) {
             self.goal_state = 1;
