@@ -118,9 +118,10 @@ float(float evtype, float scanx, float chary, float devid) CSQC_InputEvent = {
                 }
                 break;
             case IE_MOUSEDELTA:
+                local float sensitivity = 0.25;
                 if (rotating_sentry) {
-                    sentry_preview.angles_y = anglemod(sentry_preview.angles_y + scanx * 0.25);
-                    sentry_preview_offset = sentry_preview_offset + scanx * 0.25;
+                    sentry_preview.angles_y = anglemod(sentry_preview.angles_y + scanx * sensitivity);
+                    sentry_preview_offset = sentry_preview_offset + scanx * sensitivity;
                     return TRUE;
                 }
 

@@ -697,12 +697,16 @@ noref void CSQC_Input_Frame() {
                     sentry_preview.angles_y = anglemod(input_angles_y + 180);
                     sentry_preview.drawmask = MASK_ENGINE;
                     previewing_sentry = TRUE;
-
-                    input_buttons = input_buttons - BUTTON4; // don't send build yet
+                } else {
+                    // cancel preview sentry
+                    rotating_sentry = FALSE;
+                    previewing_sentry = FALSE;
+                    sentry_preview_offset = 0;
+                    sentry_preview.drawmask = 0;
                 }
-            } else {
-                input_buttons = input_buttons - BUTTON4; // don't send build yet
             }
+
+            input_buttons = input_buttons - BUTTON4; // don't send build yet
         }
 
         if ((input_buttons & BUTTON0) && previewing_sentry) {
@@ -715,6 +719,9 @@ noref void CSQC_Input_Frame() {
         }
 
         if (keyups & BUTTON0) {
+            // cancel preview sentry
+            printf("sentry_preview_offset: %f\n", sentry_preview_offset);
+            localcmd(sprintf("cmd build sentry %f\n", sentry_preview_offset));
             rotating_sentry = FALSE;
             previewing_sentry = FALSE;
             sentry_preview_offset = 0;

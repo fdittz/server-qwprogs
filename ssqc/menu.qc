@@ -18,7 +18,7 @@ void (entity spy) Spy_RemoveDisguise;
 
 void (entity eng, string bld) DestroyBuilding;
 
-void (float objtobuild) TeamFortress_Build;
+void (float objtobuild, float offset) TeamFortress_Build;
 
 void () lvl1_sentry_stand;
 void () lvl2_sentry_stand;
@@ -806,6 +806,15 @@ void () Menu_Demoman_Cancel = {
     Status_Menu(self, Menu_Demoman_Cancel_Input, s_detpack, s_cancel);
 }
 
+void (float offset) TeamFortress_BuildSentry = {
+    if (self.has_sentry) return;
+
+    if (self.ammo_cells >= ENG_SENTRY_COST)
+        TeamFortress_Build(2, 0);
+    else
+        Status_Print(self, "\n\n\n\n\n\n\n", strcat("You need ", ftos(ENG_SENTRY_COST), " cells to build a sentry gun"));
+}
+
 void (float inp) Menu_Engineer_Input = {
     local float dismantle_sentrygun;
     local float dismantle_dispenser;
@@ -826,16 +835,12 @@ void (float inp) Menu_Engineer_Input = {
     dismantle_sentrygun = 0;
     dismantle_dispenser = 0;
 
-    if (inp == 1 && !self.has_sentry) {
-        if (self.ammo_cells >= ENG_SENTRY_COST)
-            TeamFortress_Build(2);
-        else
-            Status_Print(self, "\n\n\n\n\n\n\n", strcat("You need ", ftos(ENG_SENTRY_COST), " cells to build a sentry gun"));
+    if (inp == 1) {
+        TeamFortress_BuildSentry(0);
     }
-    
     if (inp == 2 && !self.has_dispenser) {
         if (self.ammo_cells >= ENG_DISPENSER_COST)
-            TeamFortress_Build(1);
+            TeamFortress_Build(1, 0);
         else
             Status_Print(self, "\n\n\n\n\n\n\n", strcat("You need ", ftos(ENG_DISPENSER_COST), " cells to build a dispenser"));
     }
@@ -922,7 +927,7 @@ void (entity player) Menu_Engineer = {
             te = te.chain;
         }
     } else if (player.ammo_cells >= 100) {
-            s_disp = Q"\s[2]\s Build dispenser     \n";
+        s_disp = Q"\s[2]\s Build dispenser     \n";
     }
 
     if ((player.has_dispenser || player.has_sentry) && !player.has_menutimer) {
@@ -1021,10 +1026,10 @@ void () Menu_EngineerFix_SentryGun_Rotate = {
 
 
     if (!self.building.real_owner.has_sentry || self.building.real_owner != self
-                || self.classname != "player" || self.building == world) {
+            || self.classname != "player" || self.building == world) {
         return;
     }
-    
+
     if(infokeyf(self, INFOKEY_P_CSQCACTIVE)) {
         //fte+csqc has its own team menu
         //ask the client to activate it
@@ -1032,13 +1037,13 @@ void () Menu_EngineerFix_SentryGun_Rotate = {
         UpdateClientMenu_FixSentry(self);
         return;
     }
-    
+
     Status_Menu(self, Menu_EngineerFix_SentryGun_Rotate_Input, action, rotl, rot180, rotr, nothing);
 };
 
 void (float inp) Menu_EngineerFix_SentryGun_Input = {
     if (!self.building.real_owner.has_sentry || self.building.real_owner != self
-                || self.classname != "player" || self.building == world)
+            || self.classname != "player" || self.building == world)
         return;
 
     if (inp == 1) {
@@ -1095,9 +1100,9 @@ void (float inp) Menu_Dispenser_Input = {
     empty = FALSE;
     if (inp == 1) {
         if ((self.building.ammo_shells == 0)
-            && (self.building.ammo_nails == 0)
-            && (self.building.ammo_rockets == 0)
-            && (self.building.ammo_cells == 0)) {
+                && (self.building.ammo_nails == 0)
+                && (self.building.ammo_rockets == 0)
+                && (self.building.ammo_cells == 0)) {
             empty = TRUE;
         } else {
             am = self.maxammo_shells - self.ammo_shells;
@@ -1324,7 +1329,7 @@ void () Menu_Admin =
             s_menu1 = "Round Time Input Menu:               \n\n";
             //s_menu1 = strcat(s_menu1, "Enter a number between 1 and 10      \n");
             //s_menu1 = strcat(s_menu1, "\n\n");
-            
+
             s_menu1 = strcat(s_menu1, Q"\s[1]\s 1 minute                     \n");
             s_menu1 = strcat(s_menu1, Q"\s[2]\s 5 minutes                    \n");
             s_menu1 = strcat(s_menu1, Q"\s[3]\s 10 minutes                   \n");
@@ -1388,12 +1393,12 @@ void () Menu_Admin =
             Status_Menu(self, Menu_Admin_Input, s_menu1);
             break;
     }
-    
+
     // jesus christ what is this, this should be separated out for the good of the people
     // or maybe made understandable
     if (self.current_menu_type == ADMIN_MENU_TYPE_KICK || self.current_menu_type == ADMIN_MENU_TYPE_BAN 
-        || self.current_menu_type == ADMIN_MENU_TYPE_CAPTAINTEAMONE || self.current_menu_type == ADMIN_MENU_TYPE_CAPTAINTEAMTWO 
-        || self.current_menu_type == ADMIN_MENU_TYPE_CAPTAINSELECT || self.current_menu_type == ADMIN_MENU_TYPE_FORCESPEC) 
+            || self.current_menu_type == ADMIN_MENU_TYPE_CAPTAINTEAMONE || self.current_menu_type == ADMIN_MENU_TYPE_CAPTAINTEAMTWO 
+            || self.current_menu_type == ADMIN_MENU_TYPE_CAPTAINSELECT || self.current_menu_type == ADMIN_MENU_TYPE_FORCESPEC) 
     {
         f_tmp = 0;
         f_tmp2 = 0;
@@ -1450,20 +1455,20 @@ void () Menu_Admin =
         }
 
         if (f_tmp == 0 &&  ( self.current_menu_type == ADMIN_MENU_TYPE_CAPTAINSELECT || self.current_menu_type == ADMIN_MENU_TYPE_CAPTAINTEAMTWO ) ) {
-                bprint(2, "\x10\sCaptain Mode\s\x11\s:\s \sTeams are set,  let's start the game!\s\n");
-                temp = self;
-                te = find (world, classname, "player");
-                while (te != world) {
-                        te.captain = 0;
-                        self = te;
-                        Menu_Close(self);
-                        self.current_menu_type = ADMIN_MENU_TYPE_MAIN;
-                        self.current_menu_page = 1;
-                    te = find (te, classname, "player");
-                }
-                self = temp;
-                captainmode = 0;
-                return;
+            bprint(2, "\x10\sCaptain Mode\s\x11\s:\s \sTeams are set,  let's start the game!\s\n");
+            temp = self;
+            te = find (world, classname, "player");
+            while (te != world) {
+                te.captain = 0;
+                self = te;
+                Menu_Close(self);
+                self.current_menu_type = ADMIN_MENU_TYPE_MAIN;
+                self.current_menu_page = 1;
+                te = find (te, classname, "player");
+            }
+            self = temp;
+            captainmode = 0;
+            return;
         }
         s_menu2 = strcat( s_menu2, "\n");
         s_menu7 = "\b[\b8\b]\b \bPrevious Page\b         ";
@@ -1471,13 +1476,13 @@ void () Menu_Admin =
         s_menu8 = "\b[\b9\b]\b \bNext Page\b             ";
         s_menu8 = Menu_Indent_line(s_menu8, 30);
         if (self.is_admin || self.captain == 1) {
-                s_menu9 = "\b[\b0\b]\b \bBack to Main Menu\b     ";
-                s_menu9 = Menu_Indent_line(s_menu9, 30);
+            s_menu9 = "\b[\b0\b]\b \bBack to Main Menu\b     ";
+            s_menu9 = Menu_Indent_line(s_menu9, 30);
         } else {
-                s_menu9 = "\n";
+            s_menu9 = "\n";
         }
         if ((self.is_admin || self.captain == 1) && captainmode) {
-                s_menu9 = strcat(s_menu9, "Option 0 results in canceling captain mode.\n");
+            s_menu9 = strcat(s_menu9, "Option 0 results in canceling captain mode.\n");
         }
 
         s_menu1 = strcat(s_menu1, s_menu2);
@@ -1638,7 +1643,7 @@ void (float inp) Menu_Admin_Input =
         }
     } 
     else if ((self.current_menu_type == ADMIN_MENU_TYPE_KICK || self.current_menu_type == ADMIN_MENU_TYPE_BAN || self.current_menu_type == ADMIN_MENU_TYPE_FORCESPEC) 
-                && inp >= 1 && inp <= 7) 
+            && inp >= 1 && inp <= 7) 
     { // Kick / Ban Actions
         //bprint(PRINT_HIGH, "Getting player ", ftos(inp), "\n");
         f_tmp = 1;    
@@ -1681,8 +1686,8 @@ void (float inp) Menu_Admin_Input =
         }
     } 
     else if ((self.current_menu_type == ADMIN_MENU_TYPE_CAPTAINTEAMONE 
-        || self.current_menu_type == ADMIN_MENU_TYPE_CAPTAINTEAMTWO 
-        || self.current_menu_type == ADMIN_MENU_TYPE_CAPTAINSELECT) && inp >= 1 && inp <= 7) 
+                || self.current_menu_type == ADMIN_MENU_TYPE_CAPTAINTEAMTWO 
+                || self.current_menu_type == ADMIN_MENU_TYPE_CAPTAINSELECT) && inp >= 1 && inp <= 7) 
     { // Captain Actions
         f_tmp = 1;
         self.admin_use = find (world, classname, "player");

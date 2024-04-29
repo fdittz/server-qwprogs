@@ -698,7 +698,9 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                         TeamFortress_EngineerBuildStop();
                         break;
                     }
-                    Menu_Engineer_Input(1);
+
+                    printf("arg3: %s\n", arg3);
+                    TeamFortress_Build(2, stof(arg3));
                     break;
                 }
                 if(arg2 == "dispenser") {
