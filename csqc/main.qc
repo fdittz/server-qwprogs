@@ -17,8 +17,10 @@ float InFluid(vector point);
 float CalculateWaterLevel();
 void RenderHitTexts();
 entity sentry_preview;
+float sentry_preview_offset;
 entity temp_self;
 float previewing_sentry;
+float rotating_sentry;
 
 void GetSelf() = {
     self = findfloat(world, entnum, player_localentnum);
@@ -239,8 +241,6 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
         v_forward = normalize(v_forward) * 64;
 
         sentry_preview.origin = PM_Org() + v_forward;
-        sentry_preview.angles_y = anglemod(input_angles_y + 180);
-
         setorigin(temp_self, PM_Org());
 
         if (!CheckArea(sentry_preview, temp_self)) {
@@ -560,11 +560,11 @@ static vector FO_Conc_Offset() {
     float i, rot = 0;
 
     if (!IsClownMode(CLOWN_CONC)) {
-            table = conc_curve;
-            len = conc_curve.length;
+        table = conc_curve;
+        len = conc_curve.length;
     } else {
-            table = clown_curve;
-            len = clown_curve.length;
+        table = clown_curve;
+        len = clown_curve.length;
     }
 
     for (i = 0; i < len - 1; i++) {
@@ -662,7 +662,7 @@ void FO_ApplyCussInput() {
     float modify_forward = TRUE;
 
     if ((!pmove_onground && (fo_config.fo_concuss & FOC_EASY_AIR)) ||
-        (pmove_onground && (fo_config.fo_concuss & FOC_EASY_GROUND)))
+            (pmove_onground && (fo_config.fo_concuss & FOC_EASY_GROUND)))
         modify_forward = input_buttons & BUTTON0;
 
     if (modify_forward) {
@@ -685,25 +685,40 @@ noref void CSQC_Input_Frame() {
 
     // Intercept rocket jump
     if ((WP_PlayerClass() == PC_SOLDIER || WP_PlayerClass() == PC_PYRO) &&
-        (input_buttons & BUTTON4))
+            (input_buttons & BUTTON4))
         input_buttons |= BUTTON0 | BUTTON2;
 
     // Intercept sentry build
-    if (WP_PlayerClass() == PC_ENGINEER && (input_buttons & BUTTON4)) {
-        if (keydowns & BUTTON4) {
-            if (!previewing_sentry) {
-                // preview sentry
-                sentry_preview.drawmask = MASK_ENGINE;
-                previewing_sentry = TRUE;
+    if (WP_PlayerClass() == PC_ENGINEER) {
+        if (input_buttons & BUTTON4) {
+            if (keydowns & BUTTON4) {
+                if (!previewing_sentry) {
+                    // preview sentry
+                    sentry_preview.angles_y = anglemod(input_angles_y + 180);
+                    sentry_preview.drawmask = MASK_ENGINE;
+                    previewing_sentry = TRUE;
 
-                input_buttons = input_buttons - BUTTON4;
+                    input_buttons = input_buttons - BUTTON4; // don't send build yet
+                }
             } else {
-                sentry_preview.drawmask = 0;
-                previewing_sentry = FALSE;
+                input_buttons = input_buttons - BUTTON4; // don't send build yet
             }
-        } else {
-            // don't send held button for now
-            input_buttons = input_buttons - BUTTON4;
+        }
+
+        if ((input_buttons & BUTTON0) && previewing_sentry) {
+            input_buttons = input_buttons - BUTTON0;
+
+            if (keydowns & BUTTON0) {
+                printf("rotating_sentry!\n");
+                rotating_sentry = TRUE;
+            }
+        }
+
+        if (keyups & BUTTON0) {
+            rotating_sentry = FALSE;
+            previewing_sentry = FALSE;
+            sentry_preview_offset = 0;
+            sentry_preview.drawmask = 0;
         }
     }
 
@@ -807,7 +822,7 @@ float FoLogin(string token, float print_error) {
     }
 
     if (token == "") {
-       if (print_error)
+        if (print_error)
             print("Token required: Please sign-up at fortressone.org and follow the instructions to generate your login token.\n");
         return FALSE;
     }
