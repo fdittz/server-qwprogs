@@ -212,7 +212,10 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
     float fts = perf_start_sample(&frame_timing);
     clearscene();
     setproperty(VF_DRAWWORLD, 1); 		// we want to draw our world!
-    setproperty(VF_DRAWCROSSHAIR, 1);		 // we want to draw our crosshair!
+
+    if (!previewing_sentry)
+        setproperty(VF_DRAWCROSSHAIR, 1);       // we want to draw our crosshair!
+
     FO_CussView();
 
     if (zoomed_in)
