@@ -16,6 +16,68 @@ void FO_Hud_Init();
 float InFluid(vector point);
 float CalculateWaterLevel();
 void RenderHitTexts();
+entity sentry_preview;
+entity temp_self;
+float previewing_sentry;
+
+// taken direct from engineer.qc:537
+float (entity obj, entity builder) CheckArea = {
+    local vector src;
+    local vector end;
+    local float pos;
+    local entity te;
+
+    pos = pointcontents(obj.origin);
+    if ((pos == -2) || (pos == -6)) {
+        return (0);
+    }
+    src_x = (obj.origin_x + obj.maxs_x) + 24;
+    src_y = (obj.origin_y + obj.maxs_y) + 24;
+    src_z = (obj.origin_z + obj.maxs_z) + 16;
+    pos = pointcontents(src);
+    if ((pos == -2) || (pos == -6)) {
+        return (0);
+    }
+    end_x = (obj.origin_x + obj.mins_x) - 16;
+    end_y = (obj.origin_y + obj.mins_y) - 16;
+    end_z = (obj.origin_z + obj.mins_z) - 16;
+    traceline(src, end, 1, obj);
+    if (trace_fraction != 1) {
+        return (0);
+    }
+    pos = pointcontents(end);
+    if ((pos == -2) || (pos == -6)) {
+        return (0);
+    }
+    src_x = (obj.origin_x + obj.mins_x) - 16;
+    src_y = (obj.origin_y + obj.maxs_y) + 16;
+    src_z = (obj.origin_z + obj.maxs_z) + 16;
+    pos = pointcontents(src);
+    if ((pos == -2) || (pos == -6)) {
+        return (0);
+    }
+    end_x = (obj.origin_x + obj.maxs_x) + 16;
+    end_y = (obj.origin_y + obj.mins_y) - 16;
+    end_z = (obj.origin_z + obj.mins_z) - 16;
+    traceline(src, end, 1, obj);
+    if (trace_fraction != 1) {
+        return (0);
+    }
+    pos = pointcontents(end);
+    if ((pos == -2) || (pos == -6)) {
+        return (0);
+    }
+    traceline(builder.origin, obj.origin, 1, builder);
+    if (trace_fraction != 1) {
+        return (0);
+    }
+    te = findradius(obj.origin, 64);
+    if (te != world) {
+        return (0);
+    }
+    return (1);
+};
+
 
 void GetSelf() = {
     self = findfloat(world, entnum, player_localentnum);
@@ -90,7 +152,6 @@ void ClientSettings_Check();
 noref void(float apiver, string enginename, float enginever) CSQC_Init = {
     print("CSQC Started\n");
 
-    //    precache_model("progs/weapons/v_rock.mdl");
 
     //     for (float i = 0; i < HudIcons.length; i++) {
     //         precache_pic(HudIcons[i].icon);
@@ -180,6 +241,13 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init = {
     FO_Menu_Game(TRUE);
 
     pengine.view_mask = MASK_VIEWMODEL;  // Start with engine models.
+
+    precache_model("progs/turrbase.mdl");
+    temp_self = spawn();
+    sentry_preview = spawn();
+    setmodel(sentry_preview, "progs/turrbase.mdl");
+    sentry_preview.alpha = 0.5;
+
     print("CSQC initialization finished\n");
 };
 
@@ -220,6 +288,23 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
 
     if (PM_Enabled())
         PM_UpdateView();
+
+    if (previewing_sentry) {
+        makevectors(input_angles);
+        v_forward_z = 0;
+        v_forward = normalize(v_forward) * 64;
+
+        sentry_preview.origin = PM_Org() + v_forward;
+        sentry_preview.angles_y = anglemod(input_angles_y + 180);
+
+        setorigin(temp_self, PM_Org());
+
+        if (!CheckArea(sentry_preview, temp_self)) {
+            sentry_preview.colormod = '1 0.5 0.5';
+        } else {
+            sentry_preview.colormod = '0.5 1 0.5';
+        }
+    }
 
     renderscene();
 
@@ -646,12 +731,37 @@ void FO_ApplyCussInput() {
 void PM_InputFrame();
 
 noref void CSQC_Input_Frame() {
+    local float changed_buttons = input_buttons ^ oldbuttons;
+    oldbuttons = input_buttons;
+
+    local float keydowns = changed_buttons & input_buttons;
+    local float keyups = changed_buttons & ~input_buttons;
+
     Sync_GameState();
 
-    // Intercept rocket jump;
+    // Intercept rocket jump
     if ((WP_PlayerClass() == PC_SOLDIER || WP_PlayerClass() == PC_PYRO) &&
         (input_buttons & BUTTON4))
         input_buttons |= BUTTON0 | BUTTON2;
+
+    // Intercept sentry build
+    if (WP_PlayerClass() == PC_ENGINEER && (input_buttons & BUTTON4)) {
+        if (keydowns & BUTTON4) {
+            if (!previewing_sentry) {
+                // preview sentry
+                sentry_preview.drawmask = MASK_ENGINE;
+                previewing_sentry = TRUE;
+
+                input_buttons = input_buttons - BUTTON4;
+            } else {
+                sentry_preview.drawmask = 0;
+                previewing_sentry = FALSE;
+            }
+        } else {
+            // don't send held button for now
+            input_buttons = input_buttons - BUTTON4;
+        }
+    }
 
     // Handle zoom
     float prev_zoomed_in = zoomed_in;

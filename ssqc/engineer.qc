@@ -591,12 +591,13 @@ float (entity obj, entity builder) CheckArea = {
     return (1);
 };
 
+// here
 void (float objtobuild) TeamFortress_Build = {
     if (cb_prematch) {
         sprint(self, PRINT_MEDIUM, "You cannot build during prematch\n");
         return;
     }
-    
+
     if(no_fire_mode) {
         sprint(self, PRINT_MEDIUM, "You cannot build right now\n");
         return;
