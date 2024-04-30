@@ -63,7 +63,6 @@ float RemoveFromSlotHistory(float slot) {
     }
 }
 
-
 static void BindAlias(TFAlias* tfa) {
     if (tfa->impulse == 0 && tfa->cmd == "")  // Some aliases are !csqc-only
         return;
@@ -674,6 +673,13 @@ void FO_ApplyCussInput() {
 
 void PM_InputFrame();
 
+void SentryPreviewStop() {
+    rotating_sentry = FALSE;
+    previewing_sentry = FALSE;
+    sentry_preview_offset = 0;
+    sentry_preview.drawmask = 0;
+}
+
 noref void CSQC_Input_Frame() {
     local float changed_buttons = input_buttons ^ oldbuttons;
     oldbuttons = input_buttons;
@@ -699,10 +705,7 @@ noref void CSQC_Input_Frame() {
                     previewing_sentry = TRUE;
                 } else {
                     // cancel preview sentry
-                    rotating_sentry = FALSE;
-                    previewing_sentry = FALSE;
-                    sentry_preview_offset = 0;
-                    sentry_preview.drawmask = 0;
+                    SentryPreviewStop();
                 }
             }
 
@@ -717,10 +720,7 @@ noref void CSQC_Input_Frame() {
             if (keyups & BUTTON0) {
                 // cancel preview sentry
                 localcmd(sprintf("cmd build sentry %f\n", sentry_preview_offset));
-                rotating_sentry = FALSE;
-                previewing_sentry = FALSE;
-                sentry_preview_offset = 0;
-                sentry_preview.drawmask = 0;
+                SentryPreviewStop();
             }
 
             if (input_buttons & BUTTON0) {
@@ -798,6 +798,10 @@ void _Sync_ServerCommandFrame() {
 
     CsGrenTimer::UpdateSoundStack();
     UpdateTeamColorCrosshair();
+
+    if (!game_state.is_alive && previewing_sentry) {
+        SentryPreviewStop();
+    }
 }
 
 
