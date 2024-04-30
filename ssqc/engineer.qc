@@ -602,6 +602,7 @@ void (float objtobuild, float offset) TeamFortress_Build = {
         btime = time + 5;
         self.sentry_ticks = 0;
     }
+
     if (CheckArea(newmis, self) == 0) {
         sprint(self, PRINT_HIGH, "Not enough room to build here\n");
         dremove(newmis);

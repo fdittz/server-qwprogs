@@ -238,11 +238,14 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
         makevectors(input_angles);
         v_forward_z = 0;
         v_forward = normalize(v_forward) * 64;
-
         sentry_preview.origin = PM_Org() + v_forward;
         setorigin(temp_self, PM_Org());
 
-        if (!CheckArea(sentry_preview, temp_self)) {
+        local entity newmis;
+        newmis = spawn();
+        newmis.origin = sentry_preview.origin;
+
+        if (!CheckArea(newmis, temp_self)) {
             sentry_preview.colormod = '1 0.5 0.5';
         } else {
             sentry_preview.colormod = '1 1 1';
