@@ -17,8 +17,9 @@ float InFluid(vector point);
 float CalculateWaterLevel();
 void RenderHitTexts();
 entity sentry_preview;
-float sentry_preview_offset;
+entity temp_sentry;
 entity temp_self;
+float sentry_preview_offset;
 float previewing_sentry;
 float rotating_sentry;
 float prevent_firing;
@@ -186,6 +187,7 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init = {
     pengine.view_mask = MASK_VIEWMODEL;  // Start with engine models.
 
     precache_model("progs/turrbase.mdl");
+    temp_sentry = spawn();
     temp_self = spawn();
     sentry_preview = spawn();
     setmodel(sentry_preview, "progs/turrbase.mdl");
@@ -241,12 +243,9 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
         v_forward = normalize(v_forward) * 64;
         sentry_preview.origin = PM_Org() + v_forward;
         setorigin(temp_self, PM_Org());
+        temp_sentry.origin = sentry_preview.origin;
 
-        local entity newmis;
-        newmis = spawn();
-        newmis.origin = sentry_preview.origin;
-
-        if (!CheckArea(newmis, temp_self)) {
+        if (!CheckArea(temp_sentry, temp_self)) {
             sentry_preview.colormod = '1 0.5 0.5';
         } else {
             sentry_preview.colormod = '1 1 1';
