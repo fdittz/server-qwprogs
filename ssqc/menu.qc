@@ -823,6 +823,26 @@ void (float inp) Menu_Engineer_Input = {
     if (inp == 5)
         return;
 
+    if (inp == 3 && self.has_sentry) {
+        te = findradius(self.origin, ENG_BUILDING_DISMANTLE_DISTANCE);
+        while (te) {
+            if (te.classname == "building_sentrygun") {
+                if (te.real_owner == self && te.weapon == 0){
+                    sprint (self, PRINT_HIGH, strcat("You stopped building a sentry gun and got ", ftos(ENG_SENTRY_COST), " cells back\n"));
+                    self.ammo_cells = self.ammo_cells + ENG_SENTRY_COST;
+                    if (self.ammo_cells > self.maxammo_cells)
+                        self.ammo_cells = self.maxammo_cells;
+                    if (te.trigger_field != world)
+                        dremove (te.trigger_field);
+                    self = te.real_owner;
+                    TeamFortress_EngineerBuildStop();
+                    return;
+                }
+            }
+            te = te.chain;
+        }
+    }
+
     if (self.is_building) {
         if (engineer_move) {
             Status_Print(self, "\n\n\n\n\n\n\n", strcat("You are already building something"));
