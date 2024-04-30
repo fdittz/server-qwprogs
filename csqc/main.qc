@@ -716,6 +716,7 @@ noref void CSQC_Input_Frame() {
 
             if (keyups & BUTTON0) {
                 // cancel preview sentry
+                localcmd(sprintf("cmd build sentry %f\n", sentry_preview_offset));
                 rotating_sentry = FALSE;
                 previewing_sentry = FALSE;
                 sentry_preview_offset = 0;
