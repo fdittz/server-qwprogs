@@ -612,10 +612,6 @@ void (float objtobuild, float offset) TeamFortress_Build = {
             sprint(self, PRINT_HIGH, "You cannot build in the water\n");
             dremove(newmis);
             return;
-        } else if (!self.waterlevel) {
-            sprint(self, PRINT_HIGH, "You cannot build in the air\n");
-            dremove(newmis);
-            return;
         }
     }
     self.is_building = 1;
