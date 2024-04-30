@@ -699,7 +699,6 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                         break;
                     }
 
-                    printf("arg3: %s\n", arg3);
                     TeamFortress_BuildSentry(stof(arg3));
                     break;
                 }
