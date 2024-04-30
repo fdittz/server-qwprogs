@@ -21,6 +21,7 @@ float sentry_preview_offset;
 entity temp_self;
 float previewing_sentry;
 float rotating_sentry;
+float prevent_firing;
 
 void GetSelf() = {
     self = findfloat(world, entnum, player_localentnum);
@@ -702,12 +703,15 @@ noref void CSQC_Input_Frame() {
         if (input_buttons & BUTTON4) {
             if (keydowns & BUTTON4) {
                 if (!previewing_sentry) {
-                    // preview sentry
                     sentry_preview.angles_y = anglemod(input_angles_y + 180);
                     sentry_preview.drawmask = MASK_ENGINE;
                     previewing_sentry = TRUE;
                 } else {
                     SentryPreviewStop();
+
+                    if (input_buttons & BUTTON0) {
+                        prevent_firing = TRUE;
+                    }
                 }
             }
 
@@ -727,6 +731,14 @@ noref void CSQC_Input_Frame() {
             if (input_buttons & BUTTON0) {
                 input_buttons = input_buttons - BUTTON0;
             }
+        }
+
+        if (keyups & BUTTON0) {
+            prevent_firing = FALSE;
+        }
+
+        if (prevent_firing) {
+            input_buttons &= ~BUTTON0;
         }
     }
 
