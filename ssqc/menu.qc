@@ -810,7 +810,7 @@ void (float offset) TeamFortress_BuildSentry = {
     if (self.has_sentry) return;
 
     if (self.ammo_cells >= ENG_SENTRY_COST)
-        TeamFortress_Build(2, 0);
+        TeamFortress_Build(2, offset);
     else
         Status_Print(self, "\n\n\n\n\n\n\n", strcat("You need ", ftos(ENG_SENTRY_COST), " cells to build a sentry gun"));
 }

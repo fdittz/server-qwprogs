@@ -689,7 +689,7 @@ noref void CSQC_Input_Frame() {
         input_buttons |= BUTTON0 | BUTTON2;
 
     // Intercept sentry build
-    if (WP_PlayerClass() == PC_ENGINEER && !getstatf(STAT_HAS_SENTRY)) {
+    if (WP_PlayerClass() == PC_ENGINEER && !getstatf(STAT_HAS_SENTRY) && getstatf(STAT_CELLS) >= 130) {
         if (input_buttons & BUTTON4) {
             if (keydowns & BUTTON4) {
                 if (!previewing_sentry) {
@@ -706,19 +706,16 @@ noref void CSQC_Input_Frame() {
                 }
             }
 
-            input_buttons = input_buttons - BUTTON4; // don't send build yet
+            input_buttons = input_buttons - BUTTON4;
         }
 
         if (previewing_sentry) {
             if (keydowns & BUTTON0) {
-                printf("rotating_sentry!\n");
                 rotating_sentry = TRUE;
             }
 
             if (keyups & BUTTON0) {
                 // cancel preview sentry
-                printf("sentry_preview_offset: %f\n", sentry_preview_offset);
-                localcmd(sprintf("cmd build sentry %f\n", sentry_preview_offset));
                 rotating_sentry = FALSE;
                 previewing_sentry = FALSE;
                 sentry_preview_offset = 0;

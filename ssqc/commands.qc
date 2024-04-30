@@ -700,7 +700,7 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                     }
 
                     printf("arg3: %s\n", arg3);
-                    TeamFortress_Build(2, stof(arg3));
+                    TeamFortress_BuildSentry(stof(arg3));
                     break;
                 }
                 if(arg2 == "dispenser") {
