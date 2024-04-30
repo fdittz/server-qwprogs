@@ -96,7 +96,7 @@ float(float evtype, float scanx, float chary, float devid) CSQC_InputEvent = {
                             }
                             return TRUE;
                         }
-                }     
+                }
              case IE_KEYUP:
                 switch (scanx) {
                     case K_ESCAPE:
@@ -117,6 +117,17 @@ float(float evtype, float scanx, float chary, float devid) CSQC_InputEvent = {
                         return TRUE;
                 }
                 break;
+            case IE_MOUSEDELTA:
+                local float sensitivity = 0.25;
+                if (rotating_sentry) {
+                    sentry_preview.angles_y = anglemod(sentry_preview.angles_y + scanx * sensitivity);
+                    sentry_preview_offset = sentry_preview_offset + scanx * sensitivity;
+                    return TRUE;
+                }
+
+                if (previewing_sentry) {
+                    sentry_preview.angles_y = anglemod(input_angles_y + (180 - sentry_preview_offset));
+                }
             default:
         }
     }
