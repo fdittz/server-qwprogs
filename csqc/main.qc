@@ -246,7 +246,7 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
         if (!CheckArea(sentry_preview, temp_self)) {
             sentry_preview.colormod = '1 0.5 0.5';
         } else {
-            sentry_preview.colormod = '0.5 1 0.5';
+            sentry_preview.colormod = '1 1 1';
         }
     }
 
