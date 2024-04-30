@@ -225,18 +225,6 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
     if (zoomed_in)
         setviewprop(VF_AFOV, CVARF(fov)/3);
 
-    // Draw original sbar, viewsize honoured automatically.
-    if (!CVARF(fo_fte_hud) || CVARF(fo_legacy_sbar))
-        setproperty(VF_DRAWENGINESBAR, 1);
-
-    float mask = MASK_ENGINE;
-    if (!intermission)
-        mask |= WPP_ViewModelMask();
-    addentities(mask);
-
-    if (PM_Enabled())
-        PM_UpdateView();
-
     if (previewing_sentry) {
         makevectors(input_angles);
         v_forward_z = 0;
@@ -251,6 +239,18 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
             sentry_preview.colormod = '1 1 1';
         }
     }
+
+    // Draw original sbar, viewsize honoured automatically.
+    if (!CVARF(fo_fte_hud) || CVARF(fo_legacy_sbar))
+        setproperty(VF_DRAWENGINESBAR, 1);
+
+    float mask = MASK_ENGINE;
+    if (!intermission)
+        mask |= WPP_ViewModelMask();
+    addentities(mask);
+
+    if (PM_Enabled())
+        PM_UpdateView();
 
     renderscene();
 
