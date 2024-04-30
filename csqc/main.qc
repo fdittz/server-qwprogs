@@ -23,6 +23,7 @@ float sentry_preview_offset;
 float previewing_sentry;
 float rotating_sentry;
 float prevent_firing;
+float sentry_fits;
 
 void GetSelf() = {
     self = findfloat(world, entnum, player_localentnum);
@@ -217,14 +218,6 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
     clearscene();
     setproperty(VF_DRAWWORLD, 1); 		// we want to draw our world!
 
-    if (!previewing_sentry)
-        setproperty(VF_DRAWCROSSHAIR, 1);       // we want to draw our crosshair!
-
-    FO_CussView();
-
-    if (zoomed_in)
-        setviewprop(VF_AFOV, CVARF(fov)/3);
-
     if (previewing_sentry) {
         makevectors(input_angles);
         v_forward_z = 0;
@@ -232,13 +225,16 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
         sentry_preview.origin = PM_Org() + v_forward;
         setorigin(temp_self, PM_Org());
         temp_sentry.origin = sentry_preview.origin;
-
-        if (!CheckArea(temp_sentry, temp_self)) {
-            sentry_preview.colormod = '1 0.5 0.5';
-        } else {
-            sentry_preview.colormod = '1 1 1';
-        }
+        sentry_fits = CheckArea(temp_sentry, temp_self);
+        sentry_preview.colormod = sentry_fits ? '1 1 1' : '1 0.5 0.5';
+    } else {
+        setproperty(VF_DRAWCROSSHAIR, 1);       // we want to draw our crosshair!
     }
+
+    FO_CussView();
+
+    if (zoomed_in)
+        setviewprop(VF_AFOV, CVARF(fov)/3);
 
     // Draw original sbar, viewsize honoured automatically.
     if (!CVARF(fo_fte_hud) || CVARF(fo_legacy_sbar))
@@ -723,8 +719,13 @@ noref void CSQC_Input_Frame() {
             }
 
             if (keyups & BUTTON0) {
-                localcmd(sprintf("cmd build sentry %f\n", sentry_preview_offset));
-                SentryPreviewStop();
+                if (sentry_fits) {
+                    localcmd(sprintf("cmd build sentry %f\n", sentry_preview_offset));
+                    SentryPreviewStop();
+                } else {
+                    print("Not enough room to build here\n");
+                    rotating_sentry = FALSE;
+                }
             }
 
             if (input_buttons & BUTTON0) {
