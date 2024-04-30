@@ -3003,4 +3003,6 @@ void () DropGoalItems = {
                 break;
         }
     }
+
+    UpdateClientFlagDrop(self);
 };
