@@ -615,6 +615,8 @@ void (float objtobuild, float offset) TeamFortress_Build = {
             return;
         }
     }
+
+    UpdateClientBuilding(self);
     self.is_building = 1;
     if (!engineer_move) {
         self.immune_to_check = time + 5;
