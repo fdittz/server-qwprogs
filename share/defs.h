@@ -1460,6 +1460,7 @@ enum {
 #define STAT_ALL_TIME           38
 #define STAT_SPAWN_GEN          39
 #define STAT_ROUND_END          40
+#define STAT_HAS_SENTRY         41
 
 // Dimensions
 #define DMN_FLASH 1 // when flashed, we set dimension see to this
