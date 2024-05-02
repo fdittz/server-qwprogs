@@ -1316,7 +1316,7 @@ float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
                 break;
             case "play_to_completion":
                 if(arg2 != "0" && arg2 != "1")
-                    return;
+                    break;
 
                 processedCmd = TRUE;
                 localcmd ("localinfo play_to_completion ",arg2,"\n");
