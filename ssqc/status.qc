@@ -767,6 +767,29 @@ void UpdateClientBuilding(entity pl) {
     multicast('0 0 0', MULTICAST_ONE_NOSPECS);
 }
 
+void UpdateClientRotateSentry(entity pl, entity sentry) {
+    if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
+        return;
+
+    msg_entity = pl;
+    WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
+    WriteByte(MSG_MULTICAST, MSG_ROTATE_SENTRY);
+    WriteEntity(MSG_MULTICAST, sentry);
+    WriteString(MSG_MULTICAST, sentry.model);
+
+    local float frame_no;
+    if (sentry.frame >= 6) {
+        frame_no = 6;
+    } else if (sentry.frame >= 3) {
+        frame_no = 3;
+    } else {
+        frame_no = 0;
+    }
+
+    WriteFloat(MSG_MULTICAST, frame_no);
+    multicast('0 0 0', MULTICAST_ONE_NOSPECS);
+}
+
 void UpdateClientReloadSound(entity pl, float weapon) {
     if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
         return;

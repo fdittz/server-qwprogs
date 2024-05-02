@@ -362,6 +362,15 @@ void() CSQC_Parse_Event = {
         case MSG_BUILDING:
             SentryPreviewStop();
             break;
+        case MSG_ROTATE_SENTRY:
+            local vector origin = getentity(readentitynum(), GE_ORIGINANDVECTORS);
+            setmodel(sentry_rotate, readstring());
+            sentry_rotate.frame = readfloat();
+            setorigin(sentry_rotate, origin);
+            sentry_rotate.angles = vectoangles(v_forward);
+            sentry_rotate.drawmask = MASK_ENGINE;
+            rotating_sentry = TRUE;
+            break;
     }
 }
 

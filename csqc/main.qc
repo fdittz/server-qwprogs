@@ -17,10 +17,12 @@ float InFluid(vector point);
 float CalculateWaterLevel();
 void RenderHitTexts();
 entity sentry_preview;
+entity sentry_rotate;
 entity temp_sentry;
 entity temp_self;
 float sentry_preview_offset;
 float previewing_sentry;
+float rotating_preview;
 float rotating_sentry;
 float prevent_firing;
 float sentry_fits;
@@ -188,9 +190,11 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init = {
     pengine.view_mask = MASK_VIEWMODEL;  // Start with engine models.
 
     precache_model("progs/turrbase.mdl");
+    precache_model("progs/turrgun.mdl");
     temp_sentry = spawn();
     temp_self = spawn();
     sentry_preview = spawn();
+    sentry_rotate = spawn();
     setmodel(sentry_preview, "progs/turrbase.mdl");
     sentry_preview.alpha = 0.5;
 
@@ -672,8 +676,14 @@ void FO_ApplyCussInput() {
 
 void PM_InputFrame();
 
+void SentryPreviewStart() {
+    sentry_preview.angles_y = anglemod(input_angles_y + 180);
+    sentry_preview.drawmask = MASK_ENGINE;
+    previewing_sentry = TRUE;
+}
+
 void SentryPreviewStop() {
-    rotating_sentry = FALSE;
+    rotating_preview = FALSE;
     previewing_sentry = FALSE;
     sentry_preview_offset = 0;
     sentry_preview.drawmask = 0;
@@ -693,52 +703,59 @@ noref void CSQC_Input_Frame() {
             (input_buttons & BUTTON4))
         input_buttons |= BUTTON0 | BUTTON2;
 
-    // Intercept sentry build
-    if (WP_PlayerClass() == PC_ENGINEER && !getstatf(STAT_HAS_SENTRY) && getstatf(STAT_CELLS) >= 130 && game_state.is_alive && !prematch) {
-        if (input_buttons & BUTTON4) {
-            if (keydowns & BUTTON4) {
-                if (!previewing_sentry) {
-                    sentry_preview.angles_y = anglemod(input_angles_y + 180);
-                    sentry_preview.drawmask = MASK_ENGINE;
-                    previewing_sentry = TRUE;
-                } else {
-                    SentryPreviewStop();
+    if (WP_PlayerClass() == PC_ENGINEER) {
+        // Intercept sentry build
+        if (rotating_sentry) {
+            if (keyups & BUTTON0) {
+                rotating_sentry = FALSE;
+                localcmd(sprintf("cmd sentry rotate mouse %f\n", sentry_rotate.angles_y));
+                sentry_rotate.drawmask = 0;
+            }
+            input_buttons &= ~BUTTON0;
+        } else if (!getstatf(STAT_HAS_SENTRY) && getstatf(STAT_CELLS) >= 130 && game_state.is_alive && !prematch) {
+            if (input_buttons & BUTTON4) {
+                if (keydowns & BUTTON4) {
+                    if (!previewing_sentry) {
+                        SentryPreviewStart();
+                    } else {
+                        SentryPreviewStop();
 
-                    if (input_buttons & BUTTON0) {
-                        prevent_firing = TRUE;
+                        if (input_buttons & BUTTON0) {
+                            prevent_firing = TRUE;
+                        }
                     }
                 }
+
+                input_buttons = input_buttons - BUTTON4;
             }
 
-            input_buttons = input_buttons - BUTTON4;
-        }
+            if (previewing_sentry) {
+                if (keydowns & BUTTON0) {
+                    rotating_preview = TRUE;
+                }
 
-        if (previewing_sentry) {
-            if (keydowns & BUTTON0) {
-                rotating_sentry = TRUE;
+                if (keyups & BUTTON0) {
+                    if (sentry_fits) {
+                        localcmd(sprintf("cmd build sentry %f\n", sentry_preview_offset));
+                        SentryPreviewStop();
+                    } else {
+                        print("Not enough room to build here\n");
+                        rotating_preview = FALSE;
+                    }
+                }
+
+                if (input_buttons & BUTTON0) {
+                    input_buttons = input_buttons - BUTTON0;
+                }
             }
 
             if (keyups & BUTTON0) {
-                if (sentry_fits) {
-                    localcmd(sprintf("cmd build sentry %f\n", sentry_preview_offset));
-                    SentryPreviewStop();
-                } else {
-                    print("Not enough room to build here\n");
-                    rotating_sentry = FALSE;
-                }
+                prevent_firing = FALSE;
             }
 
-            if (input_buttons & BUTTON0) {
-                input_buttons = input_buttons - BUTTON0;
+            if (prevent_firing) {
+                input_buttons &= ~BUTTON0;
             }
-        }
-
-        if (keyups & BUTTON0) {
-            prevent_firing = FALSE;
-        }
-
-        if (prevent_firing) {
-            input_buttons &= ~BUTTON0;
         }
     }
 

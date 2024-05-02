@@ -313,10 +313,10 @@ void (entity pl) PrintWho = {
     strunzone(msg);
 }
 
-float (string arg1, string arg2, string arg3) ParseCmds = {
+float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
     local float arg_num = 0, processedCmd, inp;
     local string tmp;
-    local float farg2, farg3;
+    local float farg2, farg3, farg4;
     local entity ent, pl;
     processedCmd = FALSE;
 
@@ -756,6 +756,20 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                                 || self.classname != "player" || ent == world) {
                         sprint(self, PRINT_HIGH, "Sentry detection issue!\n");
                         break;
+                    }
+                    if (arg3 == "mouse") {
+                        if (!arg4) {
+                            ent.dimension_ghost = ent.dimension_seen;
+                            UpdateClientRotateSentry(self, ent);
+                            break;
+                        } else {
+                            farg4 = stof(arg4);
+                            ent.dimension_ghost = FALSE;
+                            ent.angles_y = farg4;
+                            ent.waitmin = anglemod(farg4 - 50);
+                            ent.waitmax = anglemod(farg4 + 50);
+                            break;
+                        }
                     }
                     if(farg3 < 0) {
                         sprint(self, PRINT_HIGH, "Rotating ",ftos(farg3 * -1)," degrees clockwise...\n");
@@ -1377,7 +1391,7 @@ void (string cmd) SV_ParseClientCommand = {
     float isProcessed;
     tokenize(cmd);
 
-    isProcessed = ParseCmds(argv(0), argv(1), argv(2));
+    isProcessed = ParseCmds(argv(0), argv(1), argv(2), argv(3));
 
     if (!isProcessed)
     {
