@@ -439,6 +439,8 @@ void () GibPlayer = {
 };
 
 void () PlayerDie = {
+    self.rotating_sentry.dimension_ghost = 0;
+
     self.spawn_gen += 1;
     self.last_death_ctime = self.client_time;
 

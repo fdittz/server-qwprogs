@@ -731,11 +731,25 @@ float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
                 sprint(self, PRINT_HIGH, "Only engineers can do that!\n");
                 break;
             }
+
             if(self.health <= 0) {
                 sprint(self, PRINT_HIGH, "Can't maintain while dead.\n");
                 break;
             }
-            
+
+            if (arg2 && arg2 == "rotate" && arg3 && arg3 == "mouse" && arg4) {
+                self.dimension_see = (self.dimension_see & ~DMN_GHOST) | DMN_HIDDEN;
+
+                local entity rs = self.rotating_sentry;
+                farg4 = stof(arg4);
+
+                rs.dimension_seen = (rs.dimension_seen & ~(DMN_HIDDEN | DMN_GHOST)) | DMN_NOFLASH;
+                rs.angles_y = farg4;
+                rs.waitmin = anglemod(farg4 - 50);
+                rs.waitmax = anglemod(farg4 + 50);
+                break;
+            }
+
             //find sentry first
             ent = findradius(self.origin, ENG_BUILDING_MAINT_DISTANCE);
             while (ent) {
@@ -745,10 +759,12 @@ float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
                 }
                 ent = ent.chain;
             }
+
             if (!ent) {
                 sprint(self, PRINT_HIGH, "No sentry in range\n");
                 break;
             }
+
             if (arg2 && arg3) {
                 if(arg2 == "rotate") {
                     farg3 = stof(arg3);
@@ -757,19 +773,12 @@ float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
                         sprint(self, PRINT_HIGH, "Sentry detection issue!\n");
                         break;
                     }
-                    if (arg3 == "mouse") {
-                        if (!arg4) {
-                            ent.dimension_ghost = ent.dimension_seen;
-                            UpdateClientRotateSentry(self, ent);
-                            break;
-                        } else {
-                            farg4 = stof(arg4);
-                            ent.dimension_ghost = FALSE;
-                            ent.angles_y = farg4;
-                            ent.waitmin = anglemod(farg4 - 50);
-                            ent.waitmax = anglemod(farg4 + 50);
-                            break;
-                        }
+                    if (arg3 == "mouse" && !arg4) {
+                        self.dimension_see = (self.dimension_see & ~DMN_HIDDEN) | DMN_GHOST;
+                        ent.dimension_seen = (ent.dimension_seen & ~DMN_NOFLASH) | DMN_HIDDEN | DMN_GHOST;
+                        UpdateClientRotateSentry(self, ent);
+                        self.rotating_sentry = ent;
+                        break;
                     }
                     if(farg3 < 0) {
                         sprint(self, PRINT_HIGH, "Rotating ",ftos(farg3 * -1)," degrees clockwise...\n");

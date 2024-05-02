@@ -775,7 +775,6 @@ void UpdateClientRotateSentry(entity pl, entity sentry) {
     WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
     WriteByte(MSG_MULTICAST, MSG_ROTATE_SENTRY);
     WriteEntity(MSG_MULTICAST, sentry);
-    WriteString(MSG_MULTICAST, sentry.model);
 
     local float frame_no;
     if (sentry.frame >= 6) {

@@ -689,6 +689,11 @@ void SentryPreviewStop() {
     sentry_preview.drawmask = 0;
 }
 
+void SentryRotateStop() {
+    rotating_sentry = FALSE;
+    sentry_rotate.drawmask = 0;
+}
+
 noref void CSQC_Input_Frame() {
     local float changed_buttons = input_buttons ^ oldbuttons;
     oldbuttons = input_buttons;
@@ -707,9 +712,8 @@ noref void CSQC_Input_Frame() {
         // Intercept sentry build
         if (rotating_sentry) {
             if (keyups & BUTTON0) {
-                rotating_sentry = FALSE;
                 localcmd(sprintf("cmd sentry rotate mouse %f\n", sentry_rotate.angles_y));
-                sentry_rotate.drawmask = 0;
+                SentryRotateStop();
             }
             input_buttons &= ~BUTTON0;
         } else if (!getstatf(STAT_HAS_SENTRY) && getstatf(STAT_CELLS) >= 130 && game_state.is_alive && !prematch) {
@@ -829,8 +833,13 @@ void _Sync_ServerCommandFrame() {
     CsGrenTimer::UpdateSoundStack();
     UpdateTeamColorCrosshair();
 
-    if (!game_state.is_alive && previewing_sentry) {
-        SentryPreviewStop();
+    if (!game_state.is_alive) {
+        if (previewing_sentry)
+            SentryPreviewStop();
+
+        if (rotating_sentry) {
+            SentryRotateStop();
+        }
     }
 }
 

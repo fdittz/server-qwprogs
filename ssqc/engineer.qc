@@ -1039,6 +1039,7 @@ void () TeamFortress_FinishedBuilding = {
         newmis.th_die = Sentry_Die;
         newmis.th_pain = Sentry_Pain;
         newmis.mdl = "progs/turrgun.mdl";
+        newmis.dimension_ghost = DMN_GHOST;
         newmis.dimension_ghost_alpha = 0.25;
         self.sentry_ent = newmis;
         FO_Sound(oldself, CHAN_ITEM, "weapons/turrset.wav", 1, 1);
