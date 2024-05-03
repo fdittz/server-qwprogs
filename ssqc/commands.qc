@@ -738,15 +738,19 @@ float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
             }
 
             if (arg2 && arg2 == "rotate" && arg3 && arg3 == "mouse" && arg4) {
+                if (self.rotating_sentry == world)
+                    break;
+
                 self.dimension_see = (self.dimension_see & ~DMN_GHOST) | DMN_HIDDEN;
 
                 local entity rs = self.rotating_sentry;
-                farg4 = stof(arg4);
-
                 rs.dimension_seen = (rs.dimension_seen & ~(DMN_HIDDEN | DMN_GHOST)) | DMN_NOFLASH;
+                farg4 = stof(arg4);
                 rs.angles_y = farg4;
                 rs.waitmin = anglemod(farg4 - 50);
                 rs.waitmax = anglemod(farg4 + 50);
+                FO_Sound(self, CHAN_ITEM, "weapons/turridle.wav", 1, ATTN_NORM);
+                self.rotating_sentry = world;
                 break;
             }
 
@@ -774,9 +778,12 @@ float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
                         break;
                     }
                     if (arg3 == "mouse" && !arg4) {
+                        if (!self.rotating_sentry == world)
+                            break;
+
                         self.dimension_see = (self.dimension_see & ~DMN_HIDDEN) | DMN_GHOST;
                         ent.dimension_seen = (ent.dimension_seen & ~DMN_NOFLASH) | DMN_HIDDEN | DMN_GHOST;
-                        UpdateClientRotateSentry(self, ent);
+                        UpdateClientSentryRotate(self, ent);
                         self.rotating_sentry = ent;
                         break;
                     }

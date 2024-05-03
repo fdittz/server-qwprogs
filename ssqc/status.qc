@@ -767,13 +767,13 @@ void UpdateClientBuilding(entity pl) {
     multicast('0 0 0', MULTICAST_ONE_NOSPECS);
 }
 
-void UpdateClientRotateSentry(entity pl, entity sentry) {
+void UpdateClientSentryRotate(entity pl, entity sentry) {
     if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
         return;
 
     msg_entity = pl;
     WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
-    WriteByte(MSG_MULTICAST, MSG_ROTATE_SENTRY);
+    WriteByte(MSG_MULTICAST, MSG_SENTRY_ROTATE);
     WriteEntity(MSG_MULTICAST, sentry);
 
     local float frame_no;
@@ -786,6 +786,16 @@ void UpdateClientRotateSentry(entity pl, entity sentry) {
     }
 
     WriteFloat(MSG_MULTICAST, frame_no);
+    multicast('0 0 0', MULTICAST_ONE_NOSPECS);
+}
+
+void UpdateClientSentryDie(entity pl) {
+    if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
+        return;
+
+    msg_entity = pl;
+    WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
+    WriteByte(MSG_MULTICAST, MSG_SENTRY_DIE);
     multicast('0 0 0', MULTICAST_ONE_NOSPECS);
 }
 

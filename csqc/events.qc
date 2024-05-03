@@ -362,7 +362,7 @@ void() CSQC_Parse_Event = {
         case MSG_BUILDING:
             SentryPreviewStop();
             break;
-        case MSG_ROTATE_SENTRY:
+        case MSG_SENTRY_ROTATE:
             local vector origin = getentity(readentitynum(), GE_ORIGINANDVECTORS);
             sentry_rotate.frame = readfloat();
             setmodel(sentry_rotate, "progs/turrgun.mdl");
@@ -370,6 +370,9 @@ void() CSQC_Parse_Event = {
             sentry_rotate.angles = vectoangles(v_forward);
             sentry_rotate.drawmask = MASK_ENGINE;
             rotating_sentry = TRUE;
+            break;
+        case MSG_SENTRY_DIE:
+            SentryRotateStop();
             break;
     }
 }
