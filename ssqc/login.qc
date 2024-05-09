@@ -13,9 +13,8 @@ void (entity player, string login, string secret) performLogin = {
 	dprint("\n");
 }
 
-void (entity player) performFoLogin = {
+void (entity player, string token) performFoLogin = {
 	local string uri = sprintf("%s/results/api/v1/fo_login", backend_address);
-	local string token = FO_GetUserSettingString(player, "_fo_token", "fo_token", "");
 	uri_get(uri, FO_LOGIN_REQUEST, "application/json", sprintf("{ \"auth_token\": \"%s\" }", token));
 	dprint(sprintf("%s [%s] logging in\n", infokey(player, "name"), infokey(player, "ip")));
 }

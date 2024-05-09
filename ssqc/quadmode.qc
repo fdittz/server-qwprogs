@@ -56,7 +56,6 @@ void () PostFOQuadStarted = {
 	local float tn;
 	local float prefix_comma;
 	local entity p;
-	local string token;
 
 	for (tn = 1; tn <= number_of_teams; ++tn) {
 		data = strcat(data, "      \"", ftos(tn), "\": {\n");
@@ -70,9 +69,8 @@ void () PostFOQuadStarted = {
 				if (prefix_comma)
 					data = strcat(data, ",");
 
-				token = FO_GetUserSettingString(p, "_fo_token", "fo_token", "");
 				data = strcat(data, "          {\n");
-				data = strcat(data, "            \"auth_token\": \"", token, "\",\n");
+				data = strcat(data, "            \"id\": \"", p.fo_login, "\",\n");
 				data = strcat(data, "            \"playerclass\": \"", ftos(p.playerclass), "\"\n");
 				data = strcat(data, "          }\n");
 				prefix_comma = TRUE;
@@ -115,7 +113,6 @@ void () PostFOQuadFinalRoundStarted = {
 	local float tn;
 	local float prefix_comma;
 	local entity p;
-	local string token;
 
 	for (tn = 1; tn <= number_of_teams; ++tn) {
 		local float score = TeamFortress_TeamGetScore(tn);
@@ -132,9 +129,8 @@ void () PostFOQuadFinalRoundStarted = {
 				if (prefix_comma)
 					data = strcat(data, ",");
 
-				token = FO_GetUserSettingString(p, "_fo_token", "fo_token", "");
 				data = strcat(data, "          {\n");
-				data = strcat(data, "            \"auth_token\": \"", token, "\",\n");
+				data = strcat(data, "            \"id\": \"", p.fo_login, "\",\n");
 				data = strcat(data, "            \"playerclass\": \"", ftos(p.playerclass), "\"\n");
 				data = strcat(data, "          }\n");
 				prefix_comma = TRUE;
@@ -187,7 +183,6 @@ void (float winner) PostFOQuadFinished = {
 	local float tn;
 	local float prefix_comma;
 	local entity p;
-	local string token;
 
 	for (tn = 1; tn <= number_of_teams; ++tn) {
 		local float score = TeamFortress_TeamGetScore(tn);
