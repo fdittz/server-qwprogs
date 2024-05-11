@@ -217,6 +217,7 @@ const float SERVER_FRAME_MS = SERVER_FRAME_DT * 1000.0;
 #define MSG_BUILDING        30
 #define MSG_SENTRY_ROTATE   31
 #define MSG_SENTRY_DIE      32
+#define MSG_SENTRY_ROTATE_BY 33
 
 #define FLAGINFO_HOME       1
 #define FLAGINFO_CARRIED    2

@@ -17,6 +17,7 @@ float InFluid(vector point);
 float CalculateWaterLevel();
 void RenderHitTexts();
 entity sentry_preview;
+entity sentry_preview_range_sphere;
 entity sentry_rotate;
 entity temp_sentry;
 entity temp_self;
@@ -30,6 +31,27 @@ float sentry_fits;
 void GetSelf() = {
     self = findfloat(world, entnum, player_localentnum);
 }
+
+/* vector AnglesToVector(vector angles) { */
+/*     float pitch, yaw, roll; */
+/*     vector dir; */
+
+/*     pitch = angles_x * (M_PI / 180.0); */
+/*     yaw = angles_y * (M_PI / 180.0); */
+/*     roll = angles_z * (M_PI / 180.0); */
+
+/*     dir_x = cos(yaw) * cos(pitch); */
+/*     dir_y = sin(yaw) * cos(pitch); */
+/*     dir_z = -sin(pitch); */
+
+/*     return dir; */
+/* } */
+
+/* vector GetNewPosition(entity ent, vector angle_offsets, float distance) { */
+/*     vector dir = AnglesToVector(ent.angles + angle_offsets); */
+/*     vector new_position = ent.origin + dir * distance; */
+/*     return new_position; */
+/* } */
 
 void PushToSlotHistory(float value) {
     if (slot_history_top >= MAX_SLOT_HISTORY_SIZE) {
@@ -189,14 +211,23 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init = {
 
     pengine.view_mask = MASK_VIEWMODEL;  // Start with engine models.
 
-    precache_model("progs/turrbase.mdl");
-    precache_model("progs/turrgun.mdl");
     temp_sentry = spawn();
     temp_self = spawn();
+
+    precache_model("progs/turrbase.mdl");
     sentry_preview = spawn();
-    sentry_rotate = spawn();
     setmodel(sentry_preview, "progs/turrbase.mdl");
     sentry_preview.alpha = 0.5;
+
+    precache_model("progs/sphere.mdl");
+    sentry_preview_range_sphere = spawn();
+    setmodel(sentry_preview_range_sphere, "progs/sphere.mdl");
+    sentry_preview_range_sphere.scale = 1000;
+    sentry_preview_range_sphere.alpha = 0.02;
+
+    precache_model("progs/turrgun.mdl");
+    sentry_rotate = spawn();
+    setmodel(sentry_rotate, "progs/turrgun.mdl");
 
     print("CSQC initialization finished\n");
 };
@@ -225,12 +256,14 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
     if (previewing_sentry) {
         makevectors(input_angles);
         v_forward_z = 0;
-        v_forward = normalize(v_forward) * 64;
-        sentry_preview.origin = PM_Org() + v_forward;
+        local vector v_forward_sentry = normalize(v_forward) * 64;
+        sentry_preview.origin = PM_Org() + v_forward_sentry;
         setorigin(temp_self, PM_Org());
         temp_sentry.origin = sentry_preview.origin;
         sentry_fits = CheckArea(temp_sentry, temp_self);
         sentry_preview.colormod = sentry_fits ? '1 1 1' : '1 0.5 0.5';
+        local vector v_forward_range = normalize(v_forward) * 1024;
+        sentry_preview_range_sphere.origin = sentry_preview.origin;
     } else {
         setproperty(VF_DRAWCROSSHAIR, 1);       // we want to draw our crosshair!
     }
@@ -677,16 +710,37 @@ void FO_ApplyCussInput() {
 void PM_InputFrame();
 
 void SentryPreviewStart() {
-    sentry_preview.angles_y = anglemod(input_angles_y + 180);
+    sentry_preview_offset = 180;
+    sentry_preview.angles_y = input_angles_y;
     sentry_preview.drawmask = MASK_ENGINE;
+
+    local vector sphere_colormod = '1 1 1';
+    switch (team_no) {
+        case 1:
+            sphere_colormod = '0 0.4 1';
+            break;
+        case 2:
+            sphere_colormod = '1 0 0';
+            break;
+        case 3:
+            sphere_colormod = '1 1 0';
+            break;
+        case 4:
+            sphere_colormod = '0 1 0';
+            break;
+    }
+
+    sentry_preview_range_sphere.colormod = sphere_colormod * 4;
+    sentry_preview_range_sphere.drawmask = MASK_ENGINE;
+
     previewing_sentry = TRUE;
 }
 
 void SentryPreviewStop() {
     rotating_preview = FALSE;
     previewing_sentry = FALSE;
-    sentry_preview_offset = 0;
     sentry_preview.drawmask = 0;
+    sentry_preview_range_sphere.drawmask = 0;
 }
 
 void SentryRotateStop() {

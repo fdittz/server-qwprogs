@@ -764,6 +764,19 @@ float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
                 ent = ent.chain;
             }
 
+            if (arg2 && arg2 == "rotate" && arg3 && arg3 == "mwheel" && arg4) {
+                if (!arg4)
+                    break;
+
+                farg4 = stof(arg4);
+                self.dimension_see = (self.dimension_see & ~DMN_HIDDEN) | DMN_GHOST;
+                ent.dimension_seen = (ent.dimension_seen & ~DMN_NOFLASH) | DMN_HIDDEN | DMN_GHOST;
+                if (self.rotating_sentry == world)
+                    self.rotating_sentry = ent;
+                UpdateClientSentryRotateBy(self, self.rotating_sentry, farg4);
+                break;
+            }
+
             if (!ent) {
                 sprint(self, PRINT_HIGH, "No sentry in range\n");
                 break;
@@ -783,8 +796,8 @@ float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
 
                         self.dimension_see = (self.dimension_see & ~DMN_HIDDEN) | DMN_GHOST;
                         ent.dimension_seen = (ent.dimension_seen & ~DMN_NOFLASH) | DMN_HIDDEN | DMN_GHOST;
-                        UpdateClientSentryRotate(self, ent);
                         self.rotating_sentry = ent;
+                        UpdateClientSentryRotate(self, ent);
                         break;
                     }
                     if(farg3 < 0) {
