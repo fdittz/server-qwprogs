@@ -255,8 +255,11 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
 
     if (previewing_sentry) {
         makevectors(input_angles);
+        local vector sentry_preview_pos;
+        sentry_preview_pos.z = (normalize(v_forward) * 64).z;
         v_forward_z = 0;
         local vector v_forward_sentry = normalize(v_forward) * 64;
+        v_forward_sentry.z = sentry_preview_pos.z;
         sentry_preview.origin = PM_Org() + v_forward_sentry;
         setorigin(temp_self, PM_Org());
         temp_sentry.origin = sentry_preview.origin;
@@ -267,6 +270,7 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
     } else {
         setproperty(VF_DRAWCROSSHAIR, 1);       // we want to draw our crosshair!
     }
+
 
     FO_CussView();
 
