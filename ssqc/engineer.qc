@@ -554,10 +554,23 @@ void (float objtobuild, float offset) TeamFortress_Build = {
     tmp2 = '0 0 0';
 
     newmis = spawn();
+
     makevectors(self.v_angle);
+    /* v_forward_z = 0; */
+    /* v_forward = normalize(v_forward) * 64; */
+    /* newmis.origin = self.origin + v_forward; */
+
+    local vector z_pos;
+    z_pos.z = (normalize(v_forward) * 64).z;
     v_forward_z = 0;
-    v_forward = normalize(v_forward) * 64;
-    newmis.origin = self.origin + v_forward;
+    local vector xy_pos = normalize(v_forward) * 64;
+
+    local vector v_forward_sentry;
+    v_forward_sentry.x = xy_pos.x;
+    v_forward_sentry.y = xy_pos.y;
+    v_forward_sentry.z = z_pos.z;
+
+    newmis.origin = self.origin + v_forward_sentry;
 
     tmp1 = newmis.origin;
     tmp2 = newmis.origin - normalize(v_up) * 128;

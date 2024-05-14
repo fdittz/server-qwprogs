@@ -27,6 +27,7 @@ float rotating_preview;
 float rotating_preview_y;
 float rotating_sentry;
 float rotating_sentry_y;
+float rotating_sensitivity = 0.25;
 float prevent_firing;
 float sentry_fits;
 
@@ -255,28 +256,6 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
     clearscene();
     setproperty(VF_DRAWWORLD, 1); 		// we want to draw our world!
 
-    if (previewing_sentry) {
-        makevectors(input_angles);
-        local vector sentry_preview_pos;
-        sentry_preview_pos.z = (normalize(v_forward) * 64).z;
-        v_forward_z = 0;
-        local vector v_forward_sentry = normalize(v_forward) * 64;
-        v_forward_sentry.z = sentry_preview_pos.z;
-        sentry_preview.origin = PM_Org() + v_forward_sentry;
-        setorigin(temp_self, PM_Org());
-        temp_sentry.origin = sentry_preview.origin;
-        sentry_fits = CheckArea(temp_sentry, temp_self);
-        sentry_preview.colormod = sentry_fits ? '1 1 1' : '1 0.5 0.5';
-        local vector v_forward_range = normalize(v_forward) * 1024;
-        sentry_preview_range_sphere.origin = sentry_preview.origin;
-
-        if (rotating_preview) {
-            setviewprop(VF_CL_VIEWANGLES_Y, rotating_preview_y);
-        }
-    } else {
-        setproperty(VF_DRAWCROSSHAIR, 1);       // we want to draw our crosshair!
-    }
-
     FO_CussView();
 
     if (zoomed_in)
@@ -293,6 +272,33 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
 
     if (PM_Enabled())
         PM_UpdateView();
+
+    if (previewing_sentry) {
+        makevectors(view_angles);
+
+        // can probably use trig here so we don't need to normalize twice
+        local vector z_pos;
+        z_pos.z = (normalize(v_forward) * 64).z;
+        v_forward_z = 0;
+        local vector xy_pos = normalize(v_forward) * 64;
+
+        local vector v_forward_sentry;
+        v_forward_sentry.x = xy_pos.x;
+        v_forward_sentry.y = xy_pos.y;
+        v_forward_sentry.z = z_pos.z;
+
+        sentry_preview.origin = PM_Org() + v_forward_sentry;
+        setorigin(temp_self, sentry_preview.origin);
+        temp_sentry.origin = sentry_preview.origin;
+        local vector v_forward_range = normalize(v_forward) * 1024;
+        sentry_preview_range_sphere.origin = sentry_preview.origin;
+
+        if (rotating_preview) {
+            setviewprop(VF_CL_VIEWANGLES_Y, rotating_preview_y);
+        }
+    } else {
+        setproperty(VF_DRAWCROSSHAIR, 1);       // we want to draw our crosshair!
+    }
 
     renderscene();
 
@@ -908,6 +914,9 @@ void _Sync_ServerCommandFrame() {
             SentryRotateStop();
         }
     }
+
+    sentry_fits = CheckArea(temp_sentry, temp_self);
+    sentry_preview.colormod = sentry_fits ? '1 1 1' : '1 0.5 0.5';
 }
 
 
