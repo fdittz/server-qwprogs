@@ -944,8 +944,8 @@ float FoLogin(string token, float print_error) {
         return FALSE;
     }
 
-    localcmd("setinfo _fo_token ", token, "\n");
-    localcmd("cmd fo-login-silent\n");
+    localcmd("setinfo _fo_token \"\"\n");
+    localcmd(sprintf("cmd fo-login-silent %s\n", token));
     return TRUE;
 }
 

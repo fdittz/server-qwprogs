@@ -1000,13 +1000,13 @@ float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
             if (self.fo_login != string_null) {
                 sprint (self, PRINT_HIGH, "You are logged in\n");
             } else {
-                performFoLogin(self);
+                performFoLogin(self, arg2);
             }
             break;
         case "fo-login-silent":
             processedCmd = TRUE;
             if (self.fo_login == string_null)
-                performFoLogin(self);
+                performFoLogin(self, arg2);
             break;
         case "who":
             processedCmd = TRUE;
