@@ -121,13 +121,11 @@ float(float evtype, float scanx, float chary, float devid) CSQC_InputEvent = {
                 local float sensitivity = 0.25;
                 if (rotating_sentry) {
                     sentry_rotate.angles_y = anglemod(sentry_rotate.angles_y + scanx * sensitivity * -1);
-                    return TRUE;
                 }
 
                 if (rotating_preview) {
                     sentry_preview.angles_y = anglemod(sentry_preview.angles_y + scanx * sensitivity);
                     sentry_preview_offset = (sentry_preview_offset + scanx * sensitivity);
-                    return TRUE;
                 }
 
                 if (previewing_sentry) {

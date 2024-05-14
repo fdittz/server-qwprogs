@@ -24,7 +24,9 @@ entity temp_self;
 float sentry_preview_offset;
 float previewing_sentry;
 float rotating_preview;
+float rotating_preview_y;
 float rotating_sentry;
+float rotating_sentry_y;
 float prevent_firing;
 float sentry_fits;
 
@@ -267,10 +269,13 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
         sentry_preview.colormod = sentry_fits ? '1 1 1' : '1 0.5 0.5';
         local vector v_forward_range = normalize(v_forward) * 1024;
         sentry_preview_range_sphere.origin = sentry_preview.origin;
+
+        if (rotating_preview) {
+            setviewprop(VF_CL_VIEWANGLES_Y, rotating_preview_y);
+        }
     } else {
         setproperty(VF_DRAWCROSSHAIR, 1);       // we want to draw our crosshair!
     }
-
 
     FO_CussView();
 
@@ -742,6 +747,7 @@ void SentryPreviewStart() {
 
 void SentryPreviewStop() {
     rotating_preview = FALSE;
+    rotating_preview_y = 0;
     previewing_sentry = FALSE;
     sentry_preview.drawmask = 0;
     sentry_preview_range_sphere.drawmask = 0;
@@ -749,6 +755,7 @@ void SentryPreviewStop() {
 
 void SentryRotateStop() {
     rotating_sentry = FALSE;
+    rotating_sentry_y = 0;
     sentry_rotate.drawmask = 0;
 }
 
@@ -793,15 +800,17 @@ noref void CSQC_Input_Frame() {
 
             if (previewing_sentry) {
                 if (keydowns & BUTTON0) {
+                    rotating_preview_y = input_angles_y;
                     rotating_preview = TRUE;
                 }
 
                 if (keyups & BUTTON0) {
                     if (sentry_fits) {
-                        localcmd(sprintf("cmd build sentry %f\n", sentry_preview_offset));
+                        localcmd(sprintf("cmd build sentry %f\n", -1 * sentry_preview_offset));
                         SentryPreviewStop();
                     } else {
                         print("Not enough room to build here\n");
+                        rotating_preview_y = 0;
                         rotating_preview = FALSE;
                     }
                 }
