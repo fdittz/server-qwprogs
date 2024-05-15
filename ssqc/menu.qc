@@ -816,92 +816,77 @@ void (float offset) TeamFortress_BuildSentry = {
 }
 
 void (float inp) Menu_Engineer_Input = {
-    local float dismantle_sentrygun;
-    local float dismantle_dispenser;
-    local entity te;
+    switch (inp) {
+        case 5:
+            break;
 
-    if (inp == 5)
-        return;
+        // build dispenser
+        case 1:
+            TeamFortress_BuildSentry(0);
+            break;
 
-    if (inp == 3 && self.has_sentry) {
-        te = findradius(self.origin, ENG_BUILDING_DISMANTLE_DISTANCE);
-        while (te) {
-            if (te.classname == "building_sentrygun") {
-                if (te.real_owner == self && te.weapon == 0){
-                    sprint (self, PRINT_HIGH, strcat("You stopped building a sentry gun and got ", ftos(ENG_SENTRY_COST), " cells back\n"));
-                    self.ammo_cells = self.ammo_cells + ENG_SENTRY_COST;
-                    if (self.ammo_cells > self.maxammo_cells)
-                        self.ammo_cells = self.maxammo_cells;
-                    if (te.trigger_field != world)
-                        dremove (te.trigger_field);
-                    self = te.real_owner;
-                    TeamFortress_EngineerBuildStop();
-                    return;
-                }
+        // build sentry
+        case 2:
+            if (!self.has_dispenser) {
+                if (self.ammo_cells >= ENG_DISPENSER_COST)
+                    TeamFortress_Build(1, 0);
+                else
+                    Status_Print(self, "\n\n\n\n\n\n\n", strcat("You need ", ftos(ENG_DISPENSER_COST), " cells to build a dispenser"));
             }
-            te = te.chain;
-        }
-    }
+            break;
 
-    if (self.is_building) {
-        if (engineer_move) {
-            Status_Print(self, "\n\n\n\n\n\n\n", strcat("You are already building something"));
-            return;
-        }
-        Menu_Engineer(self);
-        return;
-    }
-
-    dismantle_sentrygun = 0;
-    dismantle_dispenser = 0;
-
-    if (inp == 1) {
-        TeamFortress_BuildSentry(0);
-    }
-    if (inp == 2 && !self.has_dispenser) {
-        if (self.ammo_cells >= ENG_DISPENSER_COST)
-            TeamFortress_Build(1, 0);
-        else
-            Status_Print(self, "\n\n\n\n\n\n\n", strcat("You need ", ftos(ENG_DISPENSER_COST), " cells to build a dispenser"));
-    }
-
-    if (inp == 3 && self.has_sentry) {
-        te = findradius(self.origin, ENG_BUILDING_DISMANTLE_DISTANCE);
-        while (te) {
-            if (te.classname == "building_sentrygun") {
-                if (te.real_owner == self){
-                    sprint (self, PRINT_HIGH, "You dismantled the sentry gun and got 65 cells\n");
-                    self.ammo_cells = self.ammo_cells + 65;
-                    dremove (te.trigger_field);
-                    dremove (te);
-                    self.has_sentry = 0;
-                    dismantle_sentrygun = 1;
+        // dismantle or destroy sentry
+        case 3:
+            if (self.has_sentry) {
+                local float dismantle_sentrygun = 0;
+                local entity te = findradius(self.origin, ENG_BUILDING_DISMANTLE_DISTANCE);
+                while (te) {
+                    if (te.classname == "building_sentrygun" && te.real_owner == self) {
+                        if (te.weapon == 0) {
+                            sprint(self, PRINT_HIGH, strcat("You stopped building a sentry gun and got ", ftos(ENG_SENTRY_COST), " cells back\n"));
+                            self.ammo_cells += ENG_SENTRY_COST;
+                            if (self.ammo_cells > self.maxammo_cells)
+                                self.ammo_cells = self.maxammo_cells;
+                            if (te.trigger_field != world)
+                                dremove(te.trigger_field);
+                            self = te.real_owner;
+                            TeamFortress_EngineerBuildStop();
+                        } else {
+                            sprint(self, PRINT_HIGH, "You dismantled the sentry gun and got 65 cells\n");
+                            self.ammo_cells += 65;
+                            dremove(te.trigger_field);
+                            dremove(te);
+                            self.has_sentry = 0;
+                            dismantle_sentrygun = 1;
+                        }
+                    }
+                    te = te.chain;
                 }
+                if (dismantle_sentrygun == 0)
+                    DestroyBuilding(self, "building_sentrygun");
             }
-            te = te.chain;
-        }
-        if (dismantle_sentrygun == 0)
-            DestroyBuilding(self, "building_sentrygun");
-    }
+            break;
 
-    if (inp == 4 && self.has_dispenser) {
-        te = findradius(self.origin, ENG_BUILDING_DISMANTLE_DISTANCE);
-        while (te) {
-            if (te.classname == "building_dispenser") {
-                if (te.real_owner == self) {
-                    sprint (self, PRINT_HIGH, "You dismantled the dispenser and got 50 cells\n");
-                    self.ammo_cells = self.ammo_cells + 50;
-                    dremove (te);
-                    self.has_dispenser = 0;
-                    dismantle_dispenser = 1;
+        // dismantle or destroy dispenser
+        case 4:
+            if (self.has_dispenser) {
+                local float dismantle_dispenser = 0;
+                local entity te = findradius(self.origin, ENG_BUILDING_DISMANTLE_DISTANCE);
+                while (te) {
+                    if (te.classname == "building_dispenser" && te.real_owner == self) {
+                        sprint(self, PRINT_HIGH, "You dismantled the dispenser and got 50 cells\n");
+                        self.ammo_cells += 50;
+                        dremove(te);
+                        self.has_dispenser = 0;
+                        dismantle_dispenser = 1;
+                    }
+                    te = te.chain;
                 }
+                if (dismantle_dispenser == 0)
+                    DestroyBuilding(self, "building_dispenser");
             }
-            te = te.chain;
-        }
-        if (dismantle_dispenser == 0)
-            DestroyBuilding(self, "building_dispenser");
+            break;
     }
-
 };
 
 void (entity player) Menu_Engineer = {
