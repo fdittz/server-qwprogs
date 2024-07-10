@@ -389,6 +389,9 @@ void() CSQC_Parse_Event = {
         case MSG_SENTRY_DIE:
             SentryRotateStop();
             break;
+        case MSG_FLAG_DROP:
+            pick_up_time = FALSE;
+            break;
     }
 }
 

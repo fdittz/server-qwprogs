@@ -900,7 +900,7 @@ void () DecodeLevelParms = {
         }
 
         engineer_move = CF_GetSetting("em","engineer_move", "1");
-		grenade_lockout = CF_GetSetting("gl","grenade_lockout", "0.1");
+        grenade_lockout = CF_GetSetting("gl","grenade_lockout", "0");
 
         max_active_gren2_soldier = CF_GetSetting("mg2s","max_active_gren2_soldier", "3");
 
