@@ -1132,44 +1132,41 @@ string (float tn) TeamFortress_GetColorSkin = {
     return s;
 }
 
-string(float tn, float pc) TeamFortress_GetSkin =
+string(float pc) TeamFortress_GetSkin =
 {
     local string skin = "base";
-
-    string col;
-    col = TeamFortress_GetColorSkin(tn);
 
     switch (pc)
     {
         case 1:
-            skin = strcat(col, "_sco");
+            skin = "fo_scout";
             break;
         case 2:
-            skin = strcat(col, "_sni");
+            skin = "fo_snipe";
             break;
         case 3:
-            skin = strcat(col, "_sol");
+            skin = "fo_sold";
             break;
         case 4:
-            skin = strcat(col, "_dem");
+            skin = "fo_demo";
             break;
         case 5:
-            skin = strcat(col, "_med");
+            skin = "fo_medic";
             break;
         case 6:
-            skin = strcat(col, "_hwg");
+            skin = "fo_hwguy";
             break;
         case 7:
-            skin = strcat(col, "_pyr");
+            skin = "fo_pyro";
             break;
         case 8:
-            skin = strcat(col, "_spy");
+            skin = "fo_spy";
             break;
         case 9:
-            skin = strcat(col, "_eng");
+            skin = "fo_eng";
             break;
         case 11:
-            skin = strcat(col, "_civ");
+            skin = "fo_civ";
             break;
 
     }
@@ -1186,7 +1183,7 @@ void (entity p) TeamFortress_SetSkin = {
         if (!p.is_undercover)
         {
             stuffcmd(p, "skin ");
-            st = TeamFortress_GetSkin(p.team_no, p.playerclass);
+            st = TeamFortress_GetSkin(p.playerclass);
             stuffcmd(p, st);
             stuffcmd(p, "\n");
             // please fix mvd recording
@@ -1200,13 +1197,57 @@ void (entity p) TeamFortress_SetSkin = {
     
         if (p.skin != 0) {
             stuffcmd(p, "skin ");
-            st = TeamFortress_GetSkin(p.team_no, p.playerclass);
+            st = TeamFortress_GetSkin(p.playerclass);
             stuffcmd(p, st);
             stuffcmd(p, "\n");
 
             // please fix mvd recording
             forceinfokey(p, "skin", st);
-        } 
+
+            local string color;
+            local entity te;
+
+            te = find(world, classname, "player");
+            while (te != world) {
+                msg_entity = te;
+
+                if (te != p) {
+                    switch (p.team_no) {
+                        case 1:
+                            color = infokey(te, "team_1_color");
+                            if (color == "")
+                                color = "0x222299";
+                            break;
+                        case 2:
+                            color = infokey(te, "team_2_color");
+                            if (color == "")
+                                color = "0x992222";
+                            break;
+                        case 3:
+                            color = infokey(te, "team_3_color");
+                            if (color == "")
+                                color = "0x999922";
+                            break;
+                        case 4:
+                            color = infokey(te, "team_4_color");
+                            if (color == "")
+                                color = "0x229922";
+                            break;
+                    }
+
+                    WriteByte(MSG_ONE, SVC_SETINFO);
+                    WriteByte(MSG_ONE, p.colormap-1); // ???? Copied from spy.qc
+                    WriteString(MSG_ONE, "topcolor");
+                    WriteString(MSG_ONE, color);
+                    WriteByte(MSG_ONE, SVC_SETINFO);
+                    WriteByte(MSG_ONE, p.colormap-1); // ???? Copied from spy.qc
+                    WriteString(MSG_ONE, "bottomcolor");
+                    WriteString(MSG_ONE, color);
+                }
+
+                te = find(te, classname, "player");
+            }
+        }
         else
         {
             stuffcmd(p, "skin base\n");

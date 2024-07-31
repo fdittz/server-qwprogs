@@ -9,7 +9,7 @@ float (float tno) TeamFortress_TeamGetLives;
 float (float tno) TeamFortress_TeamGetMaxPlayers;
 string(float tno) TeamFortress_TeamGetColorString;
 float (float tno) TeamFortress_TeamGetIllegalClasses;
-string(float tn, float pc) TeamFortress_GetSkin;
+string(float pc) TeamFortress_GetSkin;
 
 float () TeamFortress_TeamPutPlayerInTeam =
 {
@@ -313,7 +313,7 @@ void () TeamFortress_CheckTeamCheats = {
         if (self.playerclass != 0) {
             st = infokey(self, "skin");
             tc = 0;
-            sk = TeamFortress_GetSkin(self.team_no, self.playerclass);
+            sk = TeamFortress_GetSkin(self.playerclass);
             if (st != sk) {
                 TeamFortress_SetSkin(self);
                 bprint(PRINT_MEDIUM, self.netname,

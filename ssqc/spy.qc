@@ -506,8 +506,8 @@ void (entity own) Spy_SetClientSkins = {
     color = ftos(TeamFortress_TeamGetColor(own.team_no) - 1);
     dcolor = ftos(TeamFortress_TeamGetColor(dteam) - 1);
 
-    skin = TeamFortress_GetSkin(own.team_no, own.playerclass);
-    dskin = TeamFortress_GetSkin(dteam, dpc);
+    skin = TeamFortress_GetSkin(own.playerclass);
+    dskin = TeamFortress_GetSkin(dpc);
 
     pteam = GetTeamName(own.team_no);
     dsteam = GetTeamName(dteam);
