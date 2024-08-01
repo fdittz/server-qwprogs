@@ -327,6 +327,50 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
 
     switch (arg1)
     {
+        case "team1color":
+            forceinfokey(self, "team1color", arg2);
+            ent = find(world, classname, "player");
+            while (ent != world) {
+                if (ent.team_no == 1)
+                    TeamFortress_SetSkin(ent);
+
+                ent = find(ent, classname, "player");
+            }
+
+            break;
+        case "team2color":
+            forceinfokey(self, "team2color", arg2);
+            ent = find(world, classname, "player");
+            while (ent != world) {
+                if (ent.team_no == 2)
+                    TeamFortress_SetSkin(ent);
+
+                ent = find(ent, classname, "player");
+            }
+
+            break;
+        case "team3color":
+            forceinfokey(self, "team3color", arg2);
+            ent = find(world, classname, "player");
+            while (ent != world) {
+                if (ent.team_no == 3)
+                    TeamFortress_SetSkin(ent);
+
+                ent = find(ent, classname, "player");
+            }
+
+            break;
+        case "team4color":
+            forceinfokey(self, "team4color", arg2);
+            ent = find(world, classname, "player");
+            while (ent != world) {
+                if (ent.team_no == 4)
+                    TeamFortress_SetSkin(ent);
+
+                ent = find(ent, classname, "player");
+            }
+
+            break;
         case "impulse":
             if (arg_num == 2) {
                 self.impulse = stof(arg2);
@@ -354,6 +398,8 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
             {
                 if (arg2 == "topcolor" || arg2 == "bottomcolor")
                 {
+                    sprint(self, PRINT_HIGH, "TRYING TO CHANGE YOUR TOPCOLOR HRMMMMM?\n");
+
                     float arg3f = stof(arg3);
                     if ((self.team_no > 0) && (teamplay > 0)) {
                         if (arg3f != (TeamFortress_TeamGetColor(self.team_no) - 1)) {
