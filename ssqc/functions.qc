@@ -1,5 +1,6 @@
 float (float tno) TeamFortress_TeamSet;
 float (float tno) TeamFortress_TeamGetColor;
+string (entity pov, float tno) TeamFortress_TeamGetColorFor;
 void (entity p) SetTeamName;
 void (entity pl) Menu_Close;
 

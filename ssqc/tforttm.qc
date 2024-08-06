@@ -51,6 +51,39 @@ float (float tno) TeamFortress_TeamGetColor = {
     return (1);
 };
 
+string TeamFortress_TeamGetColorFor(entity pov, float tno) {
+    local string color;
+
+    switch (tno) {
+        case 1:
+            color = infokey(pov, "team1color");
+            if (color == "")
+                color = "00AAFF";
+            break;
+        case 2:
+            color = infokey(pov, "team2color");
+            if (color == "")
+                color = "FF3300";
+            break;
+        case 3:
+            color = infokey(pov, "team3color");
+            if (color == "")
+                color = "FFBB00";
+            break;
+        case 4:
+            color = infokey(pov, "team4color");
+            if (color == "")
+                color = "00FF44";
+            break;
+        default:
+            color = "FFFFFF";
+            break;
+    }
+
+    return strcat("0x", color);
+}
+
+
 void (float tno) TeamFortress_TeamSetColor = {
     if (tno == 1) {
         team1col = DARKBLUE;
