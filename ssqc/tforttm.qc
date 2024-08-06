@@ -52,7 +52,7 @@ float (float tno) TeamFortress_TeamGetColor = {
 };
 
 string TeamFortress_TeamGetColorFor(entity pov, float tno) {
-    local string color;
+    local string color = "FFFFFF";
 
     switch (tno) {
         case 1:
@@ -74,9 +74,6 @@ string TeamFortress_TeamGetColorFor(entity pov, float tno) {
             color = infokey(pov, "team4color");
             if (color == "")
                 color = "00FF44";
-            break;
-        default:
-            color = "FFFFFF";
             break;
     }
 

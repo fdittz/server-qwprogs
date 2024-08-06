@@ -78,6 +78,10 @@ sound files are found in `fortress/sound/hitaudio/` and  `fortress/sound/announc
 * `localinfo fo_matchrated 2` whether match is rated / affects trueskill. 2 is false for 1v1 and 2v2 only.
 * `localinfo backend_address <uri>` to specify backend API endpoint. Default: https://www.fortressone.org/
 * All-time attack and all-time defence team options.
+* `setinfo team1color <hexcode>` to set the top and bottom colours for team 1.
+* `setinfo team2color <hexcode>` to set the top and bottom colours for team 2.
+* `setinfo team3color <hexcode>` to set the top and bottom colours for team 3.
+* `setinfo team4color <hexcode>` to set the top and bottom colours for team 4.
 * `setinfo precise_grenades on/off` to enable precise timing when throwing grenades.  This removes a random, up to, 100ms input delay.  (default on)
 * `localinfo forcereload 0/1` Option to prevent forced reloads.
 * `+grenade1` and `+grenade2` grenade buttons (more reliable than impulses), push to prime, again to throw.
