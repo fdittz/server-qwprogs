@@ -378,8 +378,6 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
             {
                 if (arg2 == "topcolor" || arg2 == "bottomcolor")
                 {
-                    sprint(self, PRINT_HIGH, "TRYING TO CHANGE YOUR TOPCOLOR HRMMMMM?\n");
-
                     float arg3f = stof(arg3);
                     if ((self.team_no > 0) && (teamplay > 0)) {
                         if (arg3f != (TeamFortress_TeamGetColor(self.team_no) - 1)) {
