@@ -313,6 +313,18 @@ void (entity pl) PrintWho = {
     strunzone(msg);
 }
 
+void (entity pov, string command, string color, float tno) UpdateTeamColor = {
+    forceinfokey(pov, command, color);
+
+    local entity te = find(world, classname, "player");
+    while (te != world) {
+        if (te.team_no == tno)
+            TeamFortress_SetSkin(te);
+
+        te = find(te, classname, "player");
+    }
+}
+
 float (string arg1, string arg2, string arg3) ParseCmds = {
     local float arg_num = 0, processedCmd, inp;
     local string tmp;
@@ -328,48 +340,16 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
     switch (arg1)
     {
         case "team1color":
-            forceinfokey(self, "team1color", arg2);
-            ent = find(world, classname, "player");
-            while (ent != world) {
-                if (ent.team_no == 1)
-                    TeamFortress_SetSkin(ent);
-
-                ent = find(ent, classname, "player");
-            }
-
+            UpdateTeamColor(self, "team1color", arg2, 1);
             break;
         case "team2color":
-            forceinfokey(self, "team2color", arg2);
-            ent = find(world, classname, "player");
-            while (ent != world) {
-                if (ent.team_no == 2)
-                    TeamFortress_SetSkin(ent);
-
-                ent = find(ent, classname, "player");
-            }
-
+            UpdateTeamColor(self, "team2color", arg2, 2);
             break;
         case "team3color":
-            forceinfokey(self, "team3color", arg2);
-            ent = find(world, classname, "player");
-            while (ent != world) {
-                if (ent.team_no == 3)
-                    TeamFortress_SetSkin(ent);
-
-                ent = find(ent, classname, "player");
-            }
-
+            UpdateTeamColor(self, "team3color", arg2, 3);
             break;
         case "team4color":
-            forceinfokey(self, "team4color", arg2);
-            ent = find(world, classname, "player");
-            while (ent != world) {
-                if (ent.team_no == 4)
-                    TeamFortress_SetSkin(ent);
-
-                ent = find(ent, classname, "player");
-            }
-
+            UpdateTeamColor(self, "team4color", arg2, 4);
             break;
         case "impulse":
             if (arg_num == 2) {
