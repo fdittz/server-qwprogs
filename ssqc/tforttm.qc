@@ -9,7 +9,7 @@ float (float tno) TeamFortress_TeamGetLives;
 float (float tno) TeamFortress_TeamGetMaxPlayers;
 string(float tno) TeamFortress_TeamGetColorString;
 float (float tno) TeamFortress_TeamGetIllegalClasses;
-string(float tn, float pc) TeamFortress_GetSkin;
+string(float pc) TeamFortress_GetSkin;
 
 float () TeamFortress_TeamPutPlayerInTeam =
 {
@@ -50,6 +50,36 @@ float (float tno) TeamFortress_TeamGetColor = {
         return (DARKGREEN);
     return (1);
 };
+
+string TeamFortress_TeamGetColorFor(entity pov, float tno) {
+    local string color = "FFFFFF";
+
+    switch (tno) {
+        case 1:
+            color = infokey(pov, "team1color");
+            if (color == "")
+                color = "00AAFF";
+            break;
+        case 2:
+            color = infokey(pov, "team2color");
+            if (color == "")
+                color = "FF3300";
+            break;
+        case 3:
+            color = infokey(pov, "team3color");
+            if (color == "")
+                color = "FFBB00";
+            break;
+        case 4:
+            color = infokey(pov, "team4color");
+            if (color == "")
+                color = "00FF44";
+            break;
+    }
+
+    return strcat("0x", color);
+}
+
 
 void (float tno) TeamFortress_TeamSetColor = {
     if (tno == 1) {
@@ -313,7 +343,7 @@ void () TeamFortress_CheckTeamCheats = {
         if (self.playerclass != 0) {
             st = infokey(self, "skin");
             tc = 0;
-            sk = TeamFortress_GetSkin(self.team_no, self.playerclass);
+            sk = TeamFortress_GetSkin(self.playerclass);
             if (st != sk) {
                 TeamFortress_SetSkin(self);
                 bprint(PRINT_MEDIUM, self.netname,

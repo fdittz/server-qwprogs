@@ -900,7 +900,7 @@ Map Code Enhancements:
 	  a particular group in it's criteria using "has_item_from_group".
 	- Goals can use the "remove_item_group" to remove all the items
 	  in a particular group from any player affected by its activation.
-	- A new Bit was added to the "goal_results" variable for Goals/Items
+	- A new Bit was added to the "goal_result" variable for Goals/Items
 	  which allows them to remove a Spy's disguise.
 	- A new Bit was added to the "goal_activation" of GoalItems. 
 	  See the tfortmap.txt for details.

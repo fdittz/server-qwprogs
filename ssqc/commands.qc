@@ -313,6 +313,18 @@ void (entity pl) PrintWho = {
     strunzone(msg);
 }
 
+void (entity pov, string command, string color, float tno) UpdateTeamColor = {
+    forceinfokey(pov, command, color);
+
+    local entity te = find(world, classname, "player");
+    while (te != world) {
+        if (te.team_no == tno)
+            TeamFortress_SetSkin(te);
+
+        te = find(te, classname, "player");
+    }
+}
+
 float (string arg1, string arg2, string arg3) ParseCmds = {
     local float arg_num = 0, processedCmd, inp;
     local string tmp;
@@ -350,22 +362,39 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
             }
             break;
         case "setinfo":
-            if (arg2)
-            {
-                if (arg2 == "topcolor" || arg2 == "bottomcolor")
-                {
-                    float arg3f = stof(arg3);
-                    if ((self.team_no > 0) && (teamplay > 0)) {
-                        if (arg3f != (TeamFortress_TeamGetColor(self.team_no) - 1)) {
-                            arg3f = TeamFortress_TeamGetColor(self.team_no) - 1;
-                            string st;
-                            st = ftos(arg3f);
-                            stuffcmd(self, strcat("color ", st, "\n"));
-                            sprint(self, PRINT_HIGH,
-                                    "Your color has been changed to your team color\n");
-                            processedCmd = TRUE;
+            if (arg2) {
+                switch(arg2) {
+                    case "topcolor":
+                    case "bottomcolor":
+                        float arg3f = stof(arg3);
+                        if ((self.team_no > 0) && (teamplay > 0)) {
+                            if (arg3f != (TeamFortress_TeamGetColor(self.team_no) - 1)) {
+                                arg3f = TeamFortress_TeamGetColor(self.team_no) - 1;
+                                string st;
+                                st = ftos(arg3f);
+                                stuffcmd(self, strcat("color ", st, "\n"));
+                                sprint(self, PRINT_HIGH,
+                                        "Your color has been changed to your team color\n");
+                                processedCmd = TRUE;
+                            }
                         }
-                    }
+                        break;
+                    case "team1color":
+                          UpdateTeamColor(self, "team1color", arg3, 1);
+                          processedCmd = TRUE;
+                          break;
+                    case "team2color":
+                          UpdateTeamColor(self, "team2color", arg3, 2);
+                          processedCmd = TRUE;
+                          break;
+                    case "team3color":
+                          UpdateTeamColor(self, "team3color", arg3, 3);
+                          processedCmd = TRUE;
+                          break;
+                    case "team4color":
+                          UpdateTeamColor(self, "team4color", arg3, 4);
+                          processedCmd = TRUE;
+                          break;
                 }
             }
             break;
