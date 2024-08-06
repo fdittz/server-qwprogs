@@ -1230,41 +1230,16 @@ void (entity p) TeamFortress_SetSkin = {
             te = find(world, classname, "player");
             while (te != world) {
                 msg_entity = te;
+                color = TeamFortress_TeamGetColorFor(te, p.team_no);
 
-                switch (p.team_no) {
-                    case 1:
-                        color = infokey(te, "team1color");
-                        if (color == "")
-                            color = "00AAFF";
-                        break;
-                    case 2:
-                        color = infokey(te, "team2color");
-                        if (color == "")
-                            color = "FF3300";
-                        break;
-                    case 3:
-                        color = infokey(te, "team3color");
-                        if (color == "")
-                            color = "FFBB00";
-                        break;
-                    case 4:
-                        color = infokey(te, "team4color");
-                        if (color == "")
-                            color = "00FF44";
-                        break;
-                }
-
-                    if (color) {
-                        color = strcat("0x", color);
-                        WriteByte(MSG_ONE, SVC_SETINFO);
-                        WriteByte(MSG_ONE, p.colormap-1); // ???? Copied from spy.qc
-                        WriteString(MSG_ONE, "topcolor");
-                        WriteString(MSG_ONE, color);
-                        WriteByte(MSG_ONE, SVC_SETINFO);
-                        WriteByte(MSG_ONE, p.colormap-1); // ???? Copied from spy.qc
-                        WriteString(MSG_ONE, "bottomcolor");
-                        WriteString(MSG_ONE, color);
-                    }
+                WriteByte(MSG_ONE, SVC_SETINFO);
+                WriteByte(MSG_ONE, p.colormap-1); // ???? Copied from spy.qc
+                WriteString(MSG_ONE, "topcolor");
+                WriteString(MSG_ONE, color);
+                WriteByte(MSG_ONE, SVC_SETINFO);
+                WriteByte(MSG_ONE, p.colormap-1); // ???? Copied from spy.qc
+                WriteString(MSG_ONE, "bottomcolor");
+                WriteString(MSG_ONE, color);
 
                 te = find(te, classname, "player");
             }
