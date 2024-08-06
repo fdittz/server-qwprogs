@@ -1211,29 +1211,28 @@ void (entity p) TeamFortress_SetSkin = {
             while (te != world) {
                 msg_entity = te;
 
-                if (te != p) {
-                    switch (p.team_no) {
-                        case 1:
-                            color = infokey(te, "team1color");
-                            if (color == "")
-                                color = "222299";
-                            break;
-                        case 2:
-                            color = infokey(te, "team2color");
-                            if (color == "")
-                                color = "992222";
-                            break;
-                        case 3:
-                            color = infokey(te, "team3color");
-                            if (color == "")
-                                color = "999922";
-                            break;
-                        case 4:
-                            color = infokey(te, "team4color");
-                            if (color == "")
-                                color = "229922";
-                            break;
-                    }
+                switch (p.team_no) {
+                    case 1:
+                        color = infokey(te, "team1color");
+                        if (color == "")
+                            color = "00AAFF";
+                        break;
+                    case 2:
+                        color = infokey(te, "team2color");
+                        if (color == "")
+                            color = "FF3300";
+                        break;
+                    case 3:
+                        color = infokey(te, "team3color");
+                        if (color == "")
+                            color = "FFBB00";
+                        break;
+                    case 4:
+                        color = infokey(te, "team4color");
+                        if (color == "")
+                            color = "00FF44";
+                        break;
+                }
 
                     if (color) {
                         color = strcat("0x", color);
@@ -1246,7 +1245,6 @@ void (entity p) TeamFortress_SetSkin = {
                         WriteString(MSG_ONE, "bottomcolor");
                         WriteString(MSG_ONE, color);
                     }
-                }
 
                 te = find(te, classname, "player");
             }

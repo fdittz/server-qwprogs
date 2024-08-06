@@ -2257,7 +2257,14 @@ void () PutClientInServer = {
     TeamFortress_SetEquipment();
     TeamFortress_SetHealth();
     TeamFortress_SetSpeed(self);
-    TeamFortress_SetSkin(self);
+
+
+    te = find(world, classname, "player");
+    while (te != world) {
+        TeamFortress_SetSkin(te);
+        te = find(te, classname, "player");
+    }
+
     TeamFortress_StartTimers();
 
     if(quadmode && quad_roles) {
