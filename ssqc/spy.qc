@@ -497,14 +497,11 @@ void (entity player, float is_user) FO_Spy_DisguiseLastSpawned = {
 
 void (entity own) Spy_SetClientSkins = {
     entity te;
-    string color, dcolor, skin, dskin, sendcolor, sendskin, pteam, dsteam, sendteam;
+    string skin, dskin, sendcolor, sendskin, pteam, dsteam, sendteam;
     float dteam, dpc;
 
     dteam = own.undercover_team == 0 ? own.team_no : own.undercover_team;
     dpc = own.undercover_skin == 0 ? own.playerclass : own.undercover_skin;
-
-    color = ftos(TeamFortress_TeamGetColor(own.team_no) - 1);
-    dcolor = ftos(TeamFortress_TeamGetColor(dteam) - 1);
 
     skin = TeamFortress_GetSkin(own.playerclass);
     dskin = TeamFortress_GetSkin(dpc);
