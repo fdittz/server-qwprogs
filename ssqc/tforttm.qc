@@ -63,7 +63,7 @@ string TeamFortress_TeamGetColorFor(entity pov, float tno) {
         case 2:
             color = infokey(pov, "team2color");
             if (color == "")
-                color = "FF3300";
+                color = "FF2222";
             break;
         case 3:
             color = infokey(pov, "team3color");
