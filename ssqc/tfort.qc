@@ -1174,7 +1174,7 @@ string(float pc) TeamFortress_GetSkin =
 };
 
 
-void (entity player) TeamFortress_ResetSkins = {
+void (entity player) TeamFortress_SetSkinInfos = {
     local string st = TeamFortress_GetSkin(player.playerclass);
     stuffcmd(player, "skin ");
     stuffcmd(player, st);
@@ -1204,13 +1204,11 @@ void (entity player) TeamFortress_ResetSkins = {
 }
 
 void (entity p) TeamFortress_SetSkin = {
-    local string st;
-
     p.immune_to_check = time + 10;
 
     if (p.playerclass == PC_SPY || p.last_playerclass == PC_SPY) {
         if (!p.is_undercover) {
-            TeamFortress_ResetSkins(p);
+            TeamFortress_SetSkinInfos(p);
         } else {
             Spy_SetClientSkins(p);
         }
@@ -1218,7 +1216,7 @@ void (entity p) TeamFortress_SetSkin = {
         p.skin = p.playerclass;
 
         if (p.skin != 0) {
-            TeamFortress_ResetSkins(p);
+            TeamFortress_SetSkinInfos(p);
         } else {
             stuffcmd(p, "skin base\n");
         }
