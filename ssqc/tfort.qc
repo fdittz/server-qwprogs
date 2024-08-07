@@ -1176,28 +1176,25 @@ string(float pc) TeamFortress_GetSkin =
 
 void (entity player) TeamFortress_SetSkinInfos = {
     local string st = TeamFortress_GetSkin(player.playerclass);
-    stuffcmd(player, "skin ");
-    stuffcmd(player, st);
-    stuffcmd(player, "\n");
-    // please fix mvd recording
-    forceinfokey(player, "skin", st);
+    stuffcmd(player, sprintf("skin %s\n", st));
+    forceinfokey(player, "skin", st); // please fix mvd recording
 
     local string color;
-    local entity te;
-
-    te = find(world, classname, "player");
+    local entity te = find(world, classname, "player");
     while (te != world) {
-        msg_entity = te;
-        color = TeamFortress_TeamGetColorFor(te, player.team_no);
+        if (te != player) {
+            msg_entity = te;
+            color = TeamFortress_TeamGetColorFor(te, player.team_no);
 
-        WriteByte(MSG_ONE, SVC_SETINFO);
-        WriteByte(MSG_ONE, player.colormap-1); // ???? Copied from spy.qc
-        WriteString(MSG_ONE, "topcolor");
-        WriteString(MSG_ONE, color);
-        WriteByte(MSG_ONE, SVC_SETINFO);
-        WriteByte(MSG_ONE, player.colormap-1); // ???? Copied from spy.qc
-        WriteString(MSG_ONE, "bottomcolor");
-        WriteString(MSG_ONE, color);
+            WriteByte(MSG_ONE, SVC_SETINFO);
+            WriteByte(MSG_ONE, player.colormap-1); // ???? Copied from spy.qc
+            WriteString(MSG_ONE, "topcolor");
+            WriteString(MSG_ONE, color);
+            WriteByte(MSG_ONE, SVC_SETINFO);
+            WriteByte(MSG_ONE, player.colormap-1); // ???? Copied from spy.qc
+            WriteString(MSG_ONE, "bottomcolor");
+            WriteString(MSG_ONE, color);
+        }
 
         te = find(te, classname, "player");
     }
