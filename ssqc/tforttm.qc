@@ -54,30 +54,36 @@ float (float tno) TeamFortress_TeamGetColor = {
 string TeamFortress_TeamGetColorFor(entity pov, float tno) {
     local string color = "FFFFFF";
 
-    switch (tno) {
-        case 1:
-            color = infokey(pov, "team1color");
-            if (color == "")
-                color = "00AAFF";
-            break;
-        case 2:
-            color = infokey(pov, "team2color");
-            if (color == "")
-                color = "FF2222";
-            break;
-        case 3:
-            color = infokey(pov, "team3color");
-            if (color == "")
-                color = "FFBB00";
-            break;
-        case 4:
-            color = infokey(pov, "team4color");
-            if (color == "")
-                color = "00FF44";
-            break;
+    if (pov.team_no == tno && cvar("teamcolor")) {
+        color = cvar_string("teamcolor");
+    } else if (pov.team_no != tno && cvar("enemycolor")) {
+        color = cvar_string("enemycolor");
+    } else {
+        switch (tno) {
+            case 1:
+                color = infokey(pov, "team1color");
+                if (color == "")
+                    color = "0x00AAFF";
+                break;
+            case 2:
+                color = infokey(pov, "team2color");
+                if (color == "")
+                    color = "0xFF2222";
+                break;
+            case 3:
+                color = infokey(pov, "team3color");
+                if (color == "")
+                    color = "0xFFBB00";
+                break;
+            case 4:
+                color = infokey(pov, "team4color");
+                if (color == "")
+                    color = "0x00FF44";
+                break;
+        }
     }
 
-    return strcat("0x", color);
+    return color;
 }
 
 
