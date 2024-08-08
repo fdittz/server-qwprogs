@@ -52,7 +52,7 @@ float (float tno) TeamFortress_TeamGetColor = {
 };
 
 string TeamFortress_TeamGetColorFor(entity pov, float tno) {
-    local string color = "FFFFFF";
+    local string color = "0xFFFFFF";
 
     if (pov.team_no == tno && cvar("teamcolor")) {
         color = cvar_string("teamcolor");

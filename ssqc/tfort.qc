@@ -1176,7 +1176,8 @@ string(float pc) TeamFortress_GetSkin =
 
 void (entity player) TeamFortress_SetSkinInfos = {
     local string st = TeamFortress_GetSkin(player.playerclass);
-    stuffcmd(player, sprintf("skin %s\n", st));
+    local string command = sprintf("skin %s\n", st);
+    stuffcmd(player, command);
     forceinfokey(player, "skin", st); // please fix mvd recording
 
     local string color;
