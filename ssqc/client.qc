@@ -3147,6 +3147,21 @@ void () UpdateAllClientsTeamScores = {
     }
 }
 
+void (entity pov, entity target) SetSkinInfoFor = {
+    local float target_idx = target.colormap - 1;
+    local string color = TeamFortress_TeamGetColorFor(pov, target.team_no);
+
+    msg_entity = pov;
+    WriteByte(MSG_ONE, SVC_SETINFO);
+    WriteByte(MSG_ONE, target_idx);
+    WriteString(MSG_ONE, "topcolor");
+    WriteString(MSG_ONE, color);
+    WriteByte(MSG_ONE, SVC_SETINFO);
+    WriteByte(MSG_ONE, target_idx);
+    WriteString(MSG_ONE, "bottomcolor");
+    WriteString(MSG_ONE, color);
+}
+
 void () ClientConnect = {
     if (!infokeyf(self,INFOKEY_P_CSQCACTIVE)) {
         sprint(self, PRINT_HIGH, "FTE/CSQC is required for this server, please download the latest client package at www.fortressone.org\n");
@@ -3207,21 +3222,11 @@ void () ClientConnect = {
     UpdateClientPrematch(self, !cb_prematch);
     UpdateClient_VoteMap_AddAll(self);
 
-    local string color;
+    // Set skin colours
     local entity te = find(world, classname, "player");
     while (te != world) {
         if (te != self) {
-            msg_entity = self;
-            color = TeamFortress_TeamGetColorFor(self, te.team_no);
-
-            WriteByte(MSG_ONE, SVC_SETINFO);
-            WriteByte(MSG_ONE, te.colormap-1); // ???? Copied from spy.qc
-            WriteString(MSG_ONE, "topcolor");
-            WriteString(MSG_ONE, color);
-            WriteByte(MSG_ONE, SVC_SETINFO);
-            WriteByte(MSG_ONE, te.colormap-1); // ???? Copied from spy.qc
-            WriteString(MSG_ONE, "bottomcolor");
-            WriteString(MSG_ONE, color);
+            SetSkinInfoFor(self, te);
         }
 
         te = find(te, classname, "player");
