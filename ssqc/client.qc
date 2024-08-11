@@ -2258,16 +2258,6 @@ void () PutClientInServer = {
     TeamFortress_SetHealth();
     TeamFortress_SetSpeed(self);
     TeamFortress_SetSkin(self);
-
-    te = find(world, classname, "player");
-    while (te != world) {
-        if (te != self) {
-            TeamFortress_SetSkin(te);
-        }
-
-        te = find(te, classname, "player");
-    }
-
     TeamFortress_StartTimers();
 
     if(quadmode && quad_roles) {
@@ -3216,6 +3206,26 @@ void () ClientConnect = {
     UpdateClientTeamScores(self);
     UpdateClientPrematch(self, !cb_prematch);
     UpdateClient_VoteMap_AddAll(self);
+
+    local string color;
+    local entity te = find(world, classname, "player");
+    while (te != world) {
+        if (te != self) {
+            msg_entity = self;
+            color = TeamFortress_TeamGetColorFor(self, te.team_no);
+
+            WriteByte(MSG_ONE, SVC_SETINFO);
+            WriteByte(MSG_ONE, te.colormap-1); // ???? Copied from spy.qc
+            WriteString(MSG_ONE, "topcolor");
+            WriteString(MSG_ONE, color);
+            WriteByte(MSG_ONE, SVC_SETINFO);
+            WriteByte(MSG_ONE, te.colormap-1); // ???? Copied from spy.qc
+            WriteString(MSG_ONE, "bottomcolor");
+            WriteString(MSG_ONE, color);
+        }
+
+        te = find(te, classname, "player");
+    }
 
     if (cb_prematch)
         sprint(self, PRINT_HIGH, "Currently in \sprematch\s time\n");
