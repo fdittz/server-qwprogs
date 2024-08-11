@@ -2258,16 +2258,6 @@ void () PutClientInServer = {
     TeamFortress_SetHealth();
     TeamFortress_SetSpeed(self);
     TeamFortress_SetSkin(self);
-
-    te = find(world, classname, "player");
-    while (te != world) {
-        if (te != self) {
-            TeamFortress_SetSkin(te);
-        }
-
-        te = find(te, classname, "player");
-    }
-
     TeamFortress_StartTimers();
 
     if(quadmode && quad_roles) {
@@ -3157,6 +3147,21 @@ void () UpdateAllClientsTeamScores = {
     }
 }
 
+void (entity pov, entity target) SetSkinInfoFor = {
+    local float target_idx = target.colormap - 1;
+    local string color = TeamFortress_TeamGetColorFor(pov, target.team_no);
+
+    msg_entity = pov;
+    WriteByte(MSG_ONE, SVC_SETINFO);
+    WriteByte(MSG_ONE, target_idx);
+    WriteString(MSG_ONE, "topcolor");
+    WriteString(MSG_ONE, color);
+    WriteByte(MSG_ONE, SVC_SETINFO);
+    WriteByte(MSG_ONE, target_idx);
+    WriteString(MSG_ONE, "bottomcolor");
+    WriteString(MSG_ONE, color);
+}
+
 void () ClientConnect = {
     if (!infokeyf(self,INFOKEY_P_CSQCACTIVE)) {
         sprint(self, PRINT_HIGH, "FTE/CSQC is required for this server, please download the latest client package at www.fortressone.org\n");
@@ -3216,6 +3221,16 @@ void () ClientConnect = {
     UpdateClientTeamScores(self);
     UpdateClientPrematch(self, !cb_prematch);
     UpdateClient_VoteMap_AddAll(self);
+
+    // Set skin colours
+    local entity te = find(world, classname, "player");
+    while (te != world) {
+        if (te != self) {
+            SetSkinInfoFor(self, te);
+        }
+
+        te = find(te, classname, "player");
+    }
 
     if (cb_prematch)
         sprint(self, PRINT_HIGH, "Currently in \sprematch\s time\n");

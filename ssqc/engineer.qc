@@ -1040,6 +1040,7 @@ void () TeamFortress_FinishedBuilding = {
         newmis.th_die = Sentry_Die;
         newmis.th_pain = Sentry_Pain;
         newmis.mdl = "progs/turrgun.mdl";
+        newmis.colormod = '0.5 0.5 0.5';
         self.sentry_ent = newmis;
         FO_Sound(oldself, CHAN_ITEM, "weapons/turrset.wav", 1, 1);
         newmis.solid = SOLID_BBOX;
