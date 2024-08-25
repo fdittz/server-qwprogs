@@ -334,9 +334,7 @@ void (entity pov, string color, float tno) UpdateTeamColor = {
 
     local entity te = find(world, classname, "player");
     while (te != world) {
-        if (te.team_no == tno) {
-            TeamFortress_SetSkin(te);
-        }
+        TeamFortress_SetSkin(te);
 
         te = find(te, classname, "player");
     }
