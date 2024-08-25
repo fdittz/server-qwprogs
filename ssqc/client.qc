@@ -10,7 +10,7 @@ float modelindex_null;
 
 float (entity pe_player) Spy_CheckArea;
 
-void () TeamFortress_CheckTeamCheats;
+void (entity player) TeamFortress_CheckTeamCheats;
 void () TeamFortress_CheckforCheats;
 void (entity Viewer, float pc, float rpc) TeamFortress_PrintClassName;
 void () TeamFortress_RemoveTimers;
@@ -3102,7 +3102,7 @@ static void PlayerPostThinkAlive() {
             }
         }
         if (self.cheat_check <= time) {
-            TeamFortress_CheckTeamCheats();
+            TeamFortress_CheckTeamCheats(self);
             self.cheat_check = time + 3;
         }
     }

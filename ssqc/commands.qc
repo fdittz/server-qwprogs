@@ -138,7 +138,7 @@ void (entity pe) SetEquipmentForPlayer = {
     //self.immune_to_check = time + 10;
     //self.undercover_team = 0;
     stuffcmd(self, "color ");
-    string st = ftos(TeamFortress_TeamGetColor(self.team_no) - 1);
+    string st = TeamFortress_TeamGetColor(self.team_no);
     stuffcmd(self, st);
     stuffcmd(self, "\n");
 
@@ -381,37 +381,28 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
         case "setinfo":
             if (arg2) {
                 switch(arg2) {
-                    case "topcolor":
-                    case "bottomcolor":
-                        float arg3f = stof(arg3);
-                        if ((self.team_no > 0) && (teamplay > 0)) {
-                            if (arg3f != (TeamFortress_TeamGetColor(self.team_no) - 1)) {
-                                arg3f = TeamFortress_TeamGetColor(self.team_no) - 1;
-                                string st;
-                                st = ftos(arg3f);
-                                stuffcmd(self, strcat("color ", st, "\n"));
-                                sprint(self, PRINT_HIGH,
-                                        "Your color has been changed to your team color\n");
-                                processedCmd = TRUE;
-                            }
-                        }
-                        break;
+                    /* case "topcolor": */
+                    /* case "bottomcolor": */
+                    /* case "color": */
+                    /*     TeamFortress_SetSkin(self); */
+                    /*     processedCmd = TRUE; */
+                    /*     break; */
                     case "team1color":
-                          UpdateTeamColor(self, arg3, 1);
-                          processedCmd = TRUE;
-                          break;
+                        UpdateTeamColor(self, arg3, 1);
+                        processedCmd = TRUE;
+                        break;
                     case "team2color":
-                          UpdateTeamColor(self, arg3, 2);
-                          processedCmd = TRUE;
-                          break;
+                        UpdateTeamColor(self, arg3, 2);
+                        processedCmd = TRUE;
+                        break;
                     case "team3color":
-                          UpdateTeamColor(self, arg3, 3);
-                          processedCmd = TRUE;
-                          break;
+                        UpdateTeamColor(self, arg3, 3);
+                        processedCmd = TRUE;
+                        break;
                     case "team4color":
-                          UpdateTeamColor(self, arg3, 4);
-                          processedCmd = TRUE;
-                          break;
+                        UpdateTeamColor(self, arg3, 4);
+                        processedCmd = TRUE;
+                        break;
                 }
             }
             break;
