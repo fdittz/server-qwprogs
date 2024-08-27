@@ -1172,7 +1172,6 @@ string(float pc) TeamFortress_GetSkin = {
 };
 
 void (entity player) TeamFortress_SetSkinInfos = {
-    bprint(PRINT_HIGH, "Setting infokeys\n");
     local string sk = TeamFortress_GetSkin(player.playerclass);
     forceinfokey(player, "skin",  sk);
     stuffcmd(player, sprintf("skin %s\n", sk));
