@@ -682,7 +682,7 @@ struct Slot { int id; };
 #define NOTEAMCOLOR     "0xffffff"
 #define BLUETEAMCOLOR   "0x00aaff"
 #define REDTEAMCOLOR    "0xff3333"
-#define YELLOWTEAMCOLOR "0xffbb00"
+#define YELLOWTEAMCOLOR "0xffdd00"
 #define GREENTEAMCOLOR  "0x00ff44"
 
 /*======================================================*/
