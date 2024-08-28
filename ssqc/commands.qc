@@ -313,24 +313,7 @@ void (entity pl) PrintWho = {
     strunzone(msg);
 }
 
-void (entity pov, string color, float tno) UpdateTeamColor = {
-    local string command = "";
-
-    switch (tno) {
-        case 1:
-            command = "team1color";
-            break;
-        case 2:
-            command = "team2color";
-            break;
-        case 3:
-            command = "team3color";
-            break;
-        case 4:
-            command = "team4color";
-            break;
-    }
-
+void (entity pov, string command, string color) UpdateTeamColor = {
     forceinfokey(pov, command, color);
 
     local entity te = find(world, classname, "player");
@@ -387,19 +370,10 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                     /*     processedCmd = TRUE; */
                     /*     break; */
                     case "team1color":
-                        UpdateTeamColor(self, arg3, 1);
-                        processedCmd = TRUE;
-                        break;
                     case "team2color":
-                        UpdateTeamColor(self, arg3, 2);
-                        processedCmd = TRUE;
-                        break;
                     case "team3color":
-                        UpdateTeamColor(self, arg3, 3);
-                        processedCmd = TRUE;
-                        break;
                     case "team4color":
-                        UpdateTeamColor(self, arg3, 4);
+                        UpdateTeamColor(self, arg2, arg3);
                         processedCmd = TRUE;
                         break;
                 }
