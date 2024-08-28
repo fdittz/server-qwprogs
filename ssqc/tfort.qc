@@ -1178,9 +1178,9 @@ void (entity player) TeamFortress_SetSkinInfos = {
 
     local string col = TeamFortress_TeamGetColor(player.team_no);
     forceinfokey(player, "bottomcolor", col);
-    stuffcmd(player, sprintf("setinfo bottomcolor %s\n", col));
+    /* stuffcmd(player, sprintf("setinfo bottomcolor %s\n", col)); */
     forceinfokey(player, "topcolor", col);
-    stuffcmd(player, sprintf("setinfo topcolor %s\n", col));
+    /* stuffcmd(player, sprintf("setinfo topcolor %s\n", col)); */
 
     local entity te = find(world, classname, "player");
     while (te != world) {

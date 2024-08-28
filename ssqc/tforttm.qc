@@ -339,7 +339,6 @@ void (entity player) TeamFortress_CheckTeamCheats = {
     if ((player.team_no > 0) && (teamplay > 0)) {
         st = infokey(player, "bottomcolor");
         if (st != TeamFortress_TeamGetColor(player.team_no)) {
-            bprint(PRINT_HIGH, "INHERE!\n");
             TeamFortress_SetSkin(player);
         }
         if (player.playerclass != 0) {

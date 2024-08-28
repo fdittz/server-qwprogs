@@ -3225,10 +3225,7 @@ void () ClientConnect = {
     // Set skin colours
     local entity te = find(world, classname, "player");
     while (te != world) {
-        if (te != self) {
-            SetSkinInfoFor(self, te);
-        }
-
+        SetSkinInfoFor(self, te);
         te = find(te, classname, "player");
     }
 
