@@ -314,11 +314,8 @@ void (entity pl) PrintWho = {
 }
 
 void (entity pov, string color, float tno) UpdateTeamColor = {
-    if (color == "off"){
-        color = "";
-    }
-
     local string command = "";
+
     switch (tno) {
         case 1:
             command = "team1color";

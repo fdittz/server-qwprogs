@@ -71,22 +71,22 @@ string TeamFortress_TeamGetColorFor(entity pov, float tno) {
         switch (tno) {
             case 1:
                 color = infokey(pov, "team1color");
-                if (color == "")
+                if (color == "" || color == "off")
                     color = BLUETEAMCOLOR;
                 break;
             case 2:
                 color = infokey(pov, "team2color");
-                if (color == "")
+                if (color == "" || color == "off")
                     color = REDTEAMCOLOR;
                 break;
             case 3:
                 color = infokey(pov, "team3color");
-                if (color == "")
+                if (color == "" || color == "off")
                     color = YELLOWTEAMCOLOR;
                 break;
             case 4:
                 color = infokey(pov, "team4color");
-                if (color == "")
+                if (color == "" || color == "off")
                     color = GREENTEAMCOLOR;
                 break;
         }
