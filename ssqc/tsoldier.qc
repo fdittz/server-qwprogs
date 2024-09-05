@@ -44,7 +44,6 @@ void () NailGrenadeExplode = {
     local entity te;
 
     self.owner.no_active_nail_grens = self.owner.no_active_nail_grens + 1;
-
     if (self.owner.no_active_nail_grens >= max_active_gren2_soldier) {
         te = find(world, classname, "grenade");
 
@@ -72,6 +71,7 @@ void () NailGrenadeExplode = {
     self.avelocity = '0 500 0';
     self.nextthink = time + 0.7;
     self.think = NailGrenadeNailEm;
+    self.SendFlags |= FOPP_POS | FOPP_MOVETYPE;
 };
 
 void () ShockGrenadeExplode = {

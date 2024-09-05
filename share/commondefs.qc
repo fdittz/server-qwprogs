@@ -21,6 +21,7 @@ enumflags {
     FPF_FIXED_DYNAMIC,
 };
 
+typedef struct { int id; } Slot;
 var struct {
     float min_ping_ms;
 
