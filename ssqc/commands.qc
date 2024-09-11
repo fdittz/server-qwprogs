@@ -316,11 +316,10 @@ void (entity pl) PrintWho = {
 void (entity pov, string command, string color) UpdateTeamColor = {
     forceinfokey(pov, command, color);
 
-    local entity te = find(world, classname, "player");
-    while (te != world) {
-        TeamFortress_SetSkin(te);
-
-        te = find(te, classname, "player");
+    local entity target = find(world, classname, "player");
+    while (target != world) {
+        SetSkinInfoFor(pov, target);
+        target = find(target, classname, "player");
     }
 }
 
@@ -363,12 +362,6 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
         case "setinfo":
             if (arg2) {
                 switch(arg2) {
-                    /* case "topcolor": */
-                    /* case "bottomcolor": */
-                    /* case "color": */
-                    /*     TeamFortress_SetSkin(self); */
-                    /*     processedCmd = TRUE; */
-                    /*     break; */
                     case "team1color":
                     case "team2color":
                     case "team3color":

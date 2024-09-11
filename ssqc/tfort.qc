@@ -1171,48 +1171,34 @@ string(float pc) TeamFortress_GetSkin = {
     return skin;
 };
 
-void (entity player) TeamFortress_SetSkinInfos = {
-    local string sk = TeamFortress_GetSkin(player.playerclass);
-    forceinfokey(player, "skin",  sk);
-    stuffcmd(player, sprintf("skin %s\n", sk));
+void (entity player) TeamFortress_SetSkin = {
+    player.immune_to_check = time + 10;
 
-    local string col = TeamFortress_TeamGetColor(player.team_no);
-    forceinfokey(player, "bottomcolor", col);
-    /* stuffcmd(player, sprintf("setinfo bottomcolor %s\n", col)); */
-    forceinfokey(player, "topcolor", col);
-    /* stuffcmd(player, sprintf("setinfo topcolor %s\n", col)); */
-
-    local entity te = find(world, classname, "player");
-    while (te != world) {
-        SetSkinInfoFor(te, player);
-        te = find(te, classname, "player");
-    }
-}
-
-void (entity p) TeamFortress_SetSkin = {
-    p.immune_to_check = time + 10;
-
-    if (p.playerclass == PC_SPY || p.last_playerclass == PC_SPY) {
-        if (!p.is_undercover) {
-            TeamFortress_SetSkinInfos(p);
-        } else {
-            Spy_SetClientSkins(p);
-        }
-
+    if (player.playerclass == PC_SPY && player.is_undercover) {
+        Spy_SetClientSkins(player);
         return;
     }
 
-    p.skin = p.playerclass;
+    player.skin = player.playerclass;
 
-    if (p.skin != 0) {
-        TeamFortress_SetSkinInfos(p);
+    if (player.skin != 0) {
+        player.needs_skin_update = 1;
+        local string sk = TeamFortress_GetSkin(player.playerclass);
+        forceinfokey(player, "skin",  sk);
+        stuffcmd(player, sprintf("skin %s\n", sk));
+
+        local string col = TeamFortress_TeamGetColor(player.team_no);
+        forceinfokey(player, "bottomcolor", col);
+        stuffcmd(player, sprintf("setinfo bottomcolor %s\n", col));
+        forceinfokey(player, "topcolor", col);
+        stuffcmd(player, sprintf("setinfo topcolor %s\n", col));
     } else {
-        forceinfokey(p, "skin", "base");
-        stuffcmd(p, sprintf("skin %s\n", "base"));
-        forceinfokey(p, "bottomcolor", NOTEAMCOLOR);
-        stuffcmd(p, sprintf("bottomcolor %s\n", NOTEAMCOLOR));
-        forceinfokey(p, "topcolor", NOTEAMCOLOR);
-        stuffcmd(p, sprintf("topcolor %s\n", NOTEAMCOLOR));
+        forceinfokey(player, "skin", "base");
+        stuffcmd(player, sprintf("skin %s\n", "base"));
+        forceinfokey(player, "bottomcolor", NOTEAMCOLOR);
+        stuffcmd(player, sprintf("bottomcolor %s\n", NOTEAMCOLOR));
+        forceinfokey(player, "topcolor", NOTEAMCOLOR);
+        stuffcmd(player, sprintf("topcolor %s\n", NOTEAMCOLOR));
     }
 };
 

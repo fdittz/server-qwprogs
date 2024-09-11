@@ -73,6 +73,8 @@ void StopAssCan();
 void Predict_InitPlayer(entity player);
 void Predict_Destroy(entity player);
 
+void SetSkinInfoFor(entity pov, entity target);
+
 void () info_intermission =
 {
     if (CheckExistence() == 0) {
@@ -2768,9 +2770,31 @@ static void ConcUpdate() {
     }
 }
 
+// If a forceinfokey and a SVC_SETINFO are both set in the same frame, they
+// will clobber each other. Thus we do skin setinfos like normal, and then
+// per-player custom skin infos are immediately applied for those who need to
+// update on the next frame.
+void () UpdateAllSkins = {
+    local entity target = find(world, classname, "player");
+    local entity pov;
+
+    while (target != world) {
+        if (target.needs_skin_update) {
+            pov = find(world, classname, "player");
+            while (pov != world) {
+                SetSkinInfoFor(pov, target);
+                pov = find(pov, classname, "player");
+            }
+            target.needs_skin_update = 0;
+        }
+        target = find(target, classname, "player");
+    }
+}
+
 void () PlayerPreThink = {
     FO_UpdateClientTime();
     ConcUpdate();
+    UpdateAllSkins();
 
     if (self.impulse) {
         if (self.impulse == TF_VOTENEXT) {
@@ -3147,19 +3171,35 @@ void () UpdateAllClientsTeamScores = {
     }
 }
 
-void (entity pov, entity target) SetSkinInfoFor = {
+void (entity pov, entity target) SetBottomColorInfoFor = {
     local float target_idx = target.colormap - 1;
     local string color = TeamFortress_TeamGetColorFor(pov, target.team_no);
+
+    bprint(PRINT_HIGH, sprintf("Setting bottomcolor %s on %s for %s\n", color, target.netname, pov.netname));
+
+    msg_entity = pov;
+    WriteByte(MSG_ONE, SVC_SETINFO);
+    WriteByte(MSG_ONE, target_idx);
+    WriteString(MSG_ONE, "bottomcolor");
+    WriteString(MSG_ONE, color);
+}
+
+void (entity pov, entity target) SetTopColorInfoFor = {
+    local float target_idx = target.colormap - 1;
+    local string color = TeamFortress_TeamGetColorFor(pov, target.team_no);
+
+    bprint(PRINT_HIGH, sprintf("Setting topcolor %s on %s for %s\n", color, target.netname, pov.netname));
 
     msg_entity = pov;
     WriteByte(MSG_ONE, SVC_SETINFO);
     WriteByte(MSG_ONE, target_idx);
     WriteString(MSG_ONE, "topcolor");
     WriteString(MSG_ONE, color);
-    WriteByte(MSG_ONE, SVC_SETINFO);
-    WriteByte(MSG_ONE, target_idx);
-    WriteString(MSG_ONE, "bottomcolor");
-    WriteString(MSG_ONE, color);
+}
+
+void (entity pov, entity target) SetSkinInfoFor = {
+    SetTopColorInfoFor(pov, target);
+    SetBottomColorInfoFor(pov, target);
 }
 
 void () ClientConnect = {
@@ -3221,13 +3261,7 @@ void () ClientConnect = {
     UpdateClientTeamScores(self);
     UpdateClientPrematch(self, !cb_prematch);
     UpdateClient_VoteMap_AddAll(self);
-
-    // Set skin colours
-    local entity te = find(world, classname, "player");
-    while (te != world) {
-        SetSkinInfoFor(self, te);
-        te = find(te, classname, "player");
-    }
+    TeamFortress_SetSkin(self);
 
     if (cb_prematch)
         sprint(self, PRINT_HIGH, "Currently in \sprematch\s time\n");
