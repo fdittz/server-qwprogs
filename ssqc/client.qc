@@ -3175,8 +3175,6 @@ void (entity pov, entity target) SetBottomColorInfoFor = {
     local float target_idx = target.colormap - 1;
     local string color = TeamFortress_TeamGetColorFor(pov, target.team_no);
 
-    bprint(PRINT_HIGH, sprintf("Setting bottomcolor %s on %s for %s\n", color, target.netname, pov.netname));
-
     msg_entity = pov;
     WriteByte(MSG_ONE, SVC_SETINFO);
     WriteByte(MSG_ONE, target_idx);
@@ -3187,8 +3185,6 @@ void (entity pov, entity target) SetBottomColorInfoFor = {
 void (entity pov, entity target) SetTopColorInfoFor = {
     local float target_idx = target.colormap - 1;
     local string color = TeamFortress_TeamGetColorFor(pov, target.team_no);
-
-    bprint(PRINT_HIGH, sprintf("Setting topcolor %s on %s for %s\n", color, target.netname, pov.netname));
 
     msg_entity = pov;
     WriteByte(MSG_ONE, SVC_SETINFO);
