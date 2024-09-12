@@ -698,7 +698,6 @@ void (entity pe_player, float pf_class, float is_user) CF_Spy_ChangeSkin = {
 
 void (entity pe_player, float pf_team_no, float is_user) CF_Spy_ChangeColor = {
     local entity e_timer;
-    local float f_team_color = TeamFortress_TeamGetColor(pf_team_no) - 1;
 
     // stop if you're already disguised as the requested skin
     if (pe_player.undercover_team == pf_team_no)
@@ -1208,8 +1207,9 @@ void (entity spy) Spy_RemoveDisguise = {
         timer = find(timer, classname, "spytimer");
     }
 
-    if (coverblown)
+    if (coverblown) {
         Status_Print(self, "\n\n\n\n\n\n\n", "You blew your cover!");
+    }
 
     local float autodisguise = FO_GetUserSetting(self, "autodisguise", "ad", "off");
     if (self.playerclass == PC_SPY) {

@@ -1132,12 +1132,10 @@ string (float tn) TeamFortress_GetColorSkin = {
     return s;
 }
 
-string(float pc) TeamFortress_GetSkin =
-{
+string(float pc) TeamFortress_GetSkin = {
     local string skin = "base";
 
-    switch (pc)
-    {
+    switch (pc) {
         case 1:
             skin = "fo_scout";
             break;
@@ -1168,44 +1166,39 @@ string(float pc) TeamFortress_GetSkin =
         case 11:
             skin = "fo_civ";
             break;
-
     }
+
     return skin;
 };
 
-void (entity player) TeamFortress_SetSkinInfos = {
-    local string st = TeamFortress_GetSkin(player.playerclass);
-    local string command = sprintf("skin %s\n", st);
-    stuffcmd(player, command);
-    forceinfokey(player, "skin", st); // please fix mvd recording
+void (entity player) TeamFortress_SetSkin = {
+    player.immune_to_check = time + 10;
 
-    local entity te = find(world, classname, "player");
-    while (te != world) {
-        if (te != player) {
-            SetSkinInfoFor(te, player);
-        }
-
-        te = find(te, classname, "player");
+    if (player.playerclass == PC_SPY && player.is_undercover) {
+        Spy_SetClientSkins(player);
+        return;
     }
-}
 
-void (entity p) TeamFortress_SetSkin = {
-    p.immune_to_check = time + 10;
+    player.skin = player.playerclass;
 
-    if (p.playerclass == PC_SPY || p.last_playerclass == PC_SPY) {
-        if (!p.is_undercover) {
-            TeamFortress_SetSkinInfos(p);
-        } else {
-            Spy_SetClientSkins(p);
-        }
+    if (player.skin != 0) {
+        player.needs_skin_update = 1;
+        local string sk = TeamFortress_GetSkin(player.playerclass);
+        forceinfokey(player, "skin",  sk);
+        stuffcmd(player, sprintf("skin %s\n", sk));
+
+        local string col = TeamFortress_TeamGetColor(player.team_no);
+        forceinfokey(player, "bottomcolor", col);
+        stuffcmd(player, sprintf("setinfo bottomcolor %s\n", col));
+        forceinfokey(player, "topcolor", col);
+        stuffcmd(player, sprintf("setinfo topcolor %s\n", col));
     } else {
-        p.skin = p.playerclass;
-
-        if (p.skin != 0) {
-            TeamFortress_SetSkinInfos(p);
-        } else {
-            stuffcmd(p, "skin base\n");
-        }
+        forceinfokey(player, "skin", "base");
+        stuffcmd(player, sprintf("skin %s\n", "base"));
+        forceinfokey(player, "bottomcolor", NOTEAMCOLOR);
+        stuffcmd(player, sprintf("bottomcolor %s\n", NOTEAMCOLOR));
+        forceinfokey(player, "topcolor", NOTEAMCOLOR);
+        stuffcmd(player, sprintf("topcolor %s\n", NOTEAMCOLOR));
     }
 };
 
@@ -1241,7 +1234,7 @@ void () TeamFortress_SetEquipment = {
         self.immune_to_check = time + 10;
         self.undercover_team = 0;
         stuffcmd(self, "color ");
-        st = ftos(TeamFortress_TeamGetColor(self.team_no) - 1);
+        st = TeamFortress_TeamGetColor(self.team_no);
         stuffcmd(self, st);
         stuffcmd(self, "\n");
     }
