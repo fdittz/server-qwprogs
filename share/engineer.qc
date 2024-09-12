@@ -44,10 +44,10 @@ float (entity obj, entity builder) CheckArea = {
     if ((pos == CONTENT_SOLID) || (pos == CONTENT_SKY)) {
         return (0);
     }
-    traceline(builder.origin, obj.origin, 1, builder);
-    if (trace_fraction != 1) {
-        return (0);
-    }
+    /* traceline(builder.origin, obj.origin, 1, builder); */
+    /* if (trace_fraction != 1) { */
+    /*     return (0); */
+    /* } */
     te = findradius(obj.origin, 64);
     if (te != world) {
         return (0);
