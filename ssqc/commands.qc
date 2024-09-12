@@ -323,10 +323,10 @@ void (entity pov, string command, string color) UpdateTeamColor = {
     }
 }
 
-float (string arg1, string arg2, string arg3) ParseCmds = {
+float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
     local float arg_num = 0, processedCmd, inp;
     local string tmp;
-    local float farg2, farg3;
+    local float farg2, farg3, farg4;
     local entity ent, pl;
     processedCmd = FALSE;
 
@@ -734,11 +734,29 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                 sprint(self, PRINT_HIGH, "Only engineers can do that!\n");
                 break;
             }
+
             if(self.health <= 0) {
                 sprint(self, PRINT_HIGH, "Can't maintain while dead.\n");
                 break;
             }
-            
+
+            if (arg2 && arg2 == "rotate" && arg3 && arg3 == "mouse" && arg4) {
+                if (self.rotating_sentry == world)
+                    break;
+
+                self.dimension_see = (self.dimension_see & ~DMN_GHOST) | DMN_HIDDEN;
+
+                local entity rs = self.rotating_sentry;
+                rs.dimension_seen = (rs.dimension_seen & ~(DMN_HIDDEN | DMN_GHOST)) | DMN_NOFLASH;
+                farg4 = stof(arg4);
+                rs.angles_y = farg4;
+                rs.waitmin = anglemod(farg4 - 50);
+                rs.waitmax = anglemod(farg4 + 50);
+                FO_Sound(self, CHAN_ITEM, "weapons/turridle.wav", 1, ATTN_NORM);
+                self.rotating_sentry = world;
+                break;
+            }
+
             //find sentry first
             ent = findradius(self.origin, ENG_BUILDING_MAINT_DISTANCE);
             while (ent) {
@@ -748,16 +766,41 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                 }
                 ent = ent.chain;
             }
+
+            if (arg2 && arg2 == "rotate" && arg3 && arg3 == "mwheel" && arg4) {
+                if (!arg4)
+                    break;
+
+                farg4 = stof(arg4);
+                self.dimension_see = (self.dimension_see & ~DMN_HIDDEN) | DMN_GHOST;
+                ent.dimension_seen = (ent.dimension_seen & ~DMN_NOFLASH) | DMN_HIDDEN | DMN_GHOST;
+                if (self.rotating_sentry == world)
+                    self.rotating_sentry = ent;
+                UpdateClientSentryRotateBy(self, self.rotating_sentry, farg4);
+                break;
+            }
+
             if (!ent) {
                 sprint(self, PRINT_HIGH, "No sentry in range\n");
                 break;
             }
+
             if (arg2 && arg3) {
                 if(arg2 == "rotate") {
                     farg3 = stof(arg3);
                     if (!ent.real_owner.has_sentry || ent.real_owner != self
                                 || self.classname != "player" || ent == world) {
                         sprint(self, PRINT_HIGH, "Sentry detection issue!\n");
+                        break;
+                    }
+                    if (arg3 == "mouse" && !arg4) {
+                        if (!self.rotating_sentry == world)
+                            break;
+
+                        self.dimension_see = (self.dimension_see & ~DMN_HIDDEN) | DMN_GHOST;
+                        ent.dimension_seen = (ent.dimension_seen & ~DMN_NOFLASH) | DMN_HIDDEN | DMN_GHOST;
+                        self.rotating_sentry = ent;
+                        UpdateClientSentryRotate(self, ent);
                         break;
                     }
                     if(farg3 < 0) {
@@ -1305,7 +1348,7 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                 break;
             case "play_to_completion":
                 if(arg2 != "0" && arg2 != "1")
-                    return;
+                    break;
 
                 processedCmd = TRUE;
                 localcmd ("localinfo play_to_completion ",arg2,"\n");
@@ -1380,7 +1423,7 @@ void (string cmd) SV_ParseClientCommand = {
     float isProcessed;
     tokenize(cmd);
 
-    isProcessed = ParseCmds(argv(0), argv(1), argv(2));
+    isProcessed = ParseCmds(argv(0), argv(1), argv(2), argv(3));
 
     if (!isProcessed)
     {

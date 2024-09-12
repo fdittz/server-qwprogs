@@ -359,11 +359,38 @@ void() CSQC_Parse_Event = {
             flag_team = readfloat();
             pick_up_time = time;
             break;
-        case MSG_FLAG_DROP:
-            pick_up_time = FALSE;
-            break;
         case MSG_BUILDING:
             SentryPreviewStop();
+            break;
+        case MSG_SENTRY_ROTATE:
+            sentry_rotate.drawmask = MASK_ENGINE;
+
+            local vector origin = getentity(readentitynum(), GE_ORIGINANDVECTORS);
+            setorigin(sentry_rotate, origin);
+            sentry_rotate.angles = vectoangles(v_forward);
+            sentry_rotate.frame = readfloat();
+            rotating_sentry = TRUE;
+            break;
+        case MSG_SENTRY_ROTATE_BY:
+            local vector origin = getentity(readentitynum(), GE_ORIGINANDVECTORS);
+            sentry_rotate.frame = readfloat();
+            local float offset = readfloat() * -1;
+
+            if (!rotating_sentry) {
+                rotating_sentry = TRUE;
+                setorigin(sentry_rotate, origin);
+                sentry_rotate.angles = vectoangles(v_forward);
+                sentry_rotate.angles_y += offset;
+                sentry_rotate.drawmask = MASK_ENGINE;
+            }
+
+            sentry_rotate.angles_y += offset;
+            break;
+        case MSG_SENTRY_DIE:
+            SentryRotateStop();
+            break;
+        case MSG_FLAG_DROP:
+            pick_up_time = FALSE;
             break;
     }
 }

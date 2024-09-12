@@ -439,6 +439,10 @@ void () GibPlayer = {
 };
 
 void () PlayerDie = {
+    local entity rs = self.rotating_sentry;
+    rs.dimension_seen = (rs.dimension_seen & ~(DMN_HIDDEN | DMN_GHOST)) | DMN_NOFLASH;
+    self.rotating_sentry = world;
+
     self.spawn_gen += 1;
     self.last_death_ctime = self.client_time;
 

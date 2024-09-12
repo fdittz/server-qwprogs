@@ -17,17 +17,44 @@ float InFluid(vector point);
 float CalculateWaterLevel();
 void RenderHitTexts();
 entity sentry_preview;
+entity sentry_preview_range_sphere;
+entity sentry_rotate;
 entity temp_sentry;
 entity temp_self;
 float sentry_preview_offset;
 float previewing_sentry;
+float rotating_preview;
+float rotating_preview_y;
 float rotating_sentry;
+float rotating_sentry_y;
+float rotating_sensitivity = 0.25;
 float prevent_firing;
 float sentry_fits;
 
 void GetSelf() = {
     self = findfloat(world, entnum, player_localentnum);
 }
+
+/* vector AnglesToVector(vector angles) { */
+/*     float pitch, yaw, roll; */
+/*     vector dir; */
+
+/*     pitch = angles_x * (M_PI / 180.0); */
+/*     yaw = angles_y * (M_PI / 180.0); */
+/*     roll = angles_z * (M_PI / 180.0); */
+
+/*     dir_x = cos(yaw) * cos(pitch); */
+/*     dir_y = sin(yaw) * cos(pitch); */
+/*     dir_z = -sin(pitch); */
+
+/*     return dir; */
+/* } */
+
+/* vector GetNewPosition(entity ent, vector angle_offsets, float distance) { */
+/*     vector dir = AnglesToVector(ent.angles + angle_offsets); */
+/*     vector new_position = ent.origin + dir * distance; */
+/*     return new_position; */
+/* } */
 
 void PushToSlotHistory(float value) {
     if (slot_history_top >= MAX_SLOT_HISTORY_SIZE) {
@@ -187,12 +214,23 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init = {
 
     pengine.view_mask = MASK_VIEWMODEL;  // Start with engine models.
 
-    precache_model("progs/turrbase.mdl");
     temp_sentry = spawn();
     temp_self = spawn();
+
+    precache_model("progs/turrpreview.mdl");
     sentry_preview = spawn();
-    setmodel(sentry_preview, "progs/turrbase.mdl");
+    setmodel(sentry_preview, "progs/turrpreview.mdl");
     sentry_preview.alpha = 0.5;
+
+    precache_model("progs/sphere.mdl");
+    sentry_preview_range_sphere = spawn();
+    setmodel(sentry_preview_range_sphere, "progs/sphere.mdl");
+    sentry_preview_range_sphere.scale = 1000;
+    sentry_preview_range_sphere.alpha = 0.02;
+
+    precache_model("progs/turrgun.mdl");
+    sentry_rotate = spawn();
+    setmodel(sentry_rotate, "progs/turrgun.mdl");
 
     print("CSQC initialization finished\n");
 };
@@ -218,19 +256,6 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
     clearscene();
     setproperty(VF_DRAWWORLD, 1); 		// we want to draw our world!
 
-    if (previewing_sentry) {
-        makevectors(input_angles);
-        v_forward_z = 0;
-        v_forward = normalize(v_forward) * 64;
-        sentry_preview.origin = PM_Org() + v_forward;
-        setorigin(temp_self, PM_Org());
-        temp_sentry.origin = sentry_preview.origin;
-        sentry_fits = CheckArea(temp_sentry, temp_self);
-        sentry_preview.colormod = sentry_fits ? '1 1 1' : '1 0.5 0.5';
-    } else {
-        setproperty(VF_DRAWCROSSHAIR, 1);       // we want to draw our crosshair!
-    }
-
     FO_CussView();
 
     if (zoomed_in)
@@ -247,6 +272,33 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
 
     if (PM_Enabled())
         PM_UpdateView();
+
+    if (previewing_sentry) {
+        makevectors(view_angles);
+
+        // can probably use trig here so we don't need to normalize twice
+        local vector z_pos;
+        z_pos.z = (normalize(v_forward) * 64).z;
+        v_forward_z = 0;
+        local vector xy_pos = normalize(v_forward) * 64;
+
+        local vector v_forward_sentry;
+        v_forward_sentry.x = xy_pos.x;
+        v_forward_sentry.y = xy_pos.y;
+        v_forward_sentry.z = z_pos.z;
+
+        sentry_preview.origin = PM_Org() + v_forward_sentry;
+        setorigin(temp_self, sentry_preview.origin);
+        temp_sentry.origin = sentry_preview.origin;
+        local vector v_forward_range = normalize(v_forward) * 1024;
+        sentry_preview_range_sphere.origin = sentry_preview.origin;
+
+        if (rotating_preview) {
+            setviewprop(VF_CL_VIEWANGLES_Y, rotating_preview_y);
+        }
+    } else {
+        setproperty(VF_DRAWCROSSHAIR, 1);       // we want to draw our crosshair!
+    }
 
     renderscene();
 
@@ -673,11 +725,45 @@ void FO_ApplyCussInput() {
 
 void PM_InputFrame();
 
+void SentryPreviewStart() {
+    sentry_preview_offset = 180;
+    sentry_preview.angles_y = input_angles_y;
+    sentry_preview.drawmask = MASK_ENGINE;
+
+    local vector sphere_colormod = '1 1 1';
+    switch (team_no) {
+        case 1:
+            sphere_colormod = '0 0.4 1';
+            break;
+        case 2:
+            sphere_colormod = '1 0 0';
+            break;
+        case 3:
+            sphere_colormod = '1 1 0';
+            break;
+        case 4:
+            sphere_colormod = '0 1 0';
+            break;
+    }
+
+    sentry_preview_range_sphere.colormod = sphere_colormod * 4;
+    sentry_preview_range_sphere.drawmask = MASK_ENGINE;
+
+    previewing_sentry = TRUE;
+}
+
 void SentryPreviewStop() {
-    rotating_sentry = FALSE;
+    rotating_preview = FALSE;
+    rotating_preview_y = 0;
     previewing_sentry = FALSE;
-    sentry_preview_offset = 0;
     sentry_preview.drawmask = 0;
+    sentry_preview_range_sphere.drawmask = 0;
+}
+
+void SentryRotateStop() {
+    rotating_sentry = FALSE;
+    rotating_sentry_y = 0;
+    sentry_rotate.drawmask = 0;
 }
 
 noref void CSQC_Input_Frame() {
@@ -694,52 +780,60 @@ noref void CSQC_Input_Frame() {
             (input_buttons & BUTTON4))
         input_buttons |= BUTTON0 | BUTTON2;
 
-    // Intercept sentry build
-    if (WP_PlayerClass() == PC_ENGINEER && !getstatf(STAT_HAS_SENTRY) && getstatf(STAT_CELLS) >= 130 && game_state.is_alive && !prematch) {
-        if (input_buttons & BUTTON4) {
-            if (keydowns & BUTTON4) {
-                if (!previewing_sentry) {
-                    sentry_preview.angles_y = anglemod(input_angles_y + 180);
-                    sentry_preview.drawmask = MASK_ENGINE;
-                    previewing_sentry = TRUE;
-                } else {
-                    SentryPreviewStop();
+    if (WP_PlayerClass() == PC_ENGINEER) {
+        // Intercept sentry build
+        if (rotating_sentry) {
+            if (keyups & BUTTON0) {
+                localcmd(sprintf("cmd sentry rotate mouse %f\n", sentry_rotate.angles_y));
+                SentryRotateStop();
+            }
+            input_buttons &= ~BUTTON0;
+        } else if (!getstatf(STAT_HAS_SENTRY) && getstatf(STAT_CELLS) >= 130 && game_state.is_alive && !prematch) {
+            if (input_buttons & BUTTON4) {
+                if (keydowns & BUTTON4) {
+                    if (!previewing_sentry) {
+                        SentryPreviewStart();
+                    } else {
+                        SentryPreviewStop();
 
-                    if (input_buttons & BUTTON0) {
-                        prevent_firing = TRUE;
+                        if (input_buttons & BUTTON0) {
+                            prevent_firing = TRUE;
+                        }
                     }
                 }
+
+                input_buttons = input_buttons - BUTTON4;
             }
 
-            input_buttons = input_buttons - BUTTON4;
-        }
+            if (previewing_sentry) {
+                if (keydowns & BUTTON0) {
+                    rotating_preview_y = input_angles_y;
+                    rotating_preview = TRUE;
+                }
 
-        if (previewing_sentry) {
-            if (keydowns & BUTTON0) {
-                rotating_sentry = TRUE;
+                if (keyups & BUTTON0) {
+                    if (sentry_fits) {
+                        localcmd(sprintf("cmd build sentry %f\n", -1 * sentry_preview_offset));
+                        SentryPreviewStop();
+                    } else {
+                        print("Not enough room to build here\n");
+                        rotating_preview_y = 0;
+                        rotating_preview = FALSE;
+                    }
+                }
+
+                if (input_buttons & BUTTON0) {
+                    input_buttons = input_buttons - BUTTON0;
+                }
             }
 
             if (keyups & BUTTON0) {
-                if (sentry_fits) {
-                    localcmd(sprintf("cmd build sentry %f\n", sentry_preview_offset));
-                    SentryPreviewStop();
-                } else {
-                    print("Not enough room to build here\n");
-                    rotating_sentry = FALSE;
-                }
+                prevent_firing = FALSE;
             }
 
-            if (input_buttons & BUTTON0) {
-                input_buttons = input_buttons - BUTTON0;
+            if (prevent_firing) {
+                input_buttons &= ~BUTTON0;
             }
-        }
-
-        if (keyups & BUTTON0) {
-            prevent_firing = FALSE;
-        }
-
-        if (prevent_firing) {
-            input_buttons &= ~BUTTON0;
         }
     }
 
@@ -813,9 +907,17 @@ void _Sync_ServerCommandFrame() {
     CsGrenTimer::UpdateSoundStack();
     UpdateTeamColorCrosshair();
 
-    if (!game_state.is_alive && previewing_sentry) {
-        SentryPreviewStop();
+    if (!game_state.is_alive) {
+        if (previewing_sentry)
+            SentryPreviewStop();
+
+        if (rotating_sentry) {
+            SentryRotateStop();
+        }
     }
+
+    sentry_fits = CheckArea(temp_sentry, temp_self);
+    sentry_preview.colormod = sentry_fits ? '1 1 1' : '1 0.5 0.5';
 }
 
 

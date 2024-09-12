@@ -554,10 +554,23 @@ void (float objtobuild, float offset) TeamFortress_Build = {
     tmp2 = '0 0 0';
 
     newmis = spawn();
+
     makevectors(self.v_angle);
+    /* v_forward_z = 0; */
+    /* v_forward = normalize(v_forward) * 64; */
+    /* newmis.origin = self.origin + v_forward; */
+
+    local vector z_pos;
+    z_pos.z = (normalize(v_forward) * 64).z;
     v_forward_z = 0;
-    v_forward = normalize(v_forward) * 64;
-    newmis.origin = self.origin + v_forward;
+    local vector xy_pos = normalize(v_forward) * 64;
+
+    local vector v_forward_sentry;
+    v_forward_sentry.x = xy_pos.x;
+    v_forward_sentry.y = xy_pos.y;
+    v_forward_sentry.z = z_pos.z;
+
+    newmis.origin = self.origin + v_forward_sentry;
 
     tmp1 = newmis.origin;
     tmp2 = newmis.origin - normalize(v_up) * 128;
@@ -944,7 +957,6 @@ void UpdateClient_Dispenser(entity pl, entity disp) = {
     multicast('0 0 0', MULTICAST_ONE_NOSPECS); 
 }
 
-
 void () TeamFortress_FinishedBuilding = {
     local entity oldself;    
     if (engineer_move) {
@@ -1040,6 +1052,8 @@ void () TeamFortress_FinishedBuilding = {
         newmis.th_die = Sentry_Die;
         newmis.th_pain = Sentry_Pain;
         newmis.mdl = "progs/turrgun.mdl";
+        newmis.dimension_ghost = DMN_GHOST;
+        newmis.dimension_ghost_alpha = 0.25;
         self.sentry_ent = newmis;
         FO_Sound(oldself, CHAN_ITEM, "weapons/turrset.wav", 1, 1);
         newmis.solid = SOLID_BBOX;
