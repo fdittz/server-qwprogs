@@ -217,9 +217,9 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init = {
     temp_sentry = spawn();
     temp_self = spawn();
 
-    precache_model("progs/turrbase.mdl");
+    precache_model("progs/turrpreview.mdl");
     sentry_preview = spawn();
-    setmodel(sentry_preview, "progs/turrbase.mdl");
+    setmodel(sentry_preview, "progs/turrpreview.mdl");
     sentry_preview.alpha = 0.5;
 
     precache_model("progs/sphere.mdl");
