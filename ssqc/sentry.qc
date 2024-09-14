@@ -376,9 +376,6 @@ void () Sentry_Die = {
     stuffcmd(self.real_owner, "play misc/chink.wav\n");
     local entity ro = self.real_owner;
     ro.has_sentry = 0;
-    ro.dimension_see = (ro.dimension_see & ~DMN_GHOST) | DMN_HIDDEN;
-    UpdateClientSentryDie(ro);
-    ro.rotating_sentry = world;
 
     self.tfstate = self.tfstate | TFSTATE_RESPAWN_READY;
     self.think = Sentry_Explode;
