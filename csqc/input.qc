@@ -128,7 +128,7 @@ float(float evtype, float scanx, float chary, float devid) CSQC_InputEvent = {
                 }
 
                 if (previewing_sentry) {
-                    sentry_preview.angles_y = anglemod(input_angles_y + (180 - sentry_preview_offset));
+                    sentry_preview.angles_y = anglemod(input_angles_y + (sentry_preview_offset + 180));
                 }
             default:
         }

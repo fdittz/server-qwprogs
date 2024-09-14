@@ -346,16 +346,22 @@ noref float(string cmd) CSQC_ConsoleCommand = {
         case "specialup":
             switch (WP_PlayerClass()) {
                 case PC_ENGINEER:
+                    if (previewing_sentry) {
+                        sentry_preview.angles_y -= 15;
+                        sentry_preview_offset -= 15;
+                    }
                 break;
             }
-            localcmd("specialup\n");
             break;
         case "specialdown":
             switch (WP_PlayerClass()) {
                 case PC_ENGINEER:
+                    if (previewing_sentry) {
+                        sentry_preview.angles_y += 15;
+                        sentry_preview_offset += 15;
+                    }
                 break;
             }
-            localcmd("specialdown\n");
             break;
         case "+slot":
             Slot_Keydown(stof(argv(1)));
@@ -829,7 +835,7 @@ noref void CSQC_Input_Frame() {
 
                 if (keyups & BUTTON0) {
                     if (sentry_fits) {
-                        localcmd(sprintf("cmd build sentry %f\n", -1 * sentry_preview_offset));
+                        localcmd(sprintf("cmd build sentry %f\n", sentry_preview_offset));
                         SentryPreviewStop();
                     } else {
                         print("Not enough room to build here\n");
