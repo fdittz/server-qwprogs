@@ -4,6 +4,15 @@ void FO_Menu_Game(float);
 // TRUE --> capture input
 // FALSE --> pass input on
 float(float evtype, float scanx, float chary, float devid) CSQC_InputEvent = {
+    switch (evtype)
+    {
+        case IE_MOUSEDELTA:
+            if (previewing_sentry) {
+                sentry_preview.angles_y = anglemod(input_angles_y + (sentry_preview_offset + 180));
+            }
+        default:
+    }
+
     if (fo_hud_editor || fo_hud_menu_active) {
         sui_input_event(evtype, scanx, chary, devid);
         float menu_mouse = (fo_hud_menu_active && (CurrentMenu.flags & FO_MENU_FLAG_USE_MOUSE));
@@ -117,11 +126,6 @@ float(float evtype, float scanx, float chary, float devid) CSQC_InputEvent = {
                         return TRUE;
                 }
                 break;
-            case IE_MOUSEDELTA:
-                if (previewing_sentry) {
-                    sentry_preview.angles_y = anglemod(input_angles_y + (sentry_preview_offset + 180));
-                }
-            default:
         }
     }
 
