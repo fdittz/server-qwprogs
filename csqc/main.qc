@@ -18,16 +18,10 @@ float CalculateWaterLevel();
 void RenderHitTexts();
 entity sentry_preview;
 entity sentry_preview_range_sphere;
-entity sentry_rotate;
 entity temp_sentry;
 entity temp_self;
 float sentry_preview_offset;
 float previewing_sentry;
-float rotating_preview;
-float rotating_preview_y;
-float rotating_sentry;
-float rotating_sentry_y;
-float rotating_sensitivity = 0.25;
 float prevent_firing;
 float sentry_fits;
 
@@ -231,10 +225,6 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init = {
     sentry_preview_range_sphere.scale = 1000;
     sentry_preview_range_sphere.alpha = 0.02;
 
-    precache_model("progs/turrgun.mdl");
-    sentry_rotate = spawn();
-    setmodel(sentry_rotate, "progs/turrgun.mdl");
-
     print("CSQC initialization finished\n");
 };
 
@@ -295,10 +285,6 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
         temp_sentry.origin = sentry_preview.origin;
         local vector v_forward_range = normalize(v_forward) * 1024;
         sentry_preview_range_sphere.origin = sentry_preview.origin;
-
-        if (rotating_preview) {
-            setviewprop(VF_CL_VIEWANGLES_Y, rotating_preview_y);
-        }
     } else {
         setproperty(VF_DRAWCROSSHAIR, 1);       // we want to draw our crosshair!
     }
@@ -346,16 +332,26 @@ noref float(string cmd) CSQC_ConsoleCommand = {
         case "specialup":
             switch (WP_PlayerClass()) {
                 case PC_ENGINEER:
+                    if (previewing_sentry) {
+                        sentry_preview.angles_y -= 15;
+                        sentry_preview_offset -= 15;
+                    } else {
+                        localcmd("cmd sentry rotate 15\n");
+                    }
                 break;
             }
-            localcmd("specialup\n");
             break;
         case "specialdown":
             switch (WP_PlayerClass()) {
                 case PC_ENGINEER:
+                    if (previewing_sentry) {
+                        sentry_preview.angles_y += 15;
+                        sentry_preview_offset += 15;
+                    } else {
+                        localcmd("cmd sentry rotate -15\n");
+                    }
                 break;
             }
-            localcmd("specialdown\n");
             break;
         case "+slot":
             Slot_Keydown(stof(argv(1)));
@@ -767,20 +763,13 @@ void SentryPreviewStart() {
     sentry_preview_range_sphere.drawmask = MASK_ENGINE;
 
     previewing_sentry = TRUE;
+    prevent_firing = TRUE;
 }
 
 void SentryPreviewStop() {
-    rotating_preview = FALSE;
-    rotating_preview_y = 0;
     previewing_sentry = FALSE;
     sentry_preview.drawmask = 0;
     sentry_preview_range_sphere.drawmask = 0;
-}
-
-void SentryRotateStop() {
-    rotating_sentry = FALSE;
-    rotating_sentry_y = 0;
-    sentry_rotate.drawmask = 0;
 }
 
 noref void CSQC_Input_Frame() {
@@ -799,23 +788,13 @@ noref void CSQC_Input_Frame() {
 
     if (WP_PlayerClass() == PC_ENGINEER) {
         // Intercept sentry build
-        if (rotating_sentry) {
-            if (keyups & BUTTON0) {
-                localcmd(sprintf("cmd sentry rotate mouse %f\n", sentry_rotate.angles_y));
-                SentryRotateStop();
-            }
-            input_buttons &= ~BUTTON0;
-        } else if (!getstatf(STAT_HAS_SENTRY) && getstatf(STAT_CELLS) >= 130 && game_state.is_alive && !prematch) {
+        if (!getstatf(STAT_HAS_SENTRY) && getstatf(STAT_CELLS) >= 130 && game_state.is_alive && !prematch) {
             if (input_buttons & BUTTON4) {
                 if (keydowns & BUTTON4) {
                     if (!previewing_sentry) {
                         SentryPreviewStart();
                     } else {
                         SentryPreviewStop();
-
-                        if (input_buttons & BUTTON0) {
-                            prevent_firing = TRUE;
-                        }
                     }
                 }
 
@@ -824,18 +803,11 @@ noref void CSQC_Input_Frame() {
 
             if (previewing_sentry) {
                 if (keydowns & BUTTON0) {
-                    rotating_preview_y = input_angles_y;
-                    rotating_preview = TRUE;
-                }
-
-                if (keyups & BUTTON0) {
                     if (sentry_fits) {
-                        localcmd(sprintf("cmd build sentry %f\n", -1 * sentry_preview_offset));
+                        localcmd(sprintf("cmd build sentry %f\n", sentry_preview_offset));
                         SentryPreviewStop();
                     } else {
-                        print("Not enough room to build here\n");
-                        rotating_preview_y = 0;
-                        rotating_preview = FALSE;
+                        print("Can't build here\n");
                     }
                 }
 
@@ -844,13 +816,14 @@ noref void CSQC_Input_Frame() {
                 }
             }
 
-            if (keyups & BUTTON0) {
-                prevent_firing = FALSE;
-            }
+        }
 
-            if (prevent_firing) {
-                input_buttons &= ~BUTTON0;
-            }
+        if (prevent_firing && !previewing_sentry && (keyups & BUTTON0)) {
+            prevent_firing = FALSE;
+        }
+
+        if (prevent_firing) {
+            input_buttons &= ~BUTTON0;
         }
     }
 
@@ -927,10 +900,6 @@ void _Sync_ServerCommandFrame() {
     if (!game_state.is_alive) {
         if (previewing_sentry)
             SentryPreviewStop();
-
-        if (rotating_sentry) {
-            SentryRotateStop();
-        }
     }
 
     sentry_fits = CheckArea(temp_sentry, temp_self);
