@@ -139,6 +139,9 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init = {
     FO_Predict_Init();
     CsGrenTimer::Init();
 
+    registercommand("specialup");
+    registercommand("specialdown");
+
     registercommand("+slot");
     registercommand("-slot");
 
@@ -340,6 +343,20 @@ noref float(string cmd) CSQC_ConsoleCommand = {
     local float grentype;
 
     switch(argv(0)) {
+        case "specialup":
+            switch (WP_PlayerClass()) {
+                case PC_ENGINEER:
+                break;
+            }
+            localcmd("specialup\n");
+            break;
+        case "specialdown":
+            switch (WP_PlayerClass()) {
+                case PC_ENGINEER:
+                break;
+            }
+            localcmd("specialdown\n");
+            break;
         case "+slot":
             Slot_Keydown(stof(argv(1)));
             break;
