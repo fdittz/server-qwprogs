@@ -814,12 +814,10 @@ noref void CSQC_Input_Frame() {
         }
 
         if (prevent_firing && !previewing_sentry && (keyups & BUTTON0)) {
-            printf("disabling prevent_firing\n");
             prevent_firing = FALSE;
         }
 
         if (prevent_firing) {
-            printf("prevent_firing is true\n");
             input_buttons &= ~BUTTON0;
         }
     }
