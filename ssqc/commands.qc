@@ -803,9 +803,16 @@ float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
                     /*     UpdateClientSentryRotate(self, ent); */
                     /*     break; */
                     /* } */
-                    ent.waitmin = anglemod(ent.waitmin + farg3);
-                    ent.waitmax = anglemod(ent.waitmax + farg3);
                     ent.angles_y += farg3;
+                    ent.waitmin = rint(ent.angles_y - 50);
+                    ent.waitmin = anglemod(ent.waitmin);
+                    ent.waitmax = rint(ent.angles_y + 50);
+                    ent.waitmax = anglemod(ent.waitmax);
+                    if (ent.waitmin > ent.waitmax) {
+                        ent.waitmin = ent.waitmax;
+                        ent.waitmax = anglemod(ent.angles_y - 50);
+                    }
+                    ent.nextthink = time + 0.5;
                     break;
                 }
                 sprint(self, PRINT_HIGH, "Invalid choice.\n");
