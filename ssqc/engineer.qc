@@ -617,7 +617,7 @@ void (float objtobuild, float offset) TeamFortress_Build = {
     }
 
     if (CheckArea(newmis, self) == 0) {
-        sprint(self, PRINT_HIGH, "Not enough room to build here\n");
+        sprint(self, PRINT_HIGH, "You can't build here\n");
         dremove(newmis);
         return;
     }
