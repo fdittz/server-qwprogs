@@ -760,7 +760,7 @@ float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
                         sprint(self, PRINT_HIGH, "Sentry detection issue!\n");
                         break;
                     }
-                    ent.angles_y += farg3;
+                    ent.angles_y -= farg3;
                     ent.waitmin = rint(ent.angles_y - 50);
                     ent.waitmin = anglemod(ent.waitmin);
                     ent.waitmax = rint(ent.angles_y + 50);

@@ -335,6 +335,8 @@ noref float(string cmd) CSQC_ConsoleCommand = {
                     if (previewing_sentry) {
                         sentry_preview.angles_y -= 15;
                         sentry_preview_offset -= 15;
+                    } else {
+                        localcmd("cmd sentry rotate 15\n");
                     }
                 break;
             }
@@ -345,6 +347,8 @@ noref float(string cmd) CSQC_ConsoleCommand = {
                     if (previewing_sentry) {
                         sentry_preview.angles_y += 15;
                         sentry_preview_offset += 15;
+                    } else {
+                        localcmd("cmd sentry rotate -15\n");
                     }
                 break;
             }
