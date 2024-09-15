@@ -576,7 +576,7 @@ void (float objtobuild, float offset) TeamFortress_Build = {
     tmp2 = newmis.origin - normalize(v_up) * 128;
     traceline(tmp1, tmp2, 1, world);
     if (trace_ent != world) {
-        sprint(self, PRINT_HIGH, "You cannot build here\n");
+        sprint(self, PRINT_HIGH, "You can't build here\n");
         dremove(newmis);
         return;
     }
