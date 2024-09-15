@@ -332,7 +332,7 @@ noref float(string cmd) CSQC_ConsoleCommand = {
         case "specialup":
             switch (WP_PlayerClass()) {
                 case PC_SPY:
-                    localcmd("cmd disguise next\n");
+                    localcmd("cmd disguise prev\n");
                     break;
                 case PC_ENGINEER:
                     if (previewing_sentry) {

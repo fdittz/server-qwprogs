@@ -519,7 +519,11 @@ float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
             }
             if (arg2) {
                 if(arg2 == "next") {
-                    FO_Spy_DisguiseNext(self);
+                    FO_Spy_DisguiseCycle(self, 1);
+                    break;
+                }
+                if(arg2 == "prev") {
+                    FO_Spy_DisguiseCycle(self, -1);
                     break;
                 }
                 if(arg2 == "last") {
