@@ -331,6 +331,9 @@ noref float(string cmd) CSQC_ConsoleCommand = {
     switch(argv(0)) {
         case "specialup":
             switch (WP_PlayerClass()) {
+                case PC_SPY:
+                    localcmd("cmd disguise next\n");
+                    break;
                 case PC_ENGINEER:
                     if (previewing_sentry) {
                         sentry_preview.angles_y -= 15;
@@ -338,11 +341,14 @@ noref float(string cmd) CSQC_ConsoleCommand = {
                     } else {
                         localcmd("cmd sentry rotate 15\n");
                     }
-                break;
+                    break;
             }
             break;
         case "specialdown":
             switch (WP_PlayerClass()) {
+                case PC_SPY:
+                    localcmd("cmd disguise next\n");
+                    break;
                 case PC_ENGINEER:
                     if (previewing_sentry) {
                         sentry_preview.angles_y += 15;
@@ -350,7 +356,7 @@ noref float(string cmd) CSQC_ConsoleCommand = {
                     } else {
                         localcmd("cmd sentry rotate -15\n");
                     }
-                break;
+                    break;
             }
             break;
         case "+slot":

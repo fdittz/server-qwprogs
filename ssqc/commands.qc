@@ -518,6 +518,10 @@ float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
                 break;
             }
             if (arg2) {
+                if(arg2 == "next") {
+                    FO_Spy_DisguiseNext(self);
+                    break;
+                }
                 if(arg2 == "last") {
                     Menu_Spy_Input(2);
                     break;

@@ -452,6 +452,37 @@ void (entity player, float is_user) FO_Spy_DisguiseLast = {
     CF_Spy_ChangeSkin(player, player.last_selected_skin, is_user);
 };
 
+void (entity spy) FO_Spy_DisguiseNext = {
+    local entity te;
+
+    if (spy.disguised_as != world) {
+        te = self.disguised_as;
+
+        while (te != world) {
+            if (te.team_no != spy.team_no && te.skin != spy.disguised_as.skin) {
+                CF_Spy_DisguiseStop();
+                Menu_Spy_Skin_Input(te.skin);
+                spy.disguised_as = te;
+                return;
+            }
+            te = find(te, classname, "player");
+        }
+    }
+
+    te = find(world, classname, "player");
+    while (te != world) {
+        if (te.team_no != spy.team_no && te.skin != spy.disguise_skin) {
+            CF_Spy_DisguiseStop();
+            Menu_Spy_Skin_Input(te.skin);
+            spy.disguised_as = te;
+            return;
+        }
+        te = find(te, classname, "player");
+    }
+
+    spy.disguised_as = world;
+}
+
 void (entity player, float is_user) FO_Spy_DisguiseLastSpawned = {
     local entity te = find(world, classname, "player");
     local float latest_spawn_time = 0;

@@ -103,6 +103,7 @@ float remote_client_time();
 .float needs_skin_update;       // Set true when per-player skins need updating
 
 .entity nopickup;               // Don't pick up this backpack/ammobox because it doesn't contain any of your ammo types
+.entity disguised_as;           // Used when cycling through disguises
 
 .float pstate;                  // Player state flags
 .float tfstate;                 // State flags for TeamFortress
