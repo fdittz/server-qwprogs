@@ -29,27 +29,6 @@ void GetSelf() = {
     self = findfloat(world, entnum, player_localentnum);
 }
 
-/* vector AnglesToVector(vector angles) { */
-/*     float pitch, yaw, roll; */
-/*     vector dir; */
-
-/*     pitch = angles_x * (M_PI / 180.0); */
-/*     yaw = angles_y * (M_PI / 180.0); */
-/*     roll = angles_z * (M_PI / 180.0); */
-
-/*     dir_x = cos(yaw) * cos(pitch); */
-/*     dir_y = sin(yaw) * cos(pitch); */
-/*     dir_z = -sin(pitch); */
-
-/*     return dir; */
-/* } */
-
-/* vector GetNewPosition(entity ent, vector angle_offsets, float distance) { */
-/*     vector dir = AnglesToVector(ent.angles + angle_offsets); */
-/*     vector new_position = ent.origin + dir * distance; */
-/*     return new_position; */
-/* } */
-
 void PushToSlotHistory(float value) {
     if (slot_history_top >= MAX_SLOT_HISTORY_SIZE) {
         // Stack is full
@@ -333,8 +312,8 @@ noref float(string cmd) CSQC_ConsoleCommand = {
             switch (WP_PlayerClass()) {
                 case PC_ENGINEER:
                     if (previewing_sentry) {
-                        sentry_preview.angles_y -= 15;
-                        sentry_preview_offset -= 15;
+                        anglemod(sentry_preview.angles_y -= 15);
+                        anglemod(sentry_preview_offset -= 15);
                     } else {
                         localcmd("cmd sentry rotate 15\n");
                     }
@@ -345,8 +324,8 @@ noref float(string cmd) CSQC_ConsoleCommand = {
             switch (WP_PlayerClass()) {
                 case PC_ENGINEER:
                     if (previewing_sentry) {
-                        sentry_preview.angles_y += 15;
-                        sentry_preview_offset += 15;
+                        anglemod(sentry_preview.angles_y += 15);
+                        anglemod(sentry_preview_offset += 15);
                     } else {
                         localcmd("cmd sentry rotate -15\n");
                     }
