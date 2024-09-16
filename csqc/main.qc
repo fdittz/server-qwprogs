@@ -300,8 +300,7 @@ noref float(string cmd) CSQC_ConsoleCommand = {
             switch (WP_PlayerClass()) {
                 case PC_ENGINEER:
                     if (previewing_sentry) {
-                        anglemod(sentry_preview.angles_y -= 15);
-                        anglemod(sentry_preview_offset -= 15);
+                        sentry_preview_offset = anglemod(sentry_preview_offset - 15);
                     } else {
                         localcmd("cmd sentry rotate 15\n");
                     }
@@ -312,8 +311,7 @@ noref float(string cmd) CSQC_ConsoleCommand = {
             switch (WP_PlayerClass()) {
                 case PC_ENGINEER:
                     if (previewing_sentry) {
-                        anglemod(sentry_preview.angles_y += 15);
-                        anglemod(sentry_preview_offset += 15);
+                        sentry_preview_offset = anglemod(sentry_preview_offset + 15);
                     } else {
                         localcmd("cmd sentry rotate -15\n");
                     }
