@@ -533,7 +533,6 @@ void () TeamFortress_EngineerBuildStop = {
     }
 }
 
-// here
 void (float objtobuild, float offset) TeamFortress_Build = {
     if (cb_prematch) {
         sprint(self, PRINT_MEDIUM, "You cannot build during prematch\n");
@@ -560,15 +559,12 @@ void (float objtobuild, float offset) TeamFortress_Build = {
     /* v_forward = normalize(v_forward) * 64; */
     /* newmis.origin = self.origin + v_forward; */
 
-    local vector z_pos;
-    z_pos.z = (normalize(v_forward) * 64).z;
+    local vector v_forward_sentry;
+    v_forward_sentry.z = (normalize(v_forward) * 64).z;
     v_forward_z = 0;
     local vector xy_pos = normalize(v_forward) * 64;
-
-    local vector v_forward_sentry;
     v_forward_sentry.x = xy_pos.x;
     v_forward_sentry.y = xy_pos.y;
-    v_forward_sentry.z = z_pos.z;
 
     newmis.origin = self.origin + v_forward_sentry;
 
@@ -616,7 +612,7 @@ void (float objtobuild, float offset) TeamFortress_Build = {
         self.sentry_ticks = 0;
     }
 
-    if (CheckArea(newmis, self) == 0) {
+    if (!CheckArea(newmis)) {
         sprint(self, PRINT_HIGH, "You can't build here\n");
         dremove(newmis);
         return;

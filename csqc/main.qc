@@ -18,8 +18,6 @@ float CalculateWaterLevel();
 void RenderHitTexts();
 entity sentry_preview;
 entity sentry_preview_range_sphere;
-entity temp_sentry;
-entity temp_self;
 float sentry_preview_offset;
 float previewing_sentry;
 float prevent_firing;
@@ -28,27 +26,6 @@ float sentry_fits;
 void GetSelf() = {
     self = findfloat(world, entnum, player_localentnum);
 }
-
-/* vector AnglesToVector(vector angles) { */
-/*     float pitch, yaw, roll; */
-/*     vector dir; */
-
-/*     pitch = angles_x * (M_PI / 180.0); */
-/*     yaw = angles_y * (M_PI / 180.0); */
-/*     roll = angles_z * (M_PI / 180.0); */
-
-/*     dir_x = cos(yaw) * cos(pitch); */
-/*     dir_y = sin(yaw) * cos(pitch); */
-/*     dir_z = -sin(pitch); */
-
-/*     return dir; */
-/* } */
-
-/* vector GetNewPosition(entity ent, vector angle_offsets, float distance) { */
-/*     vector dir = AnglesToVector(ent.angles + angle_offsets); */
-/*     vector new_position = ent.origin + dir * distance; */
-/*     return new_position; */
-/* } */
 
 void PushToSlotHistory(float value) {
     if (slot_history_top >= MAX_SLOT_HISTORY_SIZE) {
@@ -211,9 +188,6 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init = {
 
     pengine.view_mask = MASK_VIEWMODEL;  // Start with engine models.
 
-    temp_sentry = spawn();
-    temp_self = spawn();
-
     precache_model("progs/turrpreview.mdl");
     sentry_preview = spawn();
     setmodel(sentry_preview, "progs/turrpreview.mdl");
@@ -268,23 +242,16 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
 
     if (previewing_sentry) {
         makevectors(view_angles);
-
-        // can probably use trig here so we don't need to normalize twice
-        local vector z_pos;
-        z_pos.z = (normalize(v_forward) * 64).z;
+        local vector v_forward_sentry;
+        v_forward_sentry.z = (normalize(v_forward) * 64).z;
         v_forward_z = 0;
         local vector xy_pos = normalize(v_forward) * 64;
-
-        local vector v_forward_sentry;
         v_forward_sentry.x = xy_pos.x;
         v_forward_sentry.y = xy_pos.y;
-        v_forward_sentry.z = z_pos.z;
 
         sentry_preview.origin = PM_Org() + v_forward_sentry;
-        setorigin(temp_self, sentry_preview.origin);
-        temp_sentry.origin = sentry_preview.origin;
-        local vector v_forward_range = normalize(v_forward) * 1024;
         sentry_preview_range_sphere.origin = sentry_preview.origin;
+        sentry_preview.angles_y = anglemod(view_angles_y + sentry_preview_offset);
     } else {
         setproperty(VF_DRAWCROSSHAIR, 1);       // we want to draw our crosshair!
     }
@@ -336,8 +303,8 @@ noref float(string cmd) CSQC_ConsoleCommand = {
                     break;
                 case PC_ENGINEER:
                     if (previewing_sentry) {
-                        sentry_preview.angles_y -= 15;
-                        sentry_preview_offset -= 15;
+                        anglemod(sentry_preview.angles_y -= 15);
+                        anglemod(sentry_preview_offset -= 15);
                     } else {
                         localcmd("cmd sentry rotate 15\n");
                     }
@@ -351,8 +318,8 @@ noref float(string cmd) CSQC_ConsoleCommand = {
                     break;
                 case PC_ENGINEER:
                     if (previewing_sentry) {
-                        sentry_preview.angles_y += 15;
-                        sentry_preview_offset += 15;
+                        anglemod(sentry_preview.angles_y += 15);
+                        anglemod(sentry_preview_offset += 15);
                     } else {
                         localcmd("cmd sentry rotate -15\n");
                     }
@@ -745,7 +712,7 @@ void FO_ApplyCussInput() {
 void PM_InputFrame();
 
 void SentryPreviewStart() {
-    sentry_preview_offset = 180;
+    sentry_preview_offset = 0;
     sentry_preview.angles_y = input_angles_y;
     sentry_preview.drawmask = MASK_ENGINE;
 
@@ -810,7 +777,7 @@ noref void CSQC_Input_Frame() {
             if (previewing_sentry) {
                 if (keydowns & BUTTON0) {
                     if (sentry_fits) {
-                        localcmd(sprintf("cmd build sentry %f\n", sentry_preview_offset));
+                        localcmd(sprintf("cmd build sentry %f\n", anglemod(180 + sentry_preview_offset)));
                         SentryPreviewStop();
                     } else {
                         print("Can't build here\n");
@@ -903,13 +870,14 @@ void _Sync_ServerCommandFrame() {
     CsGrenTimer::UpdateSoundStack();
     UpdateTeamColorCrosshair();
 
-    if (!game_state.is_alive) {
-        if (previewing_sentry)
+    if (previewing_sentry) {
+        if (game_state.is_alive) {
+            sentry_fits = CheckArea(sentry_preview);
+            sentry_preview.colormod = sentry_fits ? '1 1 1' : '0.5 0.2 0.2';
+        } else {
             SentryPreviewStop();
+        }
     }
-
-    sentry_fits = CheckArea(temp_sentry, temp_self);
-    sentry_preview.colormod = sentry_fits ? '1 1 1' : '1 0.5 0.5';
 }
 
 
