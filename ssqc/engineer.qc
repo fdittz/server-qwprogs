@@ -586,7 +586,7 @@ void (float objtobuild, float offset) TeamFortress_Build = {
         return;
     }
 
-    if (objtobuild == 1) {
+    if (objtobuild == BUILD_DISPENSER) {
         if (self.has_dispenser) {
             sprint(self, PRINT_HIGH, "You can only have one dispenser\n");
             dremove(newmis);
@@ -598,7 +598,7 @@ void (float objtobuild, float offset) TeamFortress_Build = {
         newmis.netname = "dispenser";
         btime = time + 2;
         self.dispenser_ticks = 0;
-    } else if (objtobuild == 2) {
+    } else if (objtobuild == BUILD_SENTRYGUN) {
         if (self.has_sentry) {
             sprint(self, PRINT_HIGH, "You can only have one sentry gun\n");
             dremove(newmis);
@@ -658,15 +658,15 @@ void (float objtobuild, float offset) TeamFortress_Build = {
         newmis.team_no = self.team_no;
         newmis.max_health = newmis.health;
         newmis.takedamage = DAMAGE_AIM;
-        if (objtobuild == 1) {
-            self.has_dispenser = TRUE;   
+        if (objtobuild == BUILD_DISPENSER) {
+            self.has_dispenser = TRUE;
             newmis.th_die = Dispenser_Die;
             self.ammo_cells = self.ammo_cells - ENG_DISPENSER_COST;
             newmis.classname = "building_dispenser";
         }
-        if (objtobuild == 2) {            
+        if (objtobuild == BUILD_SENTRYGUN) {
             self.sentry_ent = newmis;
-            self.has_sentry = TRUE;            
+            self.has_sentry = TRUE;
             newmis.th_die = Sentry_Die;
             newmis.th_pain = Sentry_Pain;
             newmis.takedamage = DAMAGE_AIM;
@@ -1152,7 +1152,7 @@ void () Dispenser_Die = {
     self.real_owner.has_dispenser = 0;
     self.think = Dispenser_Explode;
     self.nextthink = time + 0.1;
-    if (self.real_owner.is_building == 1) {
+    if (self.real_owner.is_building == BUILD_DISPENSER) {
         self = self.real_owner;
         TeamFortress_EngineerBuildStop();
     }
