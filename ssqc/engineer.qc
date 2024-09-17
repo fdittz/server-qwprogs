@@ -483,14 +483,14 @@ void () FO_Engineer_ToggleSentry = {
 }
 
 void () TeamFortress_EngineerBuild = {
-    if (self.is_building == 0) {
+    if (!self.is_building) {
         if (((self.ammo_cells < 100) && !self.has_dispenser) &&
             !self.has_sentry) {
             Status_Print(self, "\n\n\n\n\n\n\n", "Not enough metal to build anything");
             return;
         }
         Menu_Engineer(self);
-    } else if (self.is_building == 1) {
+    } else if (self.is_building) {
         TeamFortress_EngineerBuildStop();
     }
 };
@@ -525,7 +525,7 @@ void () TeamFortress_EngineerBuildStop = {
     }
 
     Menu_Close(self);
-    self.is_building = 0;
+    self.is_building = FALSE;
     self.building_percentage = 0;
     if (!engineer_move) {
         self.tfstate &= ~(TFSTATE_CANT_MOVE | TFSTATE_NO_WEAPON);
@@ -626,7 +626,7 @@ void (float objtobuild, float offset) TeamFortress_Build = {
     }
 
     UpdateClientBuilding(self);
-    self.is_building = 1;
+    self.is_building = objtobuild;
     if (!engineer_move) {
         self.immune_to_check = time + 5;
         self.tfstate |= TFSTATE_CANT_MOVE | TFSTATE_NO_WEAPON;
@@ -694,7 +694,7 @@ void () CF_CheckBuilding = {
     local entity building = self.enemy;
     self = self.owner;
 
-    if (self.is_building == 0) {
+    if (!self.is_building) {
         dremove(timer);
         return;
     }
@@ -956,12 +956,12 @@ void UpdateClient_Dispenser(entity pl, entity disp) = {
 void () TeamFortress_FinishedBuilding = {
     local entity oldself;    
     if (engineer_move) {
-        if (self.real_owner.is_building != 1) {
+        if (!self.real_owner.is_building) {
             return;
         }
     }
     else {
-        if (self.owner.is_building != 1) {
+        if (!self.owner.is_building) {
             return;
         }
     }
@@ -1152,7 +1152,7 @@ void () Dispenser_Die = {
     self.real_owner.has_dispenser = 0;
     self.think = Dispenser_Explode;
     self.nextthink = time + 0.1;
-    if (self.real_owner.is_building) {
+    if (self.real_owner.is_building == 1) {
         self = self.real_owner;
         TeamFortress_EngineerBuildStop();
     }
