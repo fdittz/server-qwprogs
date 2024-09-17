@@ -810,7 +810,7 @@ void (float offset) TeamFortress_BuildSentry = {
     if (self.has_sentry) return;
 
     if (self.ammo_cells >= ENG_SENTRY_COST)
-        TeamFortress_Build(2, offset);
+        TeamFortress_Build(BUILD_SENTRYGUN, offset);
     else
         Status_Print(self, "\n\n\n\n\n\n\n", strcat("You need ", ftos(ENG_SENTRY_COST - self.ammo_cells), " more cells to build a sentry gun"));
 }
@@ -820,16 +820,16 @@ void (float inp) Menu_Engineer_Input = {
         case 5:
             break;
 
-        // build dispenser
+        // build sentry
         case 1:
             TeamFortress_BuildSentry(0);
             break;
 
-        // build sentry
+        // build dispenser
         case 2:
             if (!self.has_dispenser) {
                 if (self.ammo_cells >= ENG_DISPENSER_COST)
-                    TeamFortress_Build(1, 0);
+                    TeamFortress_Build(BUILD_DISPENSER, 0);
                 else
                     Status_Print(self, "\n\n\n\n\n\n\n", strcat("You need ", ftos(ENG_DISPENSER_COST), " cells to build a dispenser"));
             }
