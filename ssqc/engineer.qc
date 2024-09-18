@@ -483,14 +483,14 @@ void () FO_Engineer_ToggleSentry = {
 }
 
 void () TeamFortress_EngineerBuild = {
-    if (self.is_building == 0) {
+    if (!self.is_building) {
         if (((self.ammo_cells < 100) && !self.has_dispenser) &&
             !self.has_sentry) {
             Status_Print(self, "\n\n\n\n\n\n\n", "Not enough metal to build anything");
             return;
         }
         Menu_Engineer(self);
-    } else if (self.is_building == 1) {
+    } else if (self.is_building) {
         TeamFortress_EngineerBuildStop();
     }
 };
@@ -525,7 +525,7 @@ void () TeamFortress_EngineerBuildStop = {
     }
 
     Menu_Close(self);
-    self.is_building = 0;
+    self.is_building = FALSE;
     self.building_percentage = 0;
     if (!engineer_move) {
         self.tfstate &= ~(TFSTATE_CANT_MOVE | TFSTATE_NO_WEAPON);
@@ -533,7 +533,6 @@ void () TeamFortress_EngineerBuildStop = {
     }
 }
 
-// here
 void (float objtobuild, float offset) TeamFortress_Build = {
     if (cb_prematch) {
         sprint(self, PRINT_MEDIUM, "You cannot build during prematch\n");
@@ -560,15 +559,12 @@ void (float objtobuild, float offset) TeamFortress_Build = {
     /* v_forward = normalize(v_forward) * 64; */
     /* newmis.origin = self.origin + v_forward; */
 
-    local vector z_pos;
-    z_pos.z = (normalize(v_forward) * 64).z;
+    local vector v_forward_sentry;
+    v_forward_sentry.z = (normalize(v_forward) * 64).z;
     v_forward_z = 0;
     local vector xy_pos = normalize(v_forward) * 64;
-
-    local vector v_forward_sentry;
     v_forward_sentry.x = xy_pos.x;
     v_forward_sentry.y = xy_pos.y;
-    v_forward_sentry.z = z_pos.z;
 
     newmis.origin = self.origin + v_forward_sentry;
 
@@ -590,7 +586,7 @@ void (float objtobuild, float offset) TeamFortress_Build = {
         return;
     }
 
-    if (objtobuild == 1) {
+    if (objtobuild == BUILD_DISPENSER) {
         if (self.has_dispenser) {
             sprint(self, PRINT_HIGH, "You can only have one dispenser\n");
             dremove(newmis);
@@ -602,7 +598,7 @@ void (float objtobuild, float offset) TeamFortress_Build = {
         newmis.netname = "dispenser";
         btime = time + 2;
         self.dispenser_ticks = 0;
-    } else if (objtobuild == 2) {
+    } else if (objtobuild == BUILD_SENTRYGUN) {
         if (self.has_sentry) {
             sprint(self, PRINT_HIGH, "You can only have one sentry gun\n");
             dremove(newmis);
@@ -616,7 +612,7 @@ void (float objtobuild, float offset) TeamFortress_Build = {
         self.sentry_ticks = 0;
     }
 
-    if (CheckArea(newmis, self) == 0) {
+    if (!CheckArea(newmis)) {
         sprint(self, PRINT_HIGH, "You can't build here\n");
         dremove(newmis);
         return;
@@ -630,7 +626,7 @@ void (float objtobuild, float offset) TeamFortress_Build = {
     }
 
     UpdateClientBuilding(self);
-    self.is_building = 1;
+    self.is_building = objtobuild;
     if (!engineer_move) {
         self.immune_to_check = time + 5;
         self.tfstate |= TFSTATE_CANT_MOVE | TFSTATE_NO_WEAPON;
@@ -662,15 +658,15 @@ void (float objtobuild, float offset) TeamFortress_Build = {
         newmis.team_no = self.team_no;
         newmis.max_health = newmis.health;
         newmis.takedamage = DAMAGE_AIM;
-        if (objtobuild == 1) {
-            self.has_dispenser = TRUE;   
+        if (objtobuild == BUILD_DISPENSER) {
+            self.has_dispenser = TRUE;
             newmis.th_die = Dispenser_Die;
             self.ammo_cells = self.ammo_cells - ENG_DISPENSER_COST;
             newmis.classname = "building_dispenser";
         }
-        if (objtobuild == 2) {            
+        if (objtobuild == BUILD_SENTRYGUN) {
             self.sentry_ent = newmis;
-            self.has_sentry = TRUE;            
+            self.has_sentry = TRUE;
             newmis.th_die = Sentry_Die;
             newmis.th_pain = Sentry_Pain;
             newmis.takedamage = DAMAGE_AIM;
@@ -698,7 +694,7 @@ void () CF_CheckBuilding = {
     local entity building = self.enemy;
     self = self.owner;
 
-    if (self.is_building == 0) {
+    if (!self.is_building) {
         dremove(timer);
         return;
     }
@@ -960,12 +956,12 @@ void UpdateClient_Dispenser(entity pl, entity disp) = {
 void () TeamFortress_FinishedBuilding = {
     local entity oldself;    
     if (engineer_move) {
-        if (self.real_owner.is_building != 1) {
+        if (!self.real_owner.is_building) {
             return;
         }
     }
     else {
-        if (self.owner.is_building != 1) {
+        if (!self.owner.is_building) {
             return;
         }
     }
@@ -1156,7 +1152,7 @@ void () Dispenser_Die = {
     self.real_owner.has_dispenser = 0;
     self.think = Dispenser_Explode;
     self.nextthink = time + 0.1;
-    if (self.real_owner.is_building) {
+    if (self.real_owner.is_building == BUILD_DISPENSER) {
         self = self.real_owner;
         TeamFortress_EngineerBuildStop();
     }
