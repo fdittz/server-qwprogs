@@ -48,9 +48,6 @@ void () UseSpecialSkill = {
         case PC_SCOUT:
             self.impulse = TF_DASH;
             break;
-        case PC_SNIPER:
-            self.impulse = TF_ZOOMTOGGLE;
-            break;
         case PC_DEMOMAN:
             self.impulse = TF_PB_DETONATE;
             break;

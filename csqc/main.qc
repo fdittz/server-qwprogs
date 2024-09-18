@@ -113,6 +113,9 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init = {
     registercommand("specialup");
     registercommand("specialdown");
 
+    registercommand("zoomin");
+    registercommand("zoomout");
+
     registercommand("+slot");
     registercommand("-slot");
 
@@ -289,6 +292,14 @@ void Slot_Keyup(float slot) {
         localcmd("-attack\n");
 }
 
+void ZoomIn() {
+    zoom_scale = min(zoom_scale + 1, 5);
+}
+
+void ZoomOut() {
+    zoom_scale = max(zoom_scale - 1, 1);
+}
+
 void W_ChangeToSlotAlternate(string opt1, string opt2, string opt3, string opt4);
 
 noref float(string cmd) CSQC_ConsoleCommand = {
@@ -300,6 +311,9 @@ noref float(string cmd) CSQC_ConsoleCommand = {
     switch(argv(0)) {
         case "specialup":
             switch (WP_PlayerClass()) {
+                case PC_SNIPER:
+                    ZoomIn();
+                    break;
                 case PC_SPY:
                     localcmd("cmd disguise prev\n");
                     break;
@@ -310,13 +324,13 @@ noref float(string cmd) CSQC_ConsoleCommand = {
                         localcmd("cmd sentry rotate 15\n");
                     }
                     break;
-                default:
-                    zoom_scale = min(zoom_scale + 1, 5);
-                    break;
             }
             break;
         case "specialdown":
             switch (WP_PlayerClass()) {
+                case PC_SNIPER:
+                    ZoomOut();
+                    break;
                 case PC_SPY:
                     localcmd("cmd disguise next\n");
                     break;
@@ -327,10 +341,13 @@ noref float(string cmd) CSQC_ConsoleCommand = {
                         localcmd("cmd sentry rotate -15\n");
                     }
                     break;
-                default:
-                    zoom_scale = max(zoom_scale - 1, 1);
-                    break;
             }
+            break;
+        case "zoomin":
+            ZoomIn();
+            break;
+        case "zoomout":
+            ZoomOut();
             break;
         case "+slot":
             Slot_Keydown(stof(argv(1)));
