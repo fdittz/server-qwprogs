@@ -199,6 +199,8 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init = {
     sentry_preview_range_sphere.scale = 1000;
     sentry_preview_range_sphere.alpha = 0.02;
 
+    zoom_scale = 1;
+
     print("CSQC initialization finished\n");
 };
 
@@ -225,8 +227,8 @@ noref void(float width, float height, float menushown) CSQC_UpdateView = {
 
     FO_CussView();
 
-    if (zoomed_in)
-        setviewprop(VF_AFOV, CVARF(fov)/3);
+    setviewprop(VF_AFOV, CVARF(fov)/zoom_scale);
+    setsensitivityscaler(1/zoom_scale);
 
     // Draw original sbar, viewsize honoured automatically.
     if (!CVARF(fo_fte_hud) || CVARF(fo_legacy_sbar))
@@ -308,6 +310,9 @@ noref float(string cmd) CSQC_ConsoleCommand = {
                         localcmd("cmd sentry rotate 15\n");
                     }
                     break;
+                default:
+                    zoom_scale = min(zoom_scale + 1, 5);
+                    break;
             }
             break;
         case "specialdown":
@@ -321,6 +326,9 @@ noref float(string cmd) CSQC_ConsoleCommand = {
                     } else {
                         localcmd("cmd sentry rotate -15\n");
                     }
+                    break;
+                default:
+                    zoom_scale = max(zoom_scale - 1, 1);
                     break;
             }
             break;
@@ -752,61 +760,63 @@ noref void CSQC_Input_Frame() {
 
     Sync_GameState();
 
-    // Intercept rocket jump
-    if ((WP_PlayerClass() == PC_SOLDIER || WP_PlayerClass() == PC_PYRO) &&
-            (input_buttons & BUTTON4))
-        input_buttons |= BUTTON0 | BUTTON2;
-
-    if (WP_PlayerClass() == PC_ENGINEER) {
-        // Intercept sentry build
-        if (!getstatf(STAT_HAS_SENTRY) && getstatf(STAT_CELLS) >= 130 && game_state.is_alive && !prematch) {
+    switch (WP_PlayerClass()) {
+        case PC_SNIPER:
+            if (keydowns & BUTTON3) {
+                if (zoom_scale == 1) {
+                    zoom_scale = 3;
+                } else {
+                    zoom_scale = 1;
+                }
+            }
+            break;
+        case PC_SOLDIER:
+        case PC_PYRO:
+            // Intercept rocket jump
             if (input_buttons & BUTTON4) {
-                if (keydowns & BUTTON4) {
-                    if (!previewing_sentry) {
-                        SentryPreviewStart();
-                    } else {
-                        SentryPreviewStop();
+                input_buttons |= BUTTON0 | BUTTON2;
+            }
+            break;
+        case PC_ENGINEER:
+            // Intercept sentry build
+            if (!getstatf(STAT_HAS_SENTRY) && getstatf(STAT_CELLS) >= 130 && game_state.is_alive && !prematch) {
+                if (input_buttons & BUTTON4) {
+                    if (keydowns & BUTTON4) {
+                        if (!previewing_sentry) {
+                            SentryPreviewStart();
+                        } else {
+                            SentryPreviewStop();
+                        }
+                    }
+
+                    input_buttons = input_buttons - BUTTON4;
+                }
+
+                if (previewing_sentry) {
+                    if (keydowns & BUTTON0) {
+                        if (sentry_fits) {
+                            localcmd(sprintf("cmd build sentry %f\n", anglemod(180 + sentry_preview_offset)));
+                            SentryPreviewStop();
+                        } else {
+                            print("Can't build here\n");
+                        }
+                    }
+
+                    if (input_buttons & BUTTON0) {
+                        input_buttons = input_buttons - BUTTON0;
                     }
                 }
-
-                input_buttons = input_buttons - BUTTON4;
             }
-
-            if (previewing_sentry) {
-                if (keydowns & BUTTON0) {
-                    if (sentry_fits) {
-                        localcmd(sprintf("cmd build sentry %f\n", anglemod(180 + sentry_preview_offset)));
-                        SentryPreviewStop();
-                    } else {
-                        print("Can't build here\n");
-                    }
-                }
-
-                if (input_buttons & BUTTON0) {
-                    input_buttons = input_buttons - BUTTON0;
-                }
-            }
-
-        }
-
-        if (prevent_firing && !previewing_sentry && (keyups & BUTTON0)) {
-            prevent_firing = FALSE;
-        }
-
-        if (prevent_firing) {
-            input_buttons &= ~BUTTON0;
-        }
+            break;
     }
 
-    // Handle zoom
-    float prev_zoomed_in = zoomed_in;
-    if (WP_PlayerClass() == PC_SNIPER)
-        zoomed_in = input_buttons & BUTTON3;
-    else
-        zoomed_in = 0;
+    if (prevent_firing && !previewing_sentry && (keyups & BUTTON0)) {
+        prevent_firing = FALSE;
+    }
 
-    if (prev_zoomed_in != zoomed_in)
-        setsensitivityscaler(zoomed_in ? 1/3 : 1);
+    if (prevent_firing) {
+        input_buttons &= ~BUTTON0;
+    }
 
     PM_InputFrame();
     FO_ApplyCussInput();
