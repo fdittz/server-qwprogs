@@ -2122,6 +2122,8 @@ void (float all_dimensions) SetDimensions = {
 };
 
 void () PutClientInServer = {
+    UpdateClientPlayerSpawn(self);
+
     if (fo_login_required && self.fo_login == string_null)
         UpdateClient_Login(self);
 
