@@ -446,9 +446,9 @@ struct Slot { int id; };
 #define TF_SCAN_ENEMY               43  // Scout: Toggle scanning of enemies
 #define TF_SCAN_FRIENDLY            44  // Scout: Toggle scanning of friendlies
 #define TF_SCAN_SOUND               45  // Scout: Toggle scanner sound
-#define TF_ZOOMTOGGLE               46  // Sniper: Toggle zoom mode on/off
-#define TF_ZOOMIN                   47  // Sniper: Zoom in (while zoom mode is on)
-#define TF_ZOOMOUT                  48  // Sniper: Zoom out (while zoom mode is on)
+//				    46
+//				    47
+//				    48
 #define TF_DEMOMAN_DETPACK          49  // Demoman: Bring up detpack menu
 #define TF_DETPACK                  50  // Demoman: Detpack Pre-Impulse
 #define TF_DETPACK_STOP             51  // Demoman: Impulse to stop setting detpack
@@ -1609,9 +1609,6 @@ TFAlias client_aliases[] = {
     {"scansound",               TF_SCAN_SOUND},
     {"scanf",                   TF_SCAN_FRIENDLY},
     {"scane",                   TF_SCAN_ENEMY},
-    {"zoomtoggle",              TF_ZOOMTOGGLE},
-    {"zoomin",                  TF_ZOOMIN},
-    {"zoomout",                 TF_ZOOMOUT},
     {"detpipe",                 TF_PB_DETONATE},
     {"+det5",                   TF_DETPACK_5},
     {"-det5",                   TF_DETPACK_STOP},

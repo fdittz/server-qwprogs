@@ -50,7 +50,6 @@ entity(float ino) Finditem;
 void (entity Item, entity AP, entity Goal) tfgoalitem_GiveToPlayer;
 
 void () CTF_FlagCheck;
-void (entity pl) Sniper_ZoomReset;
 void () StartTimer;
 void () StopTimer;
 void () StartQuadRound;
@@ -1759,8 +1758,6 @@ void () ClientKill = {
         }
     }
 
-    Sniper_ZoomReset(self);
-
     set_suicide_frame();
     self.modelindex = modelindex_player;
 
@@ -2042,7 +2039,6 @@ void (entity p) SetVoteParams = {
     p.th_pain = player_pain;
     p.th_die = PlayerDie;
     p.height = 0;
-    Sniper_ZoomReset(p);
 
     p.deadflag = 0;
     p.pausetime = 0;
@@ -2276,7 +2272,6 @@ void () PutClientInServer = {
     self.th_pain = player_pain;
     self.th_die = PlayerDie;
     self.height = 0;
-    Sniper_ZoomReset(self);
 
     self.deadflag = 0;
     self.pausetime = 0;
@@ -3874,8 +3869,6 @@ string (entity pe_target, entity pe_attacker, float pf_deathmsg) GetDeathMessage
 
 void (entity targ, entity attacker) ClientObituary = {
     local string deathstring;
-
-    Sniper_ZoomReset(targ);
 
     if (cb_prematch)
         return;
