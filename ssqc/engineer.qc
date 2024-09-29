@@ -612,7 +612,7 @@ void (float objtobuild, float offset) TeamFortress_Build = {
         self.sentry_ticks = 0;
     }
 
-    if (!CheckArea(newmis)) {
+    if (!CheckArea(newmis, 0)) {
         sprint(self, PRINT_HIGH, "You can't build here\n");
         dremove(newmis);
         return;
