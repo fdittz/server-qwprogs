@@ -863,7 +863,7 @@ void _Sync_ServerCommandFrame() {
 
     if (previewing_sentry) {
         if (game_state.is_alive) {
-            sentry_fits = CheckArea(sentry_preview);
+            sentry_fits = CheckArea(sentry_preview, player_localentnum);
             sentry_preview.colormod = sentry_fits ? '1 1 1' : '0.5 0.2 0.2';
         } else {
             SentryPreviewStop();

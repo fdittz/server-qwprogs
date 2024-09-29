@@ -1,4 +1,4 @@
-float (entity obj) CheckArea = {
+float (entity obj, float builder) CheckArea = {
     local vector src;
     local vector end;
     local float pos;
@@ -51,7 +51,9 @@ float (entity obj) CheckArea = {
 
     te = findradius(obj.origin, 64);
     if (te != world) {
-        return (0);
+        if !(te.movetype == MOVETYPE_WALK && builder && num_for_edict(te.owner) == builder) {
+            return (0);
+        }
     }
     return (1);
 };
