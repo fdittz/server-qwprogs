@@ -27,6 +27,11 @@ void () RestartMap = {
 }
 
 void () ForceStartMatch = {
+    if (fo_login_required) {
+        bprint(PRINT_HIGH, "Can't forcestart while logins enabled.\n");
+        return;
+    }
+
     if (clanbattle == 1 && cb_prematch == 1) {
         bprint(PRINT_HIGH, self.netname);
         bprint(PRINT_HIGH, " has forced the match start.\n");
@@ -118,6 +123,14 @@ void () DuelMode =
 	bprint(PRINT_HIGH, "Map Restart needed to take effect!\n");
 }
 
+void new_balance_mode() {
+    new_balance ^= 2;
+    if (new_balance & 2)
+        localcmd("localinfo new_balance 1\n");
+    else
+        localcmd("localinfo new_balance 0\n");
+}
+
 void (entity pe) SetEquipmentForPlayer = {
     entity oldself = self;
     self = pe;
@@ -125,7 +138,7 @@ void (entity pe) SetEquipmentForPlayer = {
     //self.immune_to_check = time + 10;
     //self.undercover_team = 0;
     stuffcmd(self, "color ");
-    string st = ftos(TeamFortress_TeamGetColor(self.team_no) - 1);
+    string st = TeamFortress_TeamGetColor(self.team_no);
     stuffcmd(self, st);
     stuffcmd(self, "\n");
 
@@ -300,19 +313,20 @@ void (entity pl) PrintWho = {
     strunzone(msg);
 }
 
-void () OutputTrackedSettings = {
-    bprint(PRINT_HIGH, self.netname, " called for a settings check (fo_settings_status)\n");
-    for (float i = 0; i < settings_to_track_list.length; i++)
-    {
-        setting_t* s = &settings_to_track[i];
-        bprint(PRINT_HIGH, "Setting ", s.setting_name, " is currently ", s.value, "\n");
+void (entity pov, string command, string color) UpdateTeamColor = {
+    forceinfokey(pov, command, color);
+
+    local entity target = find(world, classname, "player");
+    while (target != world) {
+        SetSkinInfoFor(pov, target);
+        target = find(target, classname, "player");
     }
 }
 
-float (string arg1, string arg2, string arg3) ParseCmds = {
+float (string arg1, string arg2, string arg3, string arg4) ParseCmds = {
     local float arg_num = 0, processedCmd, inp;
     local string tmp;
-    local float farg2, farg3;
+    local float farg2, farg3, farg4;
     local entity ent, pl;
     processedCmd = FALSE;
 
@@ -327,9 +341,6 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
             if (arg_num == 2) {
                 self.impulse = stof(arg2);
             }
-            break;
-        case "fo_settings_status":
-            OutputTrackedSettings();
             break;
         case "progsversion":
             // yy.mm.dd.incremented vers
@@ -349,30 +360,27 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
             }
             break;
         case "setinfo":
-            if (arg2)
-            {
-                if (arg2 == "topcolor" || arg2 == "bottomcolor")
-                {
-                    float arg3f = stof(arg3);
-                    if ((self.team_no > 0) && (teamplay > 0)) {
-                        if (arg3f != (TeamFortress_TeamGetColor(self.team_no) - 1)) {
-                            arg3f = TeamFortress_TeamGetColor(self.team_no) - 1;
-                            string st;
-                            st = ftos(arg3f);
-                            stuffcmd(self, strcat("color ", st, "\n"));
-                            sprint(self, PRINT_HIGH,
-                                    "Your color has been changed to your team color\n");
-                            processedCmd = TRUE;
-                        }
-                    }
+            if (arg2) {
+                switch(arg2) {
+                    case "team1color":
+                    case "team2color":
+                    case "team3color":
+                    case "team4color":
+                        UpdateTeamColor(self, arg2, arg3);
+                        processedCmd = TRUE;
+                        break;
                 }
             }
             break;
         case "changeteam":
             processedCmd = TRUE;
-            if(self.classname == "observer") {
+           if (self.classname == "observer") {
+#if 0
                 sprint(self, PRINT_HIGH, "You can't join a team while spectating! Join the game first.\n");
                 break;
+#else
+                clientcommand(self, "join");
+#endif
             }
             if(teamplay == 0) {
                 sprint(self, PRINT_HIGH, "You can't join a team when teamplay is disabled!\n");
@@ -386,7 +394,25 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                 }
                 break;
             }
+
             if (arg2) {
+                local float final_round = (rounds == 1);
+
+                switch(arg2) {
+                    case "attack":
+                        self.all_time = ALL_TIME_ATTACK;
+                        arg2 = final_round ? "2" : "1";
+                        sprint(self, PRINT_HIGH, "Always on the attacking team\n");
+                        break;
+                    case "defence":
+                        self.all_time = ALL_TIME_DEFENCE;
+                        arg2 = final_round ? "1" : "2";
+                        sprint(self, PRINT_HIGH, "Always on the defending team\n");
+                        break;
+                    default:
+                        self.all_time = ALL_TIME_COLOUR;
+                }
+
                 if(arg2 == "auto") {
                     if(self.team_no == 0) {
                         TeamFortress_TeamPutPlayerInTeam();
@@ -398,6 +424,7 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                         break;
                     }
                 }
+
                 if(arg2 == "1" || arg2 == "2" || arg2 == "3" || arg2 == "4") {
                     float newteam = stof(arg2), oldteam = self.team_no;
                     if(number_of_teams == 0 || newteam <= number_of_teams) {
@@ -414,6 +441,7 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                 //UpdateClientMenu_Team(self);
                 Menu_Team(0);
             }
+
             break;
         case "changeclass":
             processedCmd = TRUE;
@@ -490,6 +518,14 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                 break;
             }
             if (arg2) {
+                if(arg2 == "next") {
+                    FO_Spy_DisguiseCycle(self, 1);
+                    break;
+                }
+                if(arg2 == "prev") {
+                    FO_Spy_DisguiseCycle(self, -1);
+                    break;
+                }
                 if(arg2 == "last") {
                     Menu_Spy_Input(2);
                     break;
@@ -667,13 +703,14 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                 if(arg2 == "cancel") {
                     TeamFortress_EngineerBuildStop();
                     break;
-                }                
+                }
                 if(arg2 == "sentry") {
                     if(self.is_building && !engineer_move) {
                         TeamFortress_EngineerBuildStop();
                         break;
                     }
-                    Menu_Engineer_Input(1);
+
+                    TeamFortress_BuildSentry(stof(arg3));
                     break;
                 }
                 if(arg2 == "dispenser") {
@@ -705,11 +742,12 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                 sprint(self, PRINT_HIGH, "Only engineers can do that!\n");
                 break;
             }
+
             if(self.health <= 0) {
                 sprint(self, PRINT_HIGH, "Can't maintain while dead.\n");
                 break;
             }
-            
+
             //find sentry first
             ent = findradius(self.origin, ENG_BUILDING_MAINT_DISTANCE);
             while (ent) {
@@ -719,10 +757,12 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                 }
                 ent = ent.chain;
             }
+
             if (!ent) {
                 sprint(self, PRINT_HIGH, "No sentry in range\n");
                 break;
             }
+
             if (arg2 && arg3) {
                 if(arg2 == "rotate") {
                     farg3 = stof(arg3);
@@ -731,13 +771,16 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                         sprint(self, PRINT_HIGH, "Sentry detection issue!\n");
                         break;
                     }
-                    if(farg3 < 0) {
-                        sprint(self, PRINT_HIGH, "Rotating ",ftos(farg3 * -1)," degrees clockwise...\n");
-                    } else {
-                        sprint(self, PRINT_HIGH, "Rotating ",ftos(farg3)," degrees anticlockwise...\n");
+                    ent.angles_y -= farg3;
+                    ent.waitmin = rint(ent.angles_y - 50);
+                    ent.waitmin = anglemod(ent.waitmin);
+                    ent.waitmax = rint(ent.angles_y + 50);
+                    ent.waitmax = anglemod(ent.waitmax);
+                    if (ent.waitmin > ent.waitmax) {
+                        ent.waitmin = ent.waitmax;
+                        ent.waitmax = anglemod(ent.angles_y - 50);
                     }
-                    ent.waitmin = anglemod(ent.waitmin + farg3);
-                    ent.waitmax = anglemod(ent.waitmax + farg3);
+                    ent.nextthink = time + 0.5;
                     break;
                 }
                 sprint(self, PRINT_HIGH, "Invalid choice.\n");
@@ -821,7 +864,10 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
             break;
         case "break":
             processedCmd = TRUE;
-            if(self.vote_map) {
+
+            if (disable_voting) {
+                // Do nothing
+            } else if (self.vote_map) {
                 UnvoteForMap(self);
             } else {
                 if(votemode) {
@@ -884,7 +930,7 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                 sprint(self, PRINT_HIGH, "cmd showvotes\b: List current voting summary\b\n");
                 sprint(self, PRINT_HIGH, "cmd break\b: Cancel current vote\b\n");
             } else {
-                sprint(self, PRINT_HIGH, "cmd changeteam [#|auto]\n");
+                sprint(self, PRINT_HIGH, "cmd changeteam [#|auto|attack|defence]\n");
                 sprint(self, PRINT_HIGH, "cmd changeclass [#]\n");
                 sprint(self, PRINT_HIGH, "cmd dropammo [1-4] [amount]\n");
                 sprint(self, PRINT_HIGH, "cmd disguise [last|none|skin #|team #]\n");
@@ -923,6 +969,19 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                 performLogin(self,arg2,arg3);
             }
             break;
+        case "fo-login":
+            processedCmd = TRUE;
+            if (self.fo_login != string_null) {
+                sprint (self, PRINT_HIGH, "You are logged in\n");
+            } else {
+                performFoLogin(self, arg2);
+            }
+            break;
+        case "fo-login-silent":
+            processedCmd = TRUE;
+            if (self.fo_login == string_null)
+                performFoLogin(self, arg2);
+            break;
         case "who":
             processedCmd = TRUE;
             pl = find (world, classname, "player");
@@ -937,7 +996,7 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
             }
             break;
     }
-   
+
     if (self.is_admin)
     {
         switch (arg1)
@@ -1140,6 +1199,10 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                     Admin_CeaseFire();
                 processedCmd = TRUE;
                 break;
+            case "updateserver":
+                Admin_UpdateServer();
+                processedCmd = TRUE;
+                break;
             case "map":
                 processedCmd = TRUE;
                 if (arg_num == 2) {
@@ -1194,6 +1257,10 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                 processedCmd = TRUE;
                 DuelMode();
                 break;
+            case "new_balance":
+                processedCmd = TRUE;
+                new_balance_mode();
+                break;
             case "forcestart":
                 processedCmd = TRUE;
                 ForceStartMatch();
@@ -1218,6 +1285,45 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                         UpdateAllAdmins();
                     }
                 }
+                break;
+            case "fologinrequired":
+                processedCmd = TRUE;
+                if(arg2) {
+                    localcmd ("localinfo fologinrequired ",arg2,"\n");
+                    if (stof(arg2)) {
+                        bprint(PRINT_HIGH, "Logins will be required. Matches can be reported\n");
+                    } else {
+                        bprint(PRINT_HIGH, "Allow unregistered players. Matches won't be reported\n");
+                    }
+                    bprint(PRINT_HIGH, "Map Restart needed to take effect!\n");
+                    UpdateAllAdmins();
+                }
+                break;
+            case "fo_matchrated":
+                processedCmd = TRUE;
+                if(arg2) {
+                    localcmd ("localinfo fo_matchrated ",arg2,"\n");
+
+                    switch(stof(arg2)) {
+                        case 0:
+                            bprint(PRINT_HIGH, "Next match will not be rated\n");
+                            break;
+                        case 1:
+                            bprint(PRINT_HIGH, "Next match will be rated\n");
+                            break;
+                        case 2:
+                            bprint(PRINT_HIGH, "Next match will only be rated if more there are than 2 players on each team\n");
+                    }
+                    UpdateAllAdmins();
+                }
+                break;
+            case "play_to_completion":
+                if(arg2 != "0" && arg2 != "1")
+                    break;
+
+                processedCmd = TRUE;
+                localcmd ("localinfo play_to_completion ",arg2,"\n");
+                UpdateAllAdmins();
                 break;
             case "captainmode":
                 processedCmd = TRUE;
@@ -1280,7 +1386,7 @@ float (string arg1, string arg2, string arg3) ParseCmds = {
                 break;
         }
     }
-    
+
     return processedCmd;
 }
 
@@ -1288,8 +1394,8 @@ void (string cmd) SV_ParseClientCommand = {
     float isProcessed;
     tokenize(cmd);
 
-    isProcessed = ParseCmds(argv(0), argv(1), argv(2));
-    
+    isProcessed = ParseCmds(argv(0), argv(1), argv(2), argv(3));
+
     if (!isProcessed)
     {
         clientcommand(self, cmd);

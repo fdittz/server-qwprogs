@@ -87,8 +87,8 @@ void () TeamFortress_Discard = {
 		self.ammo_cells = 0;
     }
     FO_Sound(self, CHAN_AUTO, "weapons/lock4.wav", 1, ATTN_NORM);
-    newmis.enemy = self;
-    newmis.health = time;
+    newmis.dropped_by = self;
+    newmis.dropped_at = time;
     newmis.weapon = 0;
     newmis.movetype = MOVETYPE_TOSS;
     newmis.solid = SOLID_TRIGGER;
@@ -103,7 +103,7 @@ void () TeamFortress_Discard = {
         newmis.velocity_z = 200;
     }
     newmis.avelocity = '0 300 0';
-    setsize(newmis, '0 0 0', '0 0 0');
+    setsize(newmis, '-16 -16 0', '16 16 56');
     setorigin(newmis, self.origin);
     newmis.nextthink = time + 30;
     newmis.think = SUB_Remove;
@@ -261,11 +261,7 @@ void (entity pe_player) FO_Spectator_Identify = {
         pe_player.ident_time = time + 0.5;
         if(pe_player.ident_string != s_id_string) {
             pe_player.ident_string = s_id_string;
-            //if(infokeyf(pe_player, INFOKEY_P_CSQCACTIVE)) {
-                UpdateClientIDString(pe_player);
-            //} else {
-            //    Status_Refresh(pe_player);
-            //}
+            UpdateClientIDString(pe_player);
         }
     }
 }
@@ -350,7 +346,7 @@ void (entity pe_player, float f_type) CF_Identify = {
                 if (trace_ent.playerclass == PC_SPY && !f_friendly) {
 
                     // don't identify feigning enemy spies
-                    if (trace_ent.is_feigning)
+                    if (IsFeigned(trace_ent))
                         return;
 
                     // use undercover name if available
@@ -391,6 +387,8 @@ void (entity pe_player, float f_type) CF_Identify = {
         } else {
             return;
         }
+
+        s_name = strdecolorize(s_name);
 
         // set name + health (if medic)
         if (f_maxhealth && (f_friendly || f_fakefriendly)) {
@@ -466,14 +464,10 @@ void (entity pe_player, float f_type) CF_Identify = {
     }
 };
 
-void () RestoreDefaultWeapon = {
-    float default_weapon = FO_GetUserSetting(self, "default_weapon", "dw", "0");
-    if (default_weapon >= 1 && default_weapon <= TF_NUM_SLOTS) {
-        W_ChangeWeaponSlot(MakeSlot(default_weapon));
-    }
-};
-
 void () TeamFortress_ReloadNext = {
+    if (self.playerclass < 1 || self.playerclass > 9)
+        return;
+
     Slot slot = self.current_slot;
 
     do {
@@ -481,7 +475,6 @@ void () TeamFortress_ReloadNext = {
 
         if (FO_CanReload(slot)) {
             FO_ReloadSlot(slot, FALSE);
-            RestoreDefaultWeapon();
             return;
         }
     } while (!IsSameSlot(slot, self.current_slot));

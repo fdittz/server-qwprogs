@@ -168,19 +168,25 @@ void Update_ServerAdminInfo(entity pl) = {
     if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
         return;
     msg_entity = pl;
-    local float cm = CF_GetSetting("c", "clan", "off"), 
-                qm = CF_GetSetting("quadmode", "quadmode", "off"), 
-                dm = CF_GetSetting("duelmode", "duelmode", "off");
+    local float cm = CF_GetSetting("c", "clan", "off"),
+                qm = CF_GetSetting("quadmode", "quadmode", "off"),
+                dm = CF_GetSetting("duelmode", "duelmode", "off"),
+                flr = CF_GetSetting("flr", "fologinrequired", "off"),
+                ptc = CF_GetSetting("ptc", "play_to_completion", "off");
     WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET); 
     WriteByte(MSG_MULTICAST, MSG_SERVER_ADMIN_INFO);
     WriteByte(MSG_MULTICAST, is_paused || cease_fire);
     WriteFloat(MSG_MULTICAST, infokeyf(world, "rounds"));
     WriteFloat(MSG_MULTICAST, infokeyf(world, "round_time"));
+    WriteFloat(MSG_MULTICAST, (fo_login_required?1:0) + (flr?2:0));
+    WriteFloat(MSG_MULTICAST, CF_GetSetting("mra", "fo_matchrated", "2"));
+    WriteFloat(MSG_MULTICAST, (play_to_completion?1:0) + (ptc?2:0));
     WriteFloat(MSG_MULTICAST, infokeyf(world, "timelimit"));
     WriteFloat(MSG_MULTICAST, infokeyf(world, "fraglimit"));
     WriteFloat(MSG_MULTICAST, (clanbattle?1:0) + (cm?2:0));
     WriteFloat(MSG_MULTICAST, (quadmode?1:0) + (qm?2:0));
     WriteFloat(MSG_MULTICAST, (duelmode?1:0) + (dm?2:0));
+    WriteFloat(MSG_MULTICAST, new_balance);
     WriteFloat(MSG_MULTICAST, captainmode);
     multicast('0 0 0', MULTICAST_ONE_NOSPECS); 
 }
@@ -269,6 +275,12 @@ void UpdateClientTeamScores(entity e) = {
     multicast('0 0 0', MULTICAST_ONE_R_NOSPECS);
 }
 
+void UpdateClientQuadRoundBegin(entity pl, float round_time) = {
+    WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
+    WriteByte(MSG_MULTICAST, MSG_QUAD_ROUND_BEGIN);
+    multicast('0 0 0', MULTICAST_ALL_R);
+}
+
 void UpdateClientPrematch(entity pl, float countdownstarted) = {
     if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
         return;
@@ -285,12 +297,10 @@ void UpdateClientPrematch(entity pl, float countdownstarted) = {
         local entity t = find(world, classname, "match");
         if (t != world) {
             timeleft = t.cnt2;
-            
         }
         t = find(world, classname, "prematch");
         if (t != world) {
             timeleft = t.cnt2;
-            
         }
         t = find(world, classname, "round");
         if (t != world) {
@@ -351,6 +361,19 @@ void UpdateClient_VoteMap_Add(entity pl, entity map_candidate) = {
     WriteFloat(MSG_MULTICAST, map_candidate.ex_skill_max);
     WriteFloat(MSG_MULTICAST, map_candidate.cnt);
     WriteByte(MSG_MULTICAST, (pl.vote_map == map_candidate));
+    multicast('0 0 0', MULTICAST_ONE_NOSPECS);
+}
+
+void UpdateClient_Login(entity pl) = {
+    if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
+        return;
+
+    if(!fo_login_required)
+        return;
+
+    msg_entity = pl;
+    WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
+    WriteByte(MSG_MULTICAST, MSG_LOGIN);
     multicast('0 0 0', MULTICAST_ONE_NOSPECS);
 }
 

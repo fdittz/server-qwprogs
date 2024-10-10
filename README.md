@@ -1,9 +1,84 @@
 FortressOne Server
 ==================
 
-New features
-------
+New commands
+------------
 
+* `fo_reloadvolume 0` 0 - 1 volume for reloading sounds
+* `fo_reloadalpha x` alpha of viewmodel when reloading, 0 for invisible
+* `fo_team_color_crosshair` change crosshair to team colour
+* `cmd updateserver` tell server to pull latest progs and maps
+* `+slot n` bind. fires nth weapon
+* `fo_default_weapon 0` default weapon when using `+slot` binds
+* `fo_hud_cache 1` less resource intensive hud
+* `fo_hud_fps 60` set hud refresh rate
+* `fo_grentimer_ping_frac 1` fraction of ping to correct for
+* `fo_grentimer_nostack 0` when set, only play the oldest timer
+* `fo_fte_hud 0` completely replace Quake engine hud with FO hud
+* `fo_legacy_sbar 0` use oldschool Team Fortress status bar
+* `fo_oldscoreboard 0` use oldschool Quake scoreboard
+* `fo_adminrefresh 2` time in seconds for admin menu to refresh
+* `fo_predict_weapons 1` client-side weapon prediction
+* `fo_predict_projectiles 1` client-side projectile prediction
+* `wpp_min_ping -1` minimum ping before `fo_wpp_beta` is enabled.
+* `fo_client_sniper_sight 1` client side sniper dot
+* `cl_p2r` use rocket model for incendiary launcher
+* `cl_r2g` use grenade model for rockets
+* `r_pyrotrail 0` ezquake-compatible trail selection for incendiary launcher
+* `r_rockettrail 0` ezquake-compatible trail selection for rocket launcher
+* `r_grenadetrail 0` ezquake-compatible trail selection for grenade launcher
+* `wpp_phys_adv_ms 0`
+* `wpp_phys_local_adv_ms 0`
+* `wpp_setspeed 1`
+* `wpp_debug 1` bitfield 0,1,2,4,8 for debugging
+* `fo_phys_debug 1` bitfield 0,1 for debugging
+
+* Added in `fo_hittext_friendly 0` - setting to 1 shows text when damaging friendlys
+* Added in `fo_hittext_colour3 "1 0 0"` - colour of friendly hittext if fo_hittext_friendly is set to 1 (rgb 0-1)
+
+* Added in csqc hitaudio and hittext for testing `localinfo zutmode 1` on server to enable.
+  
+Client commands, default shown:
+  
+=== Audio ===
+* `fo_hitaudio_enabled 1`      - toggle on/off
+* `fo_hitaudio_hurtself 1`     - play a sound when you hurt yourself
+* `fo_hitaudio_hurtteam 1`     - play a sound when you hurt a teammate   
+* `fo_hitaudio_hurtenemy 1`    - play a sound when you hurt an enemy
+* `fo_hitaudio_killself 1`     - play a sound when you kill yourself
+* `fo_hitaudio_killteam 1`     - play a sound when you kill a teammate
+* `fo_hitaudio_killenemy 1`    - play a sound when you kill an enemy
+* `fo_hitaudio_noarmour 1`     - play an extra sound if you hurt an enemy with no armour
+  
+also added a headshot sound for snipers, only plays for the client  
+sound files are found in `fortress/sound/hitaudio/` and  `fortress/sound/announcer/`
+  
+=== Text ===
+* `fo_hittext_enabled 1`       - toggle on/off
+* `fo_hittext_size 32`         - size of text
+* `fo_hittext_speed 96`        - how fast text scrolls up
+* `fo_hittext_alpha 1`         - alpha
+* `fo_hittext_duration 2`      - how long before text disappears
+* `fo_hittext_rawdamage 1`     - setting to 0 shows damage AFTER armour mitigation
+* `fo_hittext_noarmour 1`      - changes colour of text if enemy has no armour, see `fo_hittext_colour2` to set
+* `fo_hittext_offset 32`       - how high text appears above target
+* `fo_hittext_friendly 0`      - toggles text above friendlys if you damage them
+* `fo_hittext_colour "1 1 1"`  - default colour of enemy text (rgb 0-1)
+* `fo_hittext_colour2 "1 0 1"` - overrides default colour of enemy text if `fo_hittext_noarmour 1` is set and target has no armour (rgb 0-1)
+* `fo_hittext_colour3 "1 0 0"` - colour of friendly hittext if fo_hittext_friendly is set to 1 (rgb 0-1)
+-------------------------------
+
+* Website backend for match results, stats. Get a token at fortressone.org, connect to a FortressOne server, and `login <token>`.
+
+
+* `localinfo play_to_completion 0` set to 1 to allow quad to continue to round end even after required score exceeded.
+* `localinfo pipecooldown_time <number>` time in seconds for demo pipe cooldown
+* `localinfo allpipes_cooldown on/off` whether cooldown is applied to individual pipes or all pipes. i.e. with this on the demo can not det any of his pipes immediately after firing. (default off)
+* `localinfo discord_channel_id <number>` to specify discord_channel. Required for autoreporting.
+* `localinfo fo_matchrated 2` whether match is rated / affects trueskill. 2 is false for 1v1 and 2v2 only.
+* `localinfo backend_address <uri>` to specify backend API endpoint. Default: https://www.fortressone.org/
+* All-time attack and all-time defence team options.
+* `setinfo team<n>color <color>` sets player skins colours for team <n>, where <color> is quake palette 0-15 or hex code beginning with 0x. E.g. `setinfo team1colour 0` makes all team 1 players white, `setinfo team2color 0xFF8800` makes all team 2 players orange. `setinfo team<n>color ""` to restore defaults. Note that `teamcolor` and `enemycolor` cvars will take priority.
 * `setinfo precise_grenades on/off` to enable precise timing when throwing grenades.  This removes a random, up to, 100ms input delay.  (default on)
 * `localinfo forcereload 0/1` Option to prevent forced reloads.
 * `+grenade1` and `+grenade2` grenade buttons (more reliable than impulses), push to prime, again to throw.
@@ -17,6 +92,9 @@ New features
 * New buttons (not impulses):
 * `+special` Scout: `dash`, Demoman: `detpipe`, Medic: `aura`, Hwguy: `lock`, Pyro: `airblast`, Spy: `+feign`, Engineer: `toggledispenser`.
 * `+special2` Same as `special2`, but also has `+rj` for Soldier and Pyro.
+* `specialup` Engineer: `cmd sentry rotate -15`, Spy: `cmd disguise prev`.
+* `specialdown` Engineer: `cmd sentry rotate 15`, Spy: `cmd disguise next`.
+* `zoomin` and `zoomout` commands that adjust sens with zoom. 5 levels.
 * `setinfo hold_grens` for press and hold `+grenade1` and `+grenade2`
 * `setinfo hold_fiegn` for press and hold feigning
 * `setinfo hold_detpack` for press and hold detpack
@@ -65,12 +143,13 @@ New features
 * CSQC - fo_menu_game in-game menu
 * CSQC - fo_grentimer 0 - none, 1 - starts on server prime message, 2 - starts on prime button press
 * CSQC - fo_grentimersound grentimer.wav
-* CSQC - fo_grentimervolume
-* CSQC - fo_jumpvolume
+* CSQC - fo_grentimervolume 1
+* CSQC - fo_specgrentimervolume -1 [ignored when -1]
+* CSQC - fo_jumpvolume 1
 * CSQC - fo_hud_reset resets HUD to defaults
 * CSQC - fo_hud_reload reloads last-saved hud configuration
 * CSQC - fo_hud_editor to move panels and save to config
-* CSQC - fo_csjumpsounds
+* CSQC - fo_csjumpsounds 1 for client side jump sounds (not delayed by ping)
 * `info_empblock` has a new field `goal_effects`. Setting it to 16 will prevent it from blocking emps if there is a wall between it and the explosion.
 * New map point entity `info_empblock` with `t_length` field that specifies its radius of effect. An EMP explosion within a range of one will not go through walls.
 * Server option for duelmode to allow draws on a double-ko `localinfo duel_allow_draw 1`/`localinfo dad 1` (default 1)
@@ -86,7 +165,7 @@ New features
 * Server option for making all walls block EMP. Off by default. `localinfo walls_block_emp 1` or `localinfo wbe 1`. (SPAWNFLAG_BLOCK_EMP 4096 will work regardless)
 * Server option for setting detpack to solid (blocking). Off by default. `localinfo solid_detpack 1` or `localinfo sdp 1`.
 * Server option for overriding map class restrictions (except civilian). `serverinfo override_mapclasses 1` or `serverinfo omc 1`.
-* Option for maximum grenades for all classes. `localinfo max_gren1_<class> <number>`, short `localinfo mg1_<classnum> <number>`. Works for gren1s and gren2s. Eg `localinfo max_gren1_scout 0` to remove caltrops or `localinfo mg2_9 2` to reduce max EMPs to 2.
+* Option for maximum grenades for all classes. `localinfo max_gren1_<class> <number>`, short `localinfo mg1_<classnum> <number>`. Works for gren1s and gren2s. Eg `localinfo max_gren1_scout 0` to remove caltrops or `localinfo mg2_9 2` to reduce max EMPs to 2. Set to -1 for default.
 * Option to fully restock player's clip and finish reload immediately if in progress. `localinfo stock_reload 1` (`localinfo srd 1`) will trigger only on flag capture (with stock_on_cap enabled). `2` will trigger whenever any tfgoal gives you the appropriate ammo.
 * Option for statusbar flaginfo. `setinfo sbflaginfo 1` (default). Setting it to `2` will skip the tf tips on respawn and show flag info all the time.
 * Admin system created to allow for easy setup of pub/clan/quad/duel games, kick players etc `localinfo adminpwd <password>` and `cmd adminpwd <password>; wait; adminmenu`
@@ -102,6 +181,7 @@ New features
 * Keys and flags glow their colour.
 * Option to adjust conussion grenade effect time in seconds. `localinfo cussgrentime`.
 * Option to fully restock player on cap. `localinfo stock_on_cap on`.
+* Option to strip ammo and grens from defenders within 1500 units of cap point when flag is capped. `localinfo cap_strip 1`.
 * Option for packs to fully restock health and armor of player. `localinfo stockfull on`.
 * Automatic server-side mvd recording of clan matches. Requires `localinfo serverdemo on`.
 * Map vote (4 random maps + current map) during last few minutes of game (shown for newly spawned or toggled with /togglevote).
@@ -115,7 +195,6 @@ New features
 * Prime/throw grenades with one button (/gren1 and /gren2).
 * Weapon slots (1-4) where 1 is always primary and 4 is always melee.
 * Quick attack aliases (+quick1-4 will switch weapon and fire).
-* Set default weapon to select after firing (e.g. `setinfo default_weapon 1`).
 * Next/previous weapon (/weapprev and /weapnext).
 * Last weapon (/weaplast).
 * Remember current weapon and last weapon after dying.
@@ -130,10 +209,10 @@ New features
 * Allow team changing.
 * Any non-valid impulse now closes the active menu.
 * Option to allow a demoman to place a detpack while reloading his weapon `localinfo detreload on`
-* Pyro types - `localinfo pyro_type val` - 0 = original tf2.9, 1 = oztf pyro style, 2 = FO pyro style
 * localinfo server_sbflaginfo : 0 - disables sbar flaginfo, 1 enables it [default: 1]
 * localinfo reverse_cap : 0 - normal gameplay, 1: you have to take your flag and capture in the enemy base [default: 0]
 * localinfo engineer_move / em : 0 - normal gameplay, 1: engineers can move while building [default: 1]
+* localinfo grenade_lockout / gl : Time in seconds grenade throw is locked out [default: 0.1]
 * localinfo round_delay_time : interval time between rounds in quadmode - seconds [default: 30]
 * localinfo max_gren2_soldier : maximum number of active nail/shock grenades (TF 2.8 = 3, OzTF = 1) [default: 3]
 * localinfo distance_based_cuss_duration : on/off - enables cuss duration to be proportional to the distance from the explosion [default: off]

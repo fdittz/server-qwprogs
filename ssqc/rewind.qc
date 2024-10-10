@@ -8,7 +8,7 @@
 #define rw_printd(...)
 #endif
 
-#define MAX_SNAPSHOTS 25
+#define MAX_SNAPSHOTS 50
 
 inline int NextRewindIdx(int idx) {
     return (idx + 1) % MAX_SNAPSHOTS;
@@ -104,6 +104,32 @@ static SeekResult RewindSeek(RewindState* rstate, float rtime) {
     return r;
 }
 
+static void DoubleCheckCollision(entity player,
+                                 RewindSnapshot* a,
+                                 RewindSnapshot* b) {
+    if (player.deadflag)
+        return;  // Dead
+    if (vlen(b->origin - a->origin) > 48)
+        return;  // Teleport
+
+    const vector PLAYER_MINS = [-16, -16, -24], PLAYER_MAXS = [16, 16, 32];
+    tracebox(a->origin, PLAYER_MINS, PLAYER_MAXS, b->origin, 0, player);
+    if (trace_fraction == 1)
+        return;
+
+    entity hit = trace_ent;
+
+    if (!hit.voided && hit.fpp.index && hit.touch) {
+        setorigin(player, trace_endpos);
+
+        entity held_self = self;
+        self = hit;
+        other = player;
+        self.touch();
+        self = held_self;
+    }
+}
+
 RewindSnapshot* RewindLog(RewindState* target) {
     if (target->owner != self)
         error("Log mismatch\n");
@@ -111,7 +137,8 @@ RewindSnapshot* RewindLog(RewindState* target) {
     target->owner->client_lastupdate = time;
 
     RewindSnapshot* rs = &target->snapshot[target->cur];
-    if (time > rs->time + 0.05) {
+    RewindSnapshot* last = rs;
+    if (time > rs->time) {
         if (rs->time) {
             target->cur = NextRewindIdx(target->cur);
             rs = &target->snapshot[target->cur];
@@ -124,6 +151,9 @@ RewindSnapshot* RewindLog(RewindState* target) {
 
     rs->origin = target->owner.origin;
     rs->velocity = target->owner.velocity;
+
+    if (RewindFlagEnabled(REWIND_DOUBLE_COL) && rs != last)
+        DoubleCheckCollision(target->owner, last, rs);
 
     return rs;
 }
@@ -205,8 +235,10 @@ static void RewindTo(RewindState* rstate, float rtime) {
             pos = b->origin + frac * diff;
         }
     } else {
-        float max_xerp = CF_GetSetting("rwmx", "rewind_max_xerp", "0.02");
-        pos = rstate->held_origin + min(rtime - e.client_lastupdate, max_xerp) * e.velocity;
+        pos = rstate->held_origin;
+        float max_xerp = CF_GetSetting("rwmx", "rewind_max_xerp", "0");
+        if (max_xerp > 0)
+            pos += min(rtime - e.client_lastupdate, max_xerp) * rstate->held_velocity;
     }
 
     setorigin(rstate->owner, pos);
@@ -246,7 +278,8 @@ class FOPlayer {
     };
 
     nonvirtual void() RewindUpdate = {
-        RewindLog(rewind_);
+        if (rewind_)
+            RewindLog(rewind_);
     };
 
     nonvirtual void(float when) RewindExcept = {
@@ -272,12 +305,23 @@ class FOPlayer {
     };
 };
 
+// TODO: untangle and decide whether the class stuff is adding any value
+void RW_RewindAll(float when) {
+    FOPlayer::RewindAll(when);
+}
+
+void RW_StashAll() {
+    RL_StashPositions(rewind_players);
+}
+
+void RW_RestoreAll() {
+    FOPlayer::RestoreAll();
+
+}
+
 float (string ps_short, string ps_setting, string ps_default) CF_GetSetting;
 
 float RewindPlayersExceptSelf(float farthest_rewind_point) {
-    if (!antilag_settings.rewind_detpipe)
-        return FALSE;
-
     float rewind_max_offset = (MAX_SNAPSHOTS - 1) * SERVER_FRAME_DT;
     farthest_rewind_point = max(farthest_rewind_point,
                                 time - rewind_max_offset);
@@ -294,47 +338,61 @@ float RewindPlayersExceptSelf(float farthest_rewind_point) {
     return TRUE;
 }
 
-void ProjRewindForPhys(entity e, float step) {
-    RL_RewindTo(rewind_players, e.owner, e.phys_time + step / 2);
+void ProjRewindForTravel(entity e, float target_time) {
+    RL_RewindTo(rewind_players, world, target_time);
 }
 
-void Forward_Projectile(int fpp_type, entity proj) {
+void ProjRewindForPhys(entity e, float target_time) {
+    RL_RewindTo(rewind_players, e.owner, target_time);
+}
+
+void NoRewindSyncFn(entity e, float target_time) {
+    error("not set\n");
+}
+
+void Forward_Projectile(int fpp_type, entity proj, float use_ctime) {
     float ping = proj.owner.client_ping;
+    if (use_ctime) {
+        // These can be pretty late with sendevent latency on top so let's be
+        // conservative.
+        ping = min((proj.owner.client_time - use_ctime) * 1000,
+                   fo_config.max_rewind_ms - 25);
+    }
 
     ProjectResult offset = Forward_ProjectOffset(fpp_type, ping);
     float static_dt = offset.static_ms / 1000.0;
     float dynamic_dt = offset.dynamic_ms / 1000.0;
 
-    if (proj.fpp.flags & FPF_FIXED_DYNAMIC)
-        dynamic_dt = proj.fpp.dynamic_dt;
-    float stime = time - dynamic_dt;
 
-    float no_rewind = proj.fpp.flags & FPF_NO_REWIND;
-    float rewind_hit = !no_rewind && RewindFlagEnabled(REWIND_PROJ_HIT);
+    float rewind_hit = RewindFlagEnabled(REWIND_PROJ_FIRE) &&
+                       !(proj.fpp.flags & FPF_NO_REWIND) &&
+                       dynamic_dt > 0;
+
     float phys_flags = PHYSF_CONSUME_ALL;
+    float stime = time;
+
     if (rewind_hit) {
+        stime -= dynamic_dt;
         phys_flags |= PHYSF_REWIND_PLAYERS;
         RL_StashPositions(rewind_players);
         RL_RewindTo(rewind_players, proj.owner, stime);
     }
 
-    if (!no_rewind && RewindFlagEnabled(REWIND_FORWARD_PROJ_SELFKNOCK))
-            phys_flags |= PHYSF_FORWARD_KNOCK;
-
     // Static projection happens instantly.  If rewind is active, we'll do it at
     // a prior point in time, but we don't advance time while stepping.
-    proj.s_origin = proj.origin;
-    proj.s_time = 0;
     float ft = Phys_Init(proj, stime, static_dt, PHYSF_CONSUME_ALL);
 
-    // We initialize s_origin/s_time after Phys_Init, they are used when
+    // We initialize s_origin after Phys_Init, they are used when
     // knockback forwarding is on to determine delay.
-    proj.s_origin = proj.origin;
-    proj.s_time = time;
+    if (rewind_hit && RewindFlagEnabled(REWIND_FORWARD_PROJ_SELFKNOCK)) {
+        phys_flags |= PHYSF_FORWARD_KNOCK;
+        proj.s_origin = proj.origin;
+    }
 
     if (!proj.voided) {
         RewindSyncTime = ProjRewindForPhys;
         ft += Phys_Advance(proj, time, phys_flags);
+        RewindSyncTime = NoRewindSyncFn;
     }
 
     if (rewind_hit)

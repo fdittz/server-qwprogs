@@ -168,6 +168,8 @@ void () StartMatch =
         //ResetPlayers();
         CountMatchPlayersAndReset();
     }
+
+    FilterBodyQueue(TRUE);
 };
 
 float () GetPlayerCount
@@ -318,6 +320,7 @@ void () PreMatch_Think = {
 
                     localcmd("record \"");
                     str = strzone(GetGameFileName());
+                    game_filename = str;
                     localcmd(strzone(str));
                     localcmd("\"\n");
 
@@ -431,6 +434,7 @@ void () StartTimer =
     if (timer.cnt2 < 1) {
         //By default, 10 seconds of countdown
         timer.cnt2 = 10;
+        round_end_time = time + 11;
     }
     timer.cnt2 = (timer.cnt2 + 1);
     timer.nextthink = (time + 0.1);
@@ -1074,19 +1078,28 @@ float () CheckAllPlayersReady = {
     bprint (PRINT_HIGH, "Total players ready - ",ftos(v_ready),"/",ftos(f1),".\n");
 
     if (v_ready == f1 && v_ready > 0) {
-        if(cease_fire) {
+        if (TeamFortress_TeamGetNoPlayersExcludingAllTime(1) != TeamFortress_TeamGetNoPlayersExcludingAllTime(2)) {
+            bprint (2, "Teams have uneven number of players, is someone supposed to be all-time attack?\n");
+        } else if(cease_fire) {
             bprint (2, "All players ready, match will start after ceasefire ends.\n");
         } else {
             bprint (2, "All players ready, starting match\n");
             localcmd("localinfo clown 0");  // Disable any clown settings.
             StartTimer ();
         }
+
         return 1;
     }
+
     return 0;
 }
 
 void () PlayerReady = {
+    if (fo_login_required && self.fo_login == string_null) {
+        sprint(self, PRINT_HIGH, "You need to sign in first. Get your login token at www.fortressone.org\n");
+        return;
+    }
+
     if (is_countdown) {
         sprint(self, 2, "You cannot do this after countdown has started.\n");
         return;

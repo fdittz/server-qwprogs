@@ -5,6 +5,10 @@ void () T_TranqDartTouch;
 void () Spy_DropBackpack;
 void (entity targ, entity attacker) KillSound;
 
+float IsFeigned(entity ent) {
+    return ent.tfstate & TFSTATE_FEIGNED;
+}
+
 anim_t anim_spy_diea1 = { 11, 1, {50}, {0}, FALSE, FALSE, TRUE };
 void spy_dieaN() { client_anim_frames(spy_dieaN, think_nop, &anim_spy_diea1); }
 void spy_diea1() { *thinkindex() = 1; spy_dieaN(); }
@@ -66,9 +70,9 @@ float (entity pe_player) Spy_CheckArea = {
                     || at_spot.mdl == "progs/disp.mdl")
             return 1;
         else if (at_spot.classname == "player" && pe_player != at_spot) {
-            if (!at_spot.is_feigning && at_spot.deadflag == 0)
+            if (!IsFeigned(at_spot) && at_spot.deadflag == 0)
                 return 2;
-            else if (at_spot.is_feigning)
+            else if (IsFeigned(at_spot))
                 return 3;
         }
         at_spot = at_spot.chain;
@@ -78,7 +82,7 @@ float (entity pe_player) Spy_CheckArea = {
 
 void (entity pe_player, float dontstopdead) Spy_CheckForFuncTouch = {
     if (pe_player.classname == "player" && pe_player.playerclass == PC_SPY) {
-        if(pe_player.is_feigning) {
+        if (IsFeigned(pe_player)) {
             pe_player.velocity_x = 0;
             pe_player.velocity_y = 0;
             pe_player.movetype = MOVETYPE_TOSS;
@@ -92,7 +96,7 @@ void (entity pe_player, float dontstopdead) Spy_CheckForFuncTouch = {
 void () CF_Spy_AirThink = {
     local float area_check = 0;
 
-    if(self.owner.deadflag >= 2) {
+    if(self.owner.deadflag >= DEAD_DEAD) {
         // reset the movetype just in case you die while in the TOSS or the WALK states (eg mbasesr lift squish)
         self.owner.movetype = MOVETYPE_NONE;
         self.owner.tfstate |= TFSTATE_CANT_MOVE;
@@ -100,7 +104,7 @@ void () CF_Spy_AirThink = {
         return;
     }
 
-    if ((self.owner.playerclass != PC_SPY) || (!self.owner.is_feigning)) {
+    if ((self.owner.playerclass != PC_SPY) || (!IsFeigned(self.owner))) {
         dremove(self);
         return;
     }
@@ -134,7 +138,7 @@ void () CF_Spy_AirThink = {
 };
 
 void (float issilent) FO_Spy_ToggleFeign = {
-    if (self.is_feigning || self.feign_next_damage) {
+    if (IsFeigned(self) || self.feign_next_damage) {
         FO_Spy_Unfeign();
     } else {
         FO_Spy_FeignOnNextDamage();
@@ -142,13 +146,12 @@ void (float issilent) FO_Spy_ToggleFeign = {
 }
 
 void (float issilent, float force) FO_Spy_Feign = {
-    if (self.is_feigning) {
+    if (IsFeigned(self))
         return;
-    }
 
     if (!force && time <= self.next_feign_time) {
         sprint(self, PRINT_HIGH, sprintf(
-            "%0.1f seconds until you have enough fake-blood to feign again!\n",
+            "%0.1f seconds until you can feign again!\n",
             self.next_feign_time - time));
         return;
     }
@@ -166,7 +169,10 @@ void (float issilent, float force) FO_Spy_Feign = {
     }
 
     // Success.  We will feign.
-    self.next_feign_time = time + feign_rate_limit;
+    if (feign_rate_limit)
+        self.next_feign_time = time + feign_rate_limit;
+    else
+        self.next_feign_time = 0;
 
     // don't check for team color cheat for 5 seconds
     self.immune_to_check = time + 5;
@@ -184,7 +190,7 @@ void (float issilent, float force) FO_Spy_Feign = {
     spy.nextthink = time + 0.1;
 
     // set spy feign variables
-    self.is_feigning = 1;
+    self.tfstate |= TFSTATE_FEIGNED;
     self.is_button_feigning = 1;
 
     Attack_Finished(0.8);
@@ -273,9 +279,8 @@ void () FO_Spy_Unfeign = {
         sprint(self, PRINT_HIGH, "Feign cancelled\n");
     }
 
-    if (!self.is_feigning) {
+    if (!IsFeigned(self))
         return;
-    }
 
     if (!self.is_button_feigning) {
         return;
@@ -295,7 +300,7 @@ void () FO_Spy_Unfeign = {
         self.view_ofs = '0 0 22';
 
         // unset feign variables
-        self.is_feigning = 0;
+        self.tfstate &= ~TFSTATE_FEIGNED;
         self.is_button_feigning = 0;
         self.feign_areachecked = 0;
 
@@ -322,7 +327,7 @@ void () FO_Spy_Unfeign = {
 }
 
 void (float issilent) FO_Spy_FeignCmd = {
-    if (self.is_feigning)
+    if (IsFeigned(self))
         FO_Spy_Unfeign();
     else
         FO_Spy_Feign(issilent, 0);
@@ -447,6 +452,49 @@ void (entity player, float is_user) FO_Spy_DisguiseLast = {
     CF_Spy_ChangeSkin(player, player.last_selected_skin, is_user);
 };
 
+void FO_Spy_DisguiseCycle(entity spy, float direction) {
+    local float current_skin = spy.disguise_skin;
+    local entity te;
+
+    if (!current_skin) {
+        te = find(world, classname, "player");
+        while (te != world) {
+            if (te.team_no != spy.team_no && te.skin) {
+                CF_Spy_DisguiseStop();
+                Menu_Spy_Skin_Input(te.skin);
+                spy.disguise_skin = te.skin;
+                return;
+            }
+            te = find(te, classname, "player");
+        }
+    } else {
+        local float next_skin = current_skin + direction;
+
+        while (next_skin != current_skin) {
+            te = find(world, classname, "player");
+            while (te != world) {
+                if (te.skin == next_skin && te.team_no != spy.team_no) {
+                    CF_Spy_DisguiseStop();
+                    Menu_Spy_Skin_Input(te.skin);
+                    spy.disguise_skin = te.skin;
+                    return;
+                }
+                te = find(te, classname, "player");
+            }
+
+            next_skin += direction;
+
+            if (next_skin > 9) {
+                next_skin = 1;
+            } else if (next_skin < 1) {
+                next_skin = 9;
+            }
+        }
+    }
+
+    sprint(spy, PRINT_HIGH, "No enemies to disguise as!\n");
+}
+
 void (entity player, float is_user) FO_Spy_DisguiseLastSpawned = {
     local entity te = find(world, classname, "player");
     local float latest_spawn_time = 0;
@@ -490,19 +538,16 @@ void (entity player, float is_user) FO_Spy_DisguiseLastSpawned = {
     }
 };
 
-
 void (entity own) Spy_SetClientSkins = {
     entity te;
-    string color, dcolor, skin, dskin, sendcolor, sendskin, pteam, dsteam, sendteam;
+    string skin, dskin, sendcolor, sendskin, pteam, dsteam, sendteam;
     float dteam, dpc;
 
     dteam = own.undercover_team == 0 ? own.team_no : own.undercover_team;
     dpc = own.undercover_skin == 0 ? own.playerclass : own.undercover_skin;
-    color = ftos(TeamFortress_TeamGetColor(own.team_no) - 1);
-    dcolor = ftos(TeamFortress_TeamGetColor(dteam) - 1);
 
-    skin = TeamFortress_GetSkin(own.team_no, own.playerclass);
-    dskin = TeamFortress_GetSkin(dteam, dpc);
+    skin = TeamFortress_GetSkin(own.playerclass);
+    dskin = TeamFortress_GetSkin(dpc);
 
     pteam = GetTeamName(own.team_no);
     dsteam = GetTeamName(dteam);
@@ -515,13 +560,13 @@ void (entity own) Spy_SetClientSkins = {
             if (te.team_no == own.team_no)
             {
                 // on same team, send them spy/team (initial spawn etc)
-                sendcolor = color;
+                sendcolor = TeamFortress_TeamGetColorFor(te, own.team_no);
                 sendskin = skin;
                 sendteam = pteam;
             }
             else // not on same team, send them disguise
             {
-                sendcolor = dcolor;
+                sendcolor = TeamFortress_TeamGetColorFor(te, dteam);
                 sendskin = dskin;
                 sendteam = dsteam;
             }
@@ -696,7 +741,6 @@ void (entity pe_player, float pf_class, float is_user) CF_Spy_ChangeSkin = {
 
 void (entity pe_player, float pf_team_no, float is_user) CF_Spy_ChangeColor = {
     local entity e_timer;
-    local float f_team_color = TeamFortress_TeamGetColor(pf_team_no) - 1;
 
     // stop if you're already disguised as the requested skin
     if (pe_player.undercover_team == pf_team_no)
@@ -1104,10 +1148,6 @@ void () T_TranqDartTouch = {
         return;
     self.voided = 1;
 
-    if (pointcontents(self.origin) == CONTENT_SKY) {
-        dremove_sent(self);
-        return;
-    }
     if (other.takedamage) {
         if ((other.classname == "player") &&
                 !((other.team_no == self.owner.team_no) &&
@@ -1210,8 +1250,9 @@ void (entity spy) Spy_RemoveDisguise = {
         timer = find(timer, classname, "spytimer");
     }
 
-    if (coverblown)
+    if (coverblown) {
         Status_Print(self, "\n\n\n\n\n\n\n", "You blew your cover!");
+    }
 
     local float autodisguise = FO_GetUserSetting(self, "autodisguise", "ad", "off");
     if (self.playerclass == PC_SPY) {

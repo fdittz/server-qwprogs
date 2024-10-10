@@ -1,5 +1,6 @@
 #pragma target fte_5768
 #pragma optimise 3
+#pragma optimise no-cf
 #pragma flag enable subscope
 #pragma flag enable iffloat
 #pragma flag enable lo
@@ -17,16 +18,19 @@ defs.qc
 qw.qc
 debug.qc
 time.qc
-../share/defs.h
 ../share/physics.qc
 ../share/weapons.qc
 ../share/prediction.qc
 ../share/classes.qc
 ../share/animate.qc
+../share/mcp_precache.qc
+../share/engineer.qc
+helpers.qc
 events.qc
 roles.qc
 q3defs.qc
 status.qc
+teamplay.qc
 functions.qc
 menu.qc
 csmenu.qc

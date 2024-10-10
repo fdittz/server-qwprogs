@@ -18,7 +18,6 @@ void (entity disp) Engineer_SentryGun_Upgrade;
 void (entity disp) Engineer_SentryGun_Repair;
 void () Menu_Engineer_Cancel;
 void () CF_CheckBuilding;
-float (entity obj, entity builder) CheckArea;
 
 void () LaserBolt_Think = {
     self.solid = SOLID_TRIGGER;
@@ -77,6 +76,139 @@ void () LaserBolt_Touch = {
     }
     dremove(self);
 };
+
+static const float kImpellerTargetRange = 1500;
+
+static float ValidImpellerTarget(entity t) {
+    if (t.classname != "player")
+        return FALSE;
+
+    if (vlen(t.origin - self.origin) > kImpellerTargetRange)
+        return FALSE;
+
+    if (cb_prematch)  // Shoot anyone in prematch
+        return TRUE;
+
+    return (t.team_no != self.team_no && t.has_flag);
+}
+
+
+static entity FindImpellerTarget(vector org, float min_a, float* direct) {
+
+    traceline(org, org + 1500 * v_forward, MOVE_NORMAL, world);
+    if (trace_fraction != 1 && ValidImpellerTarget(trace_ent))
+        return trace_ent;
+
+    int count;
+    entity* players;
+    float best_a = min_a;
+    entity best_p = world;
+
+    players = find_list(classname, "player", EV_STRING, count);
+    for (int i = 0; i < count; i++) {
+        entity p = players[i];
+
+        if (!ValidImpellerTarget(p))
+            continue;
+
+        vector dir = normalize(p.origin - org);
+        float a = v_forward * dir;
+
+        traceline(org, p.origin, MOVE_NORMAL, world);
+        if (trace_fraction < 1) {
+            if (trace_ent != p) {
+                continue; // Something in the way
+            } else {
+                *direct = TRUE;
+                return p;
+            }
+        }
+
+        if (a < best_a)
+            continue;  // Not in AA cone
+
+        best_a = a;
+        best_p = p;
+    }
+
+    return best_p;
+}
+
+static vector find_closest(vector a, vector b, vector p) {
+    vector v = b - a, u = a - p;
+    float t = -(v * u) / (v * v);
+
+    if (t >= 0 && t <= 1)
+        return (1 - t) * a + t * b;
+    return b;
+}
+
+static void draw_beam(vector a, vector b, int effect) {
+    WriteByte(MSG_MULTICAST, SVC_TEMPENTITY);
+    WriteByte(MSG_MULTICAST, effect);
+    WriteEntity(MSG_MULTICAST, world);
+    WriteCoord(MSG_MULTICAST, a_x);
+    WriteCoord(MSG_MULTICAST, a_y);
+    WriteCoord(MSG_MULTICAST, a_z);
+    WriteCoord(MSG_MULTICAST, b_x);
+    WriteCoord(MSG_MULTICAST, b_y);
+    WriteCoord(MSG_MULTICAST, b_z);
+    multicast(a, MULTICAST_PHS);
+}
+
+void W_FireImpeller() {
+    FO_Sound(self, CHAN_WEAPON, "weapons/lhit.wav", 1, ATTN_NORM);
+
+    float rewound = RewindPlayersExceptSelf(0);
+
+    if (!cb_prematch)
+        self.special_next = time + 3;
+
+    vector org = self.origin + '0 0 16';
+    float direct = FALSE;
+    entity hit = FindImpellerTarget(org, 0.985, &direct);
+
+    if (rewound)
+        FOPlayer::RestoreAll();
+
+    float mag = 250;
+    vector end;
+
+    if (hit == world) {
+        traceline(org, org + 350 * v_forward, MOVE_WORLDONLY, world);
+        if (trace_fraction == 1)
+            return;
+
+        end = trace_endpos;
+        hit = self;
+        draw_beam(org, end, TE_LIGHTNING2);
+    } else {
+        if (direct) {
+            end = hit.origin;
+            draw_beam(org, end, TE_LIGHTNING2);
+        } else {
+            vector a = org, b = org + kImpellerTargetRange * v_forward;
+            traceline(a, b, MOVE_WORLDONLY, world);
+            end = trace_endpos;
+            vector x = find_closest(a, end, hit.origin);
+
+            draw_beam(a, x, TE_LIGHTNING2);
+            draw_beam(x, hit.origin, TE_LIGHTNING2);
+
+            // Discount knockback by help given
+            mag -= max(10, vlen(hit.origin - x));
+        }
+
+        end = hit.origin;
+    }
+
+    deathmsg = DMSG_IMPELLER;
+    TF_T_Damage(hit, self, self, 5, TF_TD_NOTTEAM, TF_TD_ELECTRICITY | TF_TD_NOMOMENTUM);
+    hit.flags &= ~FL_ONGROUND;
+    if (hit.has_flag)
+        mag *= 2;
+    hit.velocity -= mag * normalize(end - org);
+}
 
 void () W_FireRailgun = {
     local vector vec, org;
@@ -340,7 +472,7 @@ void () FO_Engineer_ToggleDispenser = {
 
 void () FO_Engineer_ToggleSentry = {
     if (self.has_sentry) {
-        DestroyBuilding(self, "building_sentrygun");
+        Menu_Engineer_Input(3);
     } else {
         if (self.health <= 0) {
             sprint(self, PRINT_HIGH, "Can't build while dead.\n");
@@ -351,14 +483,14 @@ void () FO_Engineer_ToggleSentry = {
 }
 
 void () TeamFortress_EngineerBuild = {
-    if (self.is_building == 0) {
+    if (!self.is_building) {
         if (((self.ammo_cells < 100) && !self.has_dispenser) &&
             !self.has_sentry) {
             Status_Print(self, "\n\n\n\n\n\n\n", "Not enough metal to build anything");
             return;
         }
         Menu_Engineer(self);
-    } else if (self.is_building == 1) {
+    } else if (self.is_building) {
         TeamFortress_EngineerBuildStop();
     }
 };
@@ -393,7 +525,7 @@ void () TeamFortress_EngineerBuildStop = {
     }
 
     Menu_Close(self);
-    self.is_building = 0;
+    self.is_building = FALSE;
     self.building_percentage = 0;
     if (!engineer_move) {
         self.tfstate &= ~(TFSTATE_CANT_MOVE | TFSTATE_NO_WEAPON);
@@ -401,69 +533,12 @@ void () TeamFortress_EngineerBuildStop = {
     }
 }
 
-float (entity obj, entity builder) CheckArea = {
-    local vector src;
-    local vector end;
-    local float pos;
-    local entity te;
-
-    pos = pointcontents(obj.origin);
-    if ((pos == -2) || (pos == -6)) {
-        return (0);
-    }
-    src_x = (obj.origin_x + obj.maxs_x) + 24;
-    src_y = (obj.origin_y + obj.maxs_y) + 24;
-    src_z = (obj.origin_z + obj.maxs_z) + 16;
-    pos = pointcontents(src);
-    if ((pos == -2) || (pos == -6)) {
-        return (0);
-    }
-    end_x = (obj.origin_x + obj.mins_x) - 16;
-    end_y = (obj.origin_y + obj.mins_y) - 16;
-    end_z = (obj.origin_z + obj.mins_z) - 16;
-    traceline(src, end, 1, obj);
-    if (trace_fraction != 1) {
-        return (0);
-    }
-    pos = pointcontents(end);
-    if ((pos == -2) || (pos == -6)) {
-        return (0);
-    }
-    src_x = (obj.origin_x + obj.mins_x) - 16;
-    src_y = (obj.origin_y + obj.maxs_y) + 16;
-    src_z = (obj.origin_z + obj.maxs_z) + 16;
-    pos = pointcontents(src);
-    if ((pos == -2) || (pos == -6)) {
-        return (0);
-    }
-    end_x = (obj.origin_x + obj.maxs_x) + 16;
-    end_y = (obj.origin_y + obj.mins_y) - 16;
-    end_z = (obj.origin_z + obj.mins_z) - 16;
-    traceline(src, end, 1, obj);
-    if (trace_fraction != 1) {
-        return (0);
-    }
-    pos = pointcontents(end);
-    if ((pos == -2) || (pos == -6)) {
-        return (0);
-    }
-    traceline(builder.origin, obj.origin, 1, builder);
-    if (trace_fraction != 1) {
-        return (0);
-    }
-    te = findradius(obj.origin, 64);
-    if (te != world) {
-        return (0);
-    }
-    return (1);
-};
-
-void (float objtobuild) TeamFortress_Build = {
+void (float objtobuild, float offset) TeamFortress_Build = {
     if (cb_prematch) {
         sprint(self, PRINT_MEDIUM, "You cannot build during prematch\n");
         return;
     }
-    
+
     if(no_fire_mode) {
         sprint(self, PRINT_MEDIUM, "You cannot build right now\n");
         return;
@@ -478,16 +553,26 @@ void (float objtobuild) TeamFortress_Build = {
     tmp2 = '0 0 0';
 
     newmis = spawn();
+
     makevectors(self.v_angle);
+    /* v_forward_z = 0; */
+    /* v_forward = normalize(v_forward) * 64; */
+    /* newmis.origin = self.origin + v_forward; */
+
+    local vector v_forward_sentry;
+    v_forward_sentry.z = (normalize(v_forward) * 64).z;
     v_forward_z = 0;
-    v_forward = normalize(v_forward) * 64;
-    newmis.origin = self.origin + v_forward;
+    local vector xy_pos = normalize(v_forward) * 64;
+    v_forward_sentry.x = xy_pos.x;
+    v_forward_sentry.y = xy_pos.y;
+
+    newmis.origin = self.origin + v_forward_sentry;
 
     tmp1 = newmis.origin;
     tmp2 = newmis.origin - normalize(v_up) * 128;
     traceline(tmp1, tmp2, 1, world);
     if (trace_ent != world) {
-        sprint(self, PRINT_HIGH, "You cannot build here\n");
+        sprint(self, PRINT_HIGH, "You can't build here\n");
         dremove(newmis);
         return;
     }
@@ -501,7 +586,7 @@ void (float objtobuild) TeamFortress_Build = {
         return;
     }
 
-    if (objtobuild == 1) {
+    if (objtobuild == BUILD_DISPENSER) {
         if (self.has_dispenser) {
             sprint(self, PRINT_HIGH, "You can only have one dispenser\n");
             dremove(newmis);
@@ -513,7 +598,7 @@ void (float objtobuild) TeamFortress_Build = {
         newmis.netname = "dispenser";
         btime = time + 2;
         self.dispenser_ticks = 0;
-    } else if (objtobuild == 2) {
+    } else if (objtobuild == BUILD_SENTRYGUN) {
         if (self.has_sentry) {
             sprint(self, PRINT_HIGH, "You can only have one sentry gun\n");
             dremove(newmis);
@@ -526,8 +611,9 @@ void (float objtobuild) TeamFortress_Build = {
         btime = time + 5;
         self.sentry_ticks = 0;
     }
-    if (CheckArea(newmis, self) == 0) {
-        sprint(self, PRINT_HIGH, "Not enough room to build here\n");
+
+    if (!CheckArea(newmis, 0)) {
+        sprint(self, PRINT_HIGH, "You can't build here\n");
         dremove(newmis);
         return;
     }
@@ -536,13 +622,11 @@ void (float objtobuild) TeamFortress_Build = {
             sprint(self, PRINT_HIGH, "You cannot build in the water\n");
             dremove(newmis);
             return;
-        } else if (!self.waterlevel) {
-            sprint(self, PRINT_HIGH, "You cannot build in the air\n");
-            dremove(newmis);
-            return;
         }
     }
-    self.is_building = 1;
+
+    UpdateClientBuilding(self);
+    self.is_building = objtobuild;
     if (!engineer_move) {
         self.immune_to_check = time + 5;
         self.tfstate |= TFSTATE_CANT_MOVE | TFSTATE_NO_WEAPON;
@@ -558,7 +642,7 @@ void (float objtobuild) TeamFortress_Build = {
     newmis.think = TeamFortress_FinishedBuilding;
     newmis.colormap = self.colormap;
     newmis.weapon = objtobuild;
-    newmis.angles_y = anglemod(self.angles_y + 180);
+    newmis.angles_y = anglemod(self.angles_y + 180 + offset);
     newmis.velocity = '0 0 8';
     newmis.movetype = 6;
     newmis.solid = 2;
@@ -574,15 +658,15 @@ void (float objtobuild) TeamFortress_Build = {
         newmis.team_no = self.team_no;
         newmis.max_health = newmis.health;
         newmis.takedamage = DAMAGE_AIM;
-        if (objtobuild == 1) {
-            self.has_dispenser = TRUE;   
+        if (objtobuild == BUILD_DISPENSER) {
+            self.has_dispenser = TRUE;
             newmis.th_die = Dispenser_Die;
             self.ammo_cells = self.ammo_cells - ENG_DISPENSER_COST;
             newmis.classname = "building_dispenser";
         }
-        if (objtobuild == 2) {            
+        if (objtobuild == BUILD_SENTRYGUN) {
             self.sentry_ent = newmis;
-            self.has_sentry = TRUE;            
+            self.has_sentry = TRUE;
             newmis.th_die = Sentry_Die;
             newmis.th_pain = Sentry_Pain;
             newmis.takedamage = DAMAGE_AIM;
@@ -610,7 +694,7 @@ void () CF_CheckBuilding = {
     local entity building = self.enemy;
     self = self.owner;
 
-    if (self.is_building == 0) {
+    if (!self.is_building) {
         dremove(timer);
         return;
     }
@@ -869,16 +953,15 @@ void UpdateClient_Dispenser(entity pl, entity disp) = {
     multicast('0 0 0', MULTICAST_ONE_NOSPECS); 
 }
 
-
 void () TeamFortress_FinishedBuilding = {
     local entity oldself;    
     if (engineer_move) {
-        if (self.real_owner.is_building != 1) {
+        if (!self.real_owner.is_building) {
             return;
         }
     }
     else {
-        if (self.owner.is_building != 1) {
+        if (!self.owner.is_building) {
             return;
         }
     }
@@ -965,6 +1048,8 @@ void () TeamFortress_FinishedBuilding = {
         newmis.th_die = Sentry_Die;
         newmis.th_pain = Sentry_Pain;
         newmis.mdl = "progs/turrgun.mdl";
+        newmis.dimension_ghost = DMN_GHOST;
+        newmis.dimension_ghost_alpha = 0.25;
         self.sentry_ent = newmis;
         FO_Sound(oldself, CHAN_ITEM, "weapons/turrset.wav", 1, 1);
         newmis.solid = SOLID_BBOX;
@@ -1067,7 +1152,7 @@ void () Dispenser_Die = {
     self.real_owner.has_dispenser = 0;
     self.think = Dispenser_Explode;
     self.nextthink = time + 0.1;
-    if (self.real_owner.is_building) {
+    if (self.real_owner.is_building == BUILD_DISPENSER) {
         self = self.real_owner;
         TeamFortress_EngineerBuildStop();
     }
@@ -1444,6 +1529,33 @@ void () CheckDistance = {
     self.nextthink = time + 0.3;
 };
 
+float IsEngEnt(entity ent) {
+    return ent.classname == "building_dispenser" ||
+           ent.classname == "building_sentrygun";
+
+}
+
+void RemoveEngEnt(entity bld, float explode) {
+    entity owner = bld.real_owner;
+    if (owner.building == bld) {
+        Menu_Close(owner);
+        owner.building = world;
+    }
+
+    if (explode) {
+        TF_T_Damage(bld, world, world, 500, 0, 0);
+    } else {
+        if(bld.classname == "building_dispenser")
+            owner.has_dispenser = 0;
+        if(bld.classname == "building_sentrygun") {
+            owner.has_sentry = 0;
+            if (bld.trigger_field != world)
+                dremove (bld.trigger_field);
+        }
+        dremove (bld);
+    }
+}
+
 void (entity eng, string bld, float explode) DestroyBuildingWithOptions = {
     local entity te;
     local entity oldself;
@@ -1460,23 +1572,10 @@ void (entity eng, string bld, float explode) DestroyBuildingWithOptions = {
                 bound_other_ammo(self);
                 self = oldself;
             }
-            if (te.real_owner.building == te) {
-                Menu_Close(te.real_owner);
-                te.real_owner.building = world;
-            }
-            if(explode) {
-                TF_T_Damage(te, world, world, 500, 0, 0);
-            } else {
-                if(bld == "building_dispenser")
-                    te.real_owner.has_dispenser = 0;
-                if(bld == "building_sentrygun") {
-                    te.real_owner.has_sentry = 0;
-                    if (te.trigger_field != world)
-                        dremove (te.trigger_field);
-                }
-                spawn_tfog(te.origin);
-                dremove (te);
-            }
+
+            spawn_tfog(te.origin);
+            RemoveEngEnt(te, explode);
+
         }
         te = find(te, classname, bld);
     }

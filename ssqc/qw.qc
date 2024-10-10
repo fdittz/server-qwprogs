@@ -9,11 +9,8 @@ enum {
     CT_FAST_PROJECTILE,   // Fast proj => less judder (e.g. heavy bullet)
 };
 
-struct antilag_settings_t {
-    float rewind_detpipe;
-} antilag_settings;
-
-.vector antilag_origin;
+.float last_death_ctime;
+.float last_attack_ctime;
 
 .float client_time;              // A stable/predictable client clock
 .float client_ping;              // ping used for prediction
@@ -43,35 +40,24 @@ float remote_client_time();
 .float armorclass;              // Type of armor being worn
 .float tf_items;                // Another flag for player items
 .float tf_items_flags;          // Flags for the player items
+.float primed_gren_type;        // Type of (last) primed grenate
+.float primed_gren_exp;         // Expiry of (last) primed grenade
 .float no_grenades_1;           // Number of grenades of type 1 being carried
 .float no_grenades_2;           // Number of grenades of type 2 being carried
-.float tp_grenades_1;           // 1st type of grenades being carried
-.float tp_grenades_2;           // 2nd type of grenades being carried
-.float tp_grenade_switch;       // Set to 1 if +gren1 and +gren2 switch places
 .float hook_out;                // Dummy field for hook to silence error messages
-.float got_aliases;             // TRUE if the player has TeamFortress aliases
 .float cheat_check;             // Time when we'll next check for team cheats
 .float is_removed;              // TRUE if the entity has been removed
 .float is_undercover;           // TRUE for a SPY if they're undercover
-.float is_building;             // TRUE for an ENGINEER if they're building something
+.float is_building;             // BUILD_DISPENSER, BUILD_SENTRYGUN or FALSE for an ENGINEER
 .float is_detpacking;           // TRUE for a DEMOMAN if they're setting a detpack
-.float is_feigning;             // TRUE for a SPY if they're feigning death
 .float is_button_feigning;      // TRUE for a SPY if they're feigning death with +feign or +special
 .float feign_next_damage;       // TRUE for a SPY if they're going to feign death on next damage
 .float is_unabletospy;          // TRUE for a SPY if they can't go undercover
-.float is_zooming;              // TRUE for a SNIPER if they're currently zoomed in
-.float is_concussed;            // TRUE for a player who is affected by concussion grenade
 .float has_throwngren;          // TRUE for a player that has thrown a grenade (won't get a free suicide)
 .float has_changedteam;         // TRUE for a player that has changed team
 .float has_changedclass;        // TRUE for a player that has changed class
 .float has_disconnected;        // TRUE if the player has disconnected
 .float has_menutimer;           // TRUE if the player has an active menu timer
-.float default_sensitivity;     // Player's default (non-zoomed) sensitivity
-.float default_fov;             // Player's default (non-zoomed) fov
-.float current_fov;             // Player's current field of view
-.float zoom_level;              // Start zooming to this fov next frame
-.float zoom_fov;                // The default fov to zoom in to when pressing special button
-.float zoom_last;               // The last used zoom fov by the player - zoom to this when toggling zoom
 .float has_voted_map;           // Map option that player voted for
 .float spawn_time;              // Time when player spawned
 .float menu_time;               // Time when vote map menu was first issued
@@ -85,6 +71,7 @@ float remote_client_time();
 .float vote_close;              // TRUE if player has closed the map vote, resets on spawn
 .float detpack_left;            // Seconds left to detpack explosion
 .float pipecooldown;            // Time when detpipe command can be issued
+.float detpipe_nesting;         // Used to avoid recursive detpipes when detting self
 .float disguise_skin;           // The skin the spy is changing to
 .float queue_skin;              // The skin the spy will change to after team disguise is finished
 .float last_selected_skin;      // The last skin the spy selected to disguise as
@@ -99,7 +86,6 @@ float remote_client_time();
 .float regen_time;              // Time when the medic last regenerated cells
 .float regen_cooldown;          // Time to cooldown cell regeneration after using medikit heal
 .float saveme_time;             // Time when player issued /saveme command
-.float dash_cooldown;           // Cooldown for Scout dash
 .float undercover_timer;        // Seconds left until disguised
 .float power_time;              // The time when sniper power in status bar was last updated
 .float sentry_ticks;            // Used to indicate when engineer's sentry gun is finished building
@@ -107,10 +93,12 @@ float remote_client_time();
 .float building_percentage;     // The building percentage shown in status bar
 .float fragstreak;              // Frag streak
 .float caps;                    // Caps during this game
-.float default_weapon;          // Weapon to select when not firing
+.float needs_skin_update;       // Set true when per-player skins need updating
 
 .entity nopickup;               // Don't pick up this backpack/ammobox because it doesn't contain any of your ammo types
+.entity disguised_as;           // Used when cycling through disguises
 
+.float pstate;                  // Player state flags
 .float tfstate;                 // State flags for TeamFortress
 .float last_tfstate;             // Internal cache of tfstate for detecting updates
 .entity linked_list;            // Used just like chain. Has to be separate so
@@ -120,7 +108,6 @@ float remote_client_time();
 
 // Identify variables
 .string ident_string;           // Status bar string for identify
-.string last_ident_string;      // Last Status bar string for identify
 .float ident_time;              // The time when last identify found a player
 .float autoid_type;             // 0 = ignore noone, 1 = ignore teammates, 2 = ignore enemies
 .float autoid_time;             // Time when autoid settings were last checked
@@ -147,6 +134,8 @@ float remote_client_time();
 .float menu_count;
 .float menu_displaytime;
 .f_void_float menu_input;
+
+.float has_flag;
 
 float toggleflags;              // toggleable flags
 
@@ -192,7 +181,9 @@ float round_winner_print_health;
 
 float team_no_attack;
 .float team_no;                 // The team you belong to
+.float all_time;                // Automatically join attacking/defending team during quads
 .float lives;                   // The number of lives you have left
+
 
 .float infection_team_no;       // The team_no of the person who infected you
 
@@ -206,7 +197,7 @@ float coop;
 .entity real_owner;
 .float has_dispenser;           // TRUE for an ENGINEER if he has a dispenser
 .float has_sentry;              // TRUE for an ENGINEER if he has a sentry
-.entity sentry_ent;				// Contains sentry gun entity
+.entity sentry_ent;		// Contains sentry gun entity
 
 .float real_frags;              // Used to store the players frags when TeamFrags is On
 
@@ -227,6 +218,7 @@ float coop;
 .float noammo;                  // used for no ammo error messages
 
 // variables used for reloading
+.float reload_started;          // when the reload started
 .float reload_finished;         // when the reload will finish
 
 // Only use below for map ent compatibility.
@@ -264,6 +256,8 @@ float coop;
 .float group_no;                // Goal group this goal is in
 .float goal_state;              // State of this goal
 .float owned_by;                // The team this goal/item/whatever belongs to
+.float dropped_at;              // Time when item was dropped
+.entity dropped_by;             // Entity that last held item
 
 // Goal Activation details
 .float goal_activation;         // Bitfields. Determines how this goal is activated
@@ -453,6 +447,7 @@ float clanbattle;
 float clan_scores_dumped;
 float cb_prematch;
 float disable_voting;
+float org_game;
 float v_break;
 float v_ready;
 .float allowvote;
@@ -468,7 +463,10 @@ float rounds;
 float round_active;
 float round_over;
 float round_delay_time;
+float round_start_time;
+float round_end_time;
 float map_restart_time;
+float play_to_completion;
 float gametime;
 float is_countdown;
 float duelmode;
@@ -491,6 +489,7 @@ float vote_anarchy_mode;
 float vote_total_votes;
 float vote_style;
 float vote_threshold;
+string game_filename;
 
 .float tf_id;
 
@@ -530,28 +529,7 @@ float drop_grenades;
 float drop_grenpack;
 float drop_gren1;
 float drop_gren2;
-/*
-float max_gren1_scout;
-float max_gren1_sniper;
-float max_gren1_soldier;
-float max_gren1_demoman;
-float max_gren1_medic;
-float max_gren1_hwguy;
-float max_gren1_pyro;
-float max_gren1_spy;
-float max_gren1_engineer;
-float max_gren2_scout;
-float max_gren2_sniper;
-float max_gren2_soldier;
-float max_gren2_demoman;
-float max_gren2_medic;
-float max_gren2_hwguy;
-float max_gren2_pyro;
-float max_gren2_spy;
-float max_gren2_engineer;
-*/
 float max_active_gren2_soldier;
-float grentimers;
 float id_extended;
 float remember_weapon;
 float discammo_pickup;
@@ -559,7 +537,8 @@ float old_dropflag;
 float old_sniperrange;
 //float detpipe_limit;
 float detpipe_limit_world;
-float old_pipecooldown;
+float pipecooldown_time;
+float allpipes_cooldown;
 float medicaura;
 float old_biodamage;
 float flame_knockback;
@@ -568,24 +547,22 @@ float cannon_lock;
 float cannon_air;
 float cannon_move;
 float cannon_movespin;
-float cannon_conc;
 float cannon_accuracy;
 float feign_air;
 float feign_pack;
 float feign_msg;
 float feign_rate_limit;
 float scoutdash;
-float sniperreload;
 float spawnfull;
 float stockfull;
 float stock_on_cap;
+float cap_strip;
 float stock_reload;
 float classtips;
 float cussgrentime;
 float medicnocuss;
 float distance_based_cuss_duration;
 float sniperpower;
-float sniperreloadpercent;
 float buildstatus;
 float server_default;
 float server_faithful;
@@ -593,22 +570,12 @@ float server_huetf;
 float scoutscanspike;
 float asscanrange;
 float asscanrangedie;
-float airblastv2;
-float airblastpushmin;
-float airblastpushmax;
-float airblastjump;
-float airblastsize;
-float airblastcells;
-float airblastjumpcells;
 float force_reload;
 
 float old_spanner;
 float old_dispenser;
 float old_hp_armor;
 float max_armor_hwguy;
-
-float project_weapons;
-float project_weapons_max_latency;
 
 float ng_damage;
 float sng_damage;
@@ -619,7 +586,6 @@ float superknife;
 float superknife_multihit;
 float impulse_queue;
 float detpack_when_reloading;
-float pyro_type;
 float flag_follow;
 float ceasefire_type;
 float cs_paused;
@@ -639,8 +605,13 @@ float fo_repair_ratio;
 float solid_nailgren;
 float noreturn;
 float nohitsounds;
+float nohittext;
+float zutmode;						  
 float nokeepcells;
 float allowpracspawns;
+string discord_channel_id;
+string demo_files_address;
+string stats_files_address;
 float splitbackpackmodels;
 float standardizedeathammo;
 float deathammo_shells;
@@ -650,8 +621,11 @@ float deathammo_cells;
 //float server_sbflaginfo;
 float reverse_cap;
 float engineer_move;
+float grenade_lockout;
 
 float fo_projectiles;
+
+float fo_concuss;
 
 float numlocs;
 typedef struct {vector pos; string desc;} loc_t;
@@ -687,6 +661,8 @@ float intermission_exittime;
 // used to remember last spawn
 .entity last_spawn_spot;
 .float spawn_at_last_spawn_spot;
+
+.float spawn_gen;
 
 .float max_grenades_1;
 .float max_grenades_2;
@@ -739,6 +715,9 @@ string (string s, float width) strpadr =
 float captainmode;
 .float captain;
 
+// fortressone.org API
+.string fo_login;
+
 //Player ID
 float loginRequired;
 string loginUrl;
@@ -773,6 +752,8 @@ float FO_FlashDimension;
 .entity grenade_timer;
 .float last_throw;
 .float last_prime;
+.float conc_amp;
+.float conc_finished;
 
 // allow for default goal state
 .float default_group_no;
@@ -789,22 +770,16 @@ string goal_class_names[7] = {
 
 .string broadcast_high;
 
-.float special_cooldown;
+.float special_next;
 .float airblast_cooldown;
+float disable_resup_gren;
 
+// backend
+string match_id;
+string backend_address;
+float fo_login_required;
+.entity filter_ent;
 
-// people complain about settings, let's track them
-
-string settings_to_track_list[4] = {
-    "sv_antilag",
-    "project_weapons",
-    "al_rewind_detpipe",
-    "al_max_remote_client_time_offset",
-};
-
-typedef struct setting_t {
-    string setting_name;
-    string value;
-};
-
-setting_t *settings_to_track;
+var float PC_PYRO_AIRBLAST_COOLDOWN = 5;
+var float PC_ENGINEER_GRENADE_TYPE_2_RANGE = 240;
+.float detpack_last;

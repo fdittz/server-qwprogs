@@ -1,5 +1,6 @@
 float (float tno) TeamFortress_TeamSet;
-float (float tno) TeamFortress_TeamGetColor;
+string (float tno) TeamFortress_TeamGetColor;
+string (entity pov, float tno) TeamFortress_TeamGetColorFor;
 void (entity p) SetTeamName;
 void (entity pl) Menu_Close;
 
@@ -8,7 +9,7 @@ void (float tno) playerSetTeam = {
 	TeamFortress_TeamSet(tno);
 	self.team_no = tno;
 	stuffcmd(self, "color ");
-	st = ftos(TeamFortress_TeamGetColor (tno) - 1);
+	st = TeamFortress_TeamGetColor(tno);
 	stuffcmd(self, st);
 	stuffcmd(self, "\n");
 	SetTeamName(self);
@@ -67,20 +68,20 @@ void () randomizeCaptains = {
 	local float teamno = 0;
 	local float capteam[4] = {0, 0, 0, 0};
 
-    te = find(world, classname, "player");
-    while (te != world) {
-        if (te.captain == 9 && tmp < number_of_teams) {
+	te = find(world, classname, "player");
+	while (te != world) {
+		if (te.captain == 9 && tmp < number_of_teams) {
 			do {
 				teamno = floor((random() * number_of_teams));
 			} while (capteam[teamno] == 1);
 			capteam[teamno] = 1;
-            te.captain = teamno + 1;
+			te.captain = teamno + 1;
 			if (te.captain == 1)
 				stuffcmd(te, "reload\n");
 			tmp = tmp + 1;
 		}
-        te = find(te, classname, "player");
-    }
+		te = find(te, classname, "player");
+	}
 };
 
 void () randomizeTeams = {
@@ -89,8 +90,8 @@ void () randomizeTeams = {
 	local float teamno = 0;
 	local float randteam[4] = {0, 0, 0, 0};
 
-    te = find(world, classname, "player");
-    while (te != world) {
+	te = find(world, classname, "player");
+	while (te != world) {
 		if (tmp >= number_of_teams) {
 			tmp = 0;
 			randteam[0] = 0;
@@ -98,7 +99,7 @@ void () randomizeTeams = {
 			randteam[2] = 0;
 			randteam[3] = 0;
 		}
-        if (tmp < number_of_teams) {
+		if (tmp < number_of_teams) {
 			do {
 				teamno = floor((random() * number_of_teams));
 			} while (randteam[teamno] == 1);
@@ -110,8 +111,8 @@ void () randomizeTeams = {
 			self = temp;
 			tmp = tmp + 1;
 		}                
-        te = find(te, classname, "player");
-    }
+		te = find(te, classname, "player");
+	}
 };
 
 string (string text) clearString = {
@@ -133,15 +134,15 @@ void () PrintLoginMessage =  {
 
 void () EndGameThink = {
 	local string m = mapname;
-    if(vote_result != string_null && vote_result != "") {
-        m = vote_result;
-    } else if(nextmap != string_null && nextmap != "") {
-        m = nextmap;
-    }
-    localcmd("changelevel ");
-    localcmd(m);
-    localcmd("\n");
-    dremove(self);
+	if(vote_result != string_null && vote_result != "") {
+		m = vote_result;
+	} else if(nextmap != string_null && nextmap != "") {
+		m = nextmap;
+	}
+	localcmd("changelevel ");
+	localcmd(m);
+	localcmd("\n");
+	dremove(self);
 }
 
 void () MapEndSequence = {
@@ -164,8 +165,8 @@ void () MapEndSequence = {
 	canlog = 0;
 
 	maprestarttimer = spawn();
-    maprestarttimer.classname = "timer";
-    maprestarttimer.netname = "maprestarttimer";
-    maprestarttimer.think = EndGameThink;
-    maprestarttimer.nextthink = time + map_restart_time;
+	maprestarttimer.classname = "timer";
+	maprestarttimer.netname = "maprestarttimer";
+	maprestarttimer.think = EndGameThink;
+	maprestarttimer.nextthink = time + map_restart_time;
 }

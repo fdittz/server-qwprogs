@@ -1,12 +1,14 @@
 void Hud_WriteCfg(string path);
 void FO_Hud_InitSystemPanels();
 
-void FO_Hud_Editor()
-{
-    if (fo_hud_editor)
-    {
-        fo_hud_editor = FALSE;
-        setcursormode(FALSE);
+void FO_Hud_Editor_Cancel() {
+    fo_hud_editor = FALSE;
+    setcursormode(FALSE);
+}
+
+void FO_Hud_Editor() {
+    if (fo_hud_editor) {
+        FO_Hud_Editor_Cancel();
 
         FO_Hud_InitSystemPanels();
         Hud_WriteCfg(FO_HUD_CONFIG_PATH);
@@ -111,6 +113,26 @@ float(PanelID id, vector pos, vector size, float alpha, float enabled) hud_panel
     return sui_is_clicked(id);
 };
 
+static string lmp_lookup(float c, float use_red) {
+    string lmp = "";
+    switch (c) {
+        case ' ': return "";
+        case '*': return "use_red";  // Caller must handle
+        case '-': lmp = "num_minus"; break;
+        case '/': lmp = "num_slash"; break;
+        case ':': lmp = "num_colon"; break;
+        default: {
+                 if (c >= '0' && c <= '9')
+                     lmp = sprintf("num_%g", c-'0');
+                 else
+                     return "sb_quad";  // Unrecognized.
+        }
+    }
+    if (use_red)
+        lmp = strcat("a", lmp);
+    return lmp;
+}
+
 // this draws backwards, haven't bothered to change as we don't use it
 void Hud_DrawLargeValue(vector pos, float value, float threshhold, float size)
 {
@@ -141,82 +163,60 @@ void Hud_DrawLargeValue(vector pos, float value, float threshhold, float size)
 
 void Hud_DrawStringLMP(vector pos, string value, float size)
 {
-    float c;
-    float len, i;
+    float len, i, j;
     string s;
     if (!size) size = 24;
     vector vsize = [size, size, 0];
     s = value;
     len = strlen(s);
-    i = 0;
+    float use_red = FALSE;
 
-    while(i<len) {
-        c = str2chr(s, i);
-        if (c == 47) // "/"
-        {
-            // because i'm dodgy
-            HRC_drawpic(pos + [i * size, 0, 0], "NUM_SLASH", vsize, '1 1 1', 1, 0);
+    for (i = 0, j = 0; i < len; i++) {
+        string lmp = lmp_lookup(str2chr(s,i), use_red);
+        if (lmp == "use_red") {
+            use_red = !use_red;
+            continue;
         }
-        else if (c == 37) // "%"
-        {
-            HRC_drawpic(pos + [i * size, 0, 0], "num_percent", vsize, '1 1 1', 1, 0);
-        }
-        else
-        {
-            HRC_drawpic(pos + [i * size, 0, 0], sprintf("num_%g", c-'0'), vsize, '1 1 1', 1, 0);
-        }
-        i+=1;
+
+        if (lmp != "")
+            HRC_drawpic(pos + [j * size, 0, 0], lmp, vsize, '1 1 1', 1, 0);
+        j++;
     }
 }
 
 void Hud_DrawStringLMPThreshold(vector pos, string value, float size, float threshold)
 {
-    float c;
-    float len, i, intval;
-    string s, lmpname;
+    float len, i, j, intval, use_red = FALSE;
+    string s, lmp;
     if (!size) size = 24;
     vector vsize = [size, size, 0];
     s = value;
     intval = stof(value);
     len = strlen(s);
-    i = 0;
 
-    while(i<len) {
-        c = str2chr(s, i);
-        lmpname = "";
-        switch (c) {
-            case 37: // "%"
-            {
-                lmpname = "num_percent";
-                break;
-            }
-            case 45: // "-"
-            {
-                lmpname = "num_minus";
-                break;
-            }
-            case 47: // "/"
-            {
-                lmpname = "num_slash";
-                break;
-            }
-            case 58: // ":"
-            {
-                lmpname = "num_colon";
-                break;
-            }
-            default:
-            {
-                lmpname = sprintf("num_%g", c-'0');
-                break;
-            }
+    for (i = 0, j = 0; i < len; i++) {
+        string lmp = lmp_lookup(str2chr(s,i), use_red || intval < threshold);
+        if (lmp == "use_red") {
+            use_red = !use_red;
+            continue;
         }
-        if(intval < threshold) {
-            lmpname = strcat("a", lmpname);
-        }
-        HRC_drawpic(pos + [i * size, 0, 0], lmpname, vsize, '1 1 1', 1, 0);
-        i+=1;
+
+        if (lmp != "")
+            HRC_drawpic(pos + [j * size, 0, 0], lmp, vsize, '1 1 1', 1, 0);
+        j++;
     }
+}
+
+static string FormatCfgString(string line, string field, string value) {
+    line = strcat(line, "\n", field, ":", value);
+    return line;
+}
+
+static string FormatCfgVector(string line, string field, vector value)
+{
+    line = strcat(line, "\n", field, ":", strcat(ftos(value_x), ",", ftos(value_y)));
+
+    return line;
 }
 
 string GetPanelString(string line, FO_Hud_Panel* panel)
@@ -257,7 +257,7 @@ void FO_Hud_InitSystemPanels() {
         if (panel->System) {
             switch (panel->id) {
                 case HUDP_MOTD:
-                case HUDP_READY:
+                case HUDP_NOTIFICATION:
                     FO_Hud_ShowPanel(i);
                     break;
 
@@ -369,11 +369,12 @@ void FO_Hud_Editor_LoadSettings(string filename)
     FO_Hud_InitSystemPanels();
 }
 
+static FO_Hud_Panel zero_panel;
 
 // Inherits active render cache id
 void GetNewPanel(vector pos, vector fillSize, float scale, float display, float orientation, string name)
 {
-    FO_Hud_Panel pnl;
+    FO_Hud_Panel pnl = zero_panel;
 
     pnl.Position = pos;
     pnl.FillSize = fillSize;

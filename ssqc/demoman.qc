@@ -17,8 +17,14 @@ void () TeamFortress_DetpackCountDown;
 void CheckStateQ3Goal(entity trig);
 
 float (float force) TeamFortress_DetonatePipebombs = {
-    if (time < self.pipecooldown && !force)
+    if (!force && allpipes_cooldown && time < self.pipecooldown)
         return impulse_queue ? FALSE : TRUE;
+
+    if (self.detpipe_nesting > 0)
+        return TRUE;
+    // It's possible that we'll kill ourselves when we detonate pipebombs and
+    // initiate a nested det; exclude this to avoid iterating removed ents.
+    self.detpipe_nesting++;
 
     int count;
     entity* pipes = find_list(classname, "pipebomb", EV_STRING, count);
@@ -28,23 +34,28 @@ float (float force) TeamFortress_DetonatePipebombs = {
         rewound = RewindPlayersExceptSelf(self.pipecooldown);
 
     for (float i = 0; i < count; i++) {
-        if (pipes[i].owner == self) {
-            deathmsg = pipes[i].flags & FL_ONGROUND ? pipes[i].weapon :
-                                                      DMSG_GREN_PIPE_AIR;
+        if (pipes[i].owner != self)
+            continue;
 
-            T_RadiusDamage_Antilag(pipes[i], pipes[i].owner, 120, world);
+        if (!force && pipes[i].created_at > time - pipecooldown_time)
+            continue;
 
-            // This maintains some sort of awful hack that we'll remove.
-            pipes[i].voided = 1;
+        deathmsg = pipes[i].flags & FL_ONGROUND ? pipes[i].weapon :
+            DMSG_GREN_PIPE_AIR;
 
-            RenderExplosion(pipes[i].origin);
-            dremove(pipes[i]);
-        }
+        T_RadiusDamage(pipes[i], pipes[i].owner, 120, world);
+
+        // This maintains some sort of awful hack that we'll remove.
+        pipes[i].voided = 1;
+        RenderExplosion(pipes[i].origin);
+        dremove(pipes[i]);
     }
 
+    // NOTE: nested death-dets would not trigger double unwind due to `force==1`
     if (rewound)
         FOPlayer::RestoreAll();
 
+    self.detpipe_nesting--;
     return TRUE;
 };
 
@@ -138,6 +149,7 @@ void (float timer) TeamFortress_SetDetpack = {
 
     self.impulse = 0;
     self.last_impulse = 0;
+
     if (self.ammo_detpack <= 0) {
         sprint(self, PRINT_HIGH, "You don't have any detpacks left\n");
         return;
@@ -194,6 +206,17 @@ void (float timer) TeamFortress_SetDetpack = {
         return;
     }
 
+    float quad_limit = quadmode && round_active &&
+                (time < round_end_time) && (rounds % 2) != (self.team_no - 1);
+    if (NewBalanceActive() && quad_limit) {
+        float last = max(self.detpack_last, round_start_time);
+        float next = last + 30;  // TODO: tunable if this sticks
+        if (next > time) {
+            sprint(self, PRINT_HIGH, sprintf("%0.1f seconds until next detpack\n", next - time));
+            return;
+        }
+    }
+
     self.is_detpacking = 3;
     self.detpack_left = timer;
     self.ammo_detpack = self.ammo_detpack - 1;
@@ -209,6 +232,7 @@ void (float timer) TeamFortress_SetDetpack = {
            " seconds...\n");
     Menu_Demoman_Cancel();
 
+    self.detpack_last = time;
     newmis = spawn();
     newmis.owner = self;
     newmis.classname = "timer";

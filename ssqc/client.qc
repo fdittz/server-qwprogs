@@ -10,7 +10,7 @@ float modelindex_null;
 
 float (entity pe_player) Spy_CheckArea;
 
-void () TeamFortress_CheckTeamCheats;
+void (entity player) TeamFortress_CheckTeamCheats;
 void () TeamFortress_CheckforCheats;
 void (entity Viewer, float pc, float rpc) TeamFortress_PrintClassName;
 void () TeamFortress_RemoveTimers;
@@ -20,7 +20,6 @@ float (float pc) IsLegalClass;
 void () SetupTeamEqualiser;
 void () CeaseFire_think;
 
-void () RemoveGrenadeTimers;
 void () RemovePrimeTimers;
 void () RemoveGasTimers;
 void () RemoveGrenades;
@@ -51,7 +50,6 @@ entity(float ino) Finditem;
 void (entity Item, entity AP, entity Goal) tfgoalitem_GiveToPlayer;
 
 void () CTF_FlagCheck;
-void (entity pl) Sniper_ZoomReset;
 void () StartTimer;
 void () StopTimer;
 void () StartQuadRound;
@@ -69,17 +67,12 @@ float () RejoinWithTfId;
 void () CreateTfIdAndJoin;
 entity (entity e)TeamFortress_GetPracticeSpawn;
 void () NextLevel;
-void CSEv_SetPlayerImpulse_f(float n);
 
 void StopAssCan();
 void Predict_InitPlayer(entity player);
 void Predict_Destroy(entity player);
 
-void (float n) CSEv_SetPlayerImpulse_f = {
-    bprint(PRINT_HIGH, self.netname, "\n");
-    bprint(PRINT_HIGH, "setting impulse ", ftos(n), "\n");
-    self.impulse = n;
-};
+void SetSkinInfoFor(entity pov, entity target);
 
 void () info_intermission =
 {
@@ -211,6 +204,15 @@ float CF_GetSetting(string ps_short, string ps_setting, string ps_default) {
     return FO_GetUserSetting(world, ps_short, ps_setting, ps_default);
 };
 
+float FO_GetGrenadeSetting(string ps_short, string ps_setting, string ps_default) {
+    local float max_gren_setting = CF_GetSetting(ps_short, ps_setting, ps_default);
+
+    if (max_gren_setting == -1)
+        return stof(ps_default);
+
+    return max_gren_setting;
+};
+
 void InitPrematch()
 {
     localcmd ("serverinfo status Standby\n");
@@ -228,6 +230,94 @@ void InitPrematch()
     if(infokeyf(self, INFOKEY_P_CSQCACTIVE)) {
         UpdateClientPrematch(self, !cb_prematch);
         UpdateClientMOTD(self);
+    }
+}
+
+typedef struct {
+    int player_class;
+    string short_max_gren1;
+    string setting_max_gren1;
+    float default_max_gren1;
+    string short_max_gren2;
+    string setting_max_gren2;
+    float default_max_gren2;
+} GrenConfig;
+
+GrenConfig GrenConfigs[10] = {
+    {0, "", "", 0, "", "", 0},
+    {1, "mg1_1", "max_gren1_scout", PC_SCOUT_GRENADE_MAX_1, "mg2_1", "max_gren2_scout", PC_SCOUT_GRENADE_MAX_2},
+    {2, "mg1_2", "max_gren1_sniper", PC_SNIPER_GRENADE_MAX_1, "mg2_2", "max_gren2_sniper", PC_SNIPER_GRENADE_MAX_2},
+    {3, "mg1_3", "max_gren1_soldier", PC_SOLDIER_GRENADE_MAX_1, "mg2_3", "max_gren2_soldier", PC_SOLDIER_GRENADE_MAX_2},
+    {4, "mg1_4", "max_gren1_demoman", PC_DEMOMAN_GRENADE_MAX_1, "mg2_4", "max_gren2_demoman", PC_DEMOMAN_GRENADE_MAX_2},
+    {5, "mg1_5", "max_gren1_medic", PC_MEDIC_GRENADE_MAX_1, "mg2_5", "max_gren2_medic", PC_MEDIC_GRENADE_MAX_2},
+    {6, "mg1_6", "max_gren1_hwguy", PC_HVYWEAP_GRENADE_MAX_1, "mg2_6", "max_gren2_hwguy", PC_HVYWEAP_GRENADE_MAX_2},
+    {7, "mg1_7", "max_gren1_pyro", PC_PYRO_GRENADE_MAX_1, "mg2_7", "max_gren2_pyro", PC_PYRO_GRENADE_MAX_2},
+    {8, "mg1_8", "max_gren1_spy", PC_SPY_GRENADE_MAX_1, "mg2_8", "max_gren2_spy", PC_SPY_GRENADE_MAX_2},
+    {9, "mg1_9", "max_gren1_engineer", PC_ENGINEER_GRENADE_MAX_1, "mg2_9", "max_gren2_engineer", PC_ENGINEER_GRENADE_MAX_2}
+};
+
+static void SetAllRoles(float pc, float gren, float limit) {
+    if (pc < 1 || pc > 9) return;
+
+    GrenConfig config = GrenConfigs[pc];
+
+    if (gren == 1) {
+        limit = FO_GetGrenadeSetting(config.short_max_gren1,
+                config.setting_max_gren1, ftos(limit));
+
+        Role_None.gren1_limits[pc] = Role_Attack.gren1_limits[pc] =
+            Role_Defence.gren1_limits[pc] = limit;
+    } else if (gren == 2) {
+        limit = FO_GetGrenadeSetting(config.short_max_gren2,
+                config.setting_max_gren2, ftos(limit));
+
+        Role_None.gren2_limits[pc] = Role_Attack.gren2_limits[pc] =
+            Role_Defence.gren2_limits[pc] = limit;
+    }
+}
+
+static float NB_UseMinPing() {
+    if (ServerIsOCE())
+        return FALSE;
+
+    if (ServerRegion() == kRegionUnknown)
+        return FALSE;  // e.g. random server, including LAN
+    return TRUE;
+}
+
+void ActivateOrgGame() {
+    disable_resup_gren = 2;  // No gren2 pickups
+
+    drop_gren1 = 0;  // No grenades in backpacks
+
+    int i;
+    for (i = 1; i <= 9; i++) // 3 gren spawn
+        SetAllRoles(i, 1, 3);
+
+    SetAllRoles(4, 2, 1); // 1 mirv for demoman
+    SetAllRoles(6, 2, 1); // 1 mirv for hwguy
+    SetAllRoles(9, 2, 1); // 1 emp for engineer
+    SetAllRoles(9, 1, 4); // 4 gren1 for engineer
+    SetAllRoles(3, 1, 4); // 4 gren1 for soldier
+
+    PC_PYRO_AIRBLAST_COOLDOWN = 10;
+    PC_ENGINEER_GRENADE_TYPE_2_RANGE = 200;
+
+    float use_new_cap = CF_GetSetting("nbcc", "new_balance_conc_cap", "0");
+    if (use_new_cap == 4)
+        use_new_cap = 1;
+    else
+        use_new_cap = 0;
+
+    if (use_new_cap)
+        fo_config.new_balance_flags |= NBF_CONC_NEW_CAP;
+
+    if (CF_GetSetting("nbnc", "new_balance_no_cap", "0"))
+        fo_config.new_balance_flags |= NBF_NO_CAP;
+
+    if (NB_UseMinPing()) {
+        if (fo_config.min_ping_ms < 50) // 50 min-ping
+            localcmd("localinfo mpm 50");
     }
 }
 
@@ -252,7 +342,6 @@ void () DecodeLevelParms = {
     self.armortype = parm9 * 0.01;
 
     if (!(toggleflags & TFLAG_FIRSTENTRY)) {
-
         toggleflags = parm10;
         flagem_checked = 0;
         invis_only = 0;
@@ -338,6 +427,7 @@ void () DecodeLevelParms = {
         duelmode = CF_GetSetting("duelmode", "duelmode", "off");
 
         disable_voting = clanbattle || quadmode;
+        org_game = clanbattle || quadmode;
 
         rounds = CF_GetSetting("rounds","rounds","on");
         if (!rounds)
@@ -450,9 +540,6 @@ void () DecodeLevelParms = {
         // maximum grenades type 2 to drop in backpack [0]
         drop_gren2 = CF_GetSetting("dg2", "drop_gren2", "0");
 
-        // display grenade timer in status bar [on]
-        grentimers = CF_GetSetting("gt", "grentimers", "on");
-
         // show sentry gun health + misc extras in id string [on]
         id_extended = CF_GetSetting("ie", "id_extended", "on");
 
@@ -474,8 +561,11 @@ void () DecodeLevelParms = {
         // maximum amount of pipebombs in game [unlimited]
         detpipe_limit_world = CF_GetSetting("dw", "detpipe_limit_world", "-1");
 
-        // use old tf pipebomb cooldown (0.8 seconds) [off]
-        old_pipecooldown = CF_GetSetting("op", "old_pipecooldown", "off");
+        // set pipe cooldown time [0.5]
+        pipecooldown_time = CF_GetSetting("pcdt", "pipecooldown_time", "0.5");
+
+        // cooldown applies to all pipes [on]
+        allpipes_cooldown = CF_GetSetting("apcd", "allpipes_cooldown", "on");
 
         // allow medic aura [on]
         medicaura = CF_GetSetting("ma", "medicaura", "on");
@@ -510,9 +600,6 @@ void () DecodeLevelParms = {
             cannon_move = TRUE; // required for this to work
         }
 
-        // make hwguy susceptible to concussion grenade while firing assault cannon [on]
-        cannon_conc = CF_GetSetting("cc", "cannon_conc", "on");
-
         // assault cannon accuracy (0 = cf, 1 = tf 2.8, 2 = tf 2.9) [0]
         cannon_accuracy = CF_GetSetting("cac", "cannon_accuracy", "0");
 
@@ -526,7 +613,7 @@ void () DecodeLevelParms = {
         feign_msg = CF_GetSetting("fm", "feign_msg", "on");
 
         // rate limit on feign
-        feign_rate_limit = CF_GetSetting("frl", "feign_rate_limit", "5");
+        feign_rate_limit = CF_GetSetting("frl", "feign_rate_limit", "1");
 
         // turn off spy [off]
         spy_off = CF_GetSetting("spy", "spy", "off");
@@ -538,15 +625,6 @@ void () DecodeLevelParms = {
         asscanrange = CF_GetSetting("acr", "asscanrange", "0");
         asscanrangedie = CF_GetSetting("acrd", "asscanrangedie", "0");
 
-        // Pyro Airblast pushval min and max
-        airblastv2 = CF_GetSetting("abv2", "airblastv2", "off");
-        airblastpushmin = CF_GetSetting("abpmin", "airblastpushmin", "470");
-        airblastpushmax = CF_GetSetting("abpmax", "airblastpushmax", "600");
-        airblastjump    = CF_GetSetting("abj", "airblastjump", "off");
-        airblastsize    = CF_GetSetting("abs", "airblastsize", "150");
-        airblastcells     = CF_GetSetting("abc", "airblastcells", ftos(PC_PYRO_AIRBLAST_CELLS));
-        airblastjumpcells = CF_GetSetting("abjc", "airblastjumpcells", ftos(PC_PYRO_AIRBLASTJUMP_CELLS));
-
         // force reload [on]
         force_reload = CF_GetSetting("fr", "forcereload", "on");
 
@@ -555,9 +633,6 @@ void () DecodeLevelParms = {
 
         // allow scout dash [on]
         scoutdash = CF_GetSetting("sd", "scoutdash", "on");
-
-        // enable sniper rifle reload [off]
-        sniperreload = CF_GetSetting("sr", "sniperreload", "off");
 
         // spawn with full ammo/armor [off]
         spawnfull = CF_GetSetting("sf", "spawnfull", "off");
@@ -568,14 +643,17 @@ void () DecodeLevelParms = {
         // stock on cap [on]
         stock_on_cap = CF_GetSetting("soc", "stock_on_cap", "on");
 
+        // stock on cap [off]
+        cap_strip = CF_GetSetting("cs", "cap_strip", "off");
+
         // stock clip to full for reloading guns [on]
         stock_reload = CF_GetSetting("srd", "stock_reload", "on");
 
         // display class tips [on]
         classtips = CF_GetSetting("ct", "classtips", "on");
 
-        // concussion grenade effect time [19]
-        cussgrentime = CF_GetSetting("cgt", "cussgrentime", "19");
+        // concussion grenade effect time [10]
+        cussgrentime = CF_GetSetting("cgt", "cussgrentime", "10");
 
         // concussion grenade effect time proportional to distance from explosion
         distance_based_cuss_duration = CF_GetSetting("dbcd", "distance_based_cuss_duration", "off");
@@ -583,11 +661,19 @@ void () DecodeLevelParms = {
         // medic immune to concussion grenade effects [on]
         medicnocuss = CF_GetSetting("mnc", "medicnocuss", "on");
 
+        // aim based concussion grenade effect
+        fo_concuss = CF_GetSetting("foc", "fo_concuss", "0");
+        if (fo_concuss & FOC_ON_DEF)
+            fo_concuss |= foc_defaults;
+
+        // Tie some of these other options together for convenience / other
+        if (fo_concuss & FOC_DISTANCE)
+            distance_based_cuss_duration = TRUE;
+        if (fo_concuss & FOC_AFF_MED)
+            medicnocuss = FALSE;
+
         // display sniper rifle power in status bar [on]
         sniperpower = CF_GetSetting("sp", "sniperpower", "on");
-
-        // display sniper rifle reload percentage in status bar [on]
-        sniperreloadpercent = CF_GetSetting("rp", "sniperreloadpercent", "on");
 
         // display build status in status bar [on]
         buildstatus = CF_GetSetting("bs", "buildstatus", "on");
@@ -605,23 +691,8 @@ void () DecodeLevelParms = {
         asscanrange = CF_GetSetting("acr", "asscanrange", "0");
         asscanrangedie = CF_GetSetting("acrd", "asscanrangedie", "0");
         
-        // Pyro Airblast pushval min and max
-        airblastv2 = CF_GetSetting("abv2", "airblastv2", "off");
-        airblastpushmin = CF_GetSetting("abpmin", "airblastpushmin", "500");
-        airblastpushmax = CF_GetSetting("abpmax", "airblastpushmax", "800");
-
-        // remote_client_time max delta
-        antilag_settings.rewind_detpipe =
-            CF_GetSetting("alrd", "al_rewind_detpipe", "on");
-
         // CSQC projectiles
         fo_projectiles = CF_GetSetting("focp", "fo_csqc_projectiles", "on");
-
-        // project projectile weapons by player ping
-        project_weapons = CF_GetSetting("pw", "project_weapons", "off");
-
-        // max projectile projection latency (default 100ms)
-        project_weapons_max_latency = CF_GetSetting("pwml", "project_weapons_max_latency", ftos(0.1));
 
         // delay respawning by this many seconds [0]
         Role_None.respawn_delay_time = CF_GetSetting("rd", "respawn_delay", "0");
@@ -665,9 +736,6 @@ void () DecodeLevelParms = {
         // whitelists detpack impulses on the list of commands that you're allowed to use while reloading [off]
         detpack_when_reloading = CF_GetSetting("detreload", "detpack_while_reloading", "off");
 
-        // pyro class type - 0:default; 1:OzTF like; 2:plasmaclass
-        pyro_type = CF_GetSetting("pyrotype", "pyro_type", "2");
-
         // ceasefire type - 0: default; 1: pause
         ceasefire_type = CF_GetSetting("ceasefiretype", "cft", "1");
 
@@ -677,39 +745,30 @@ void () DecodeLevelParms = {
         // override map-set class restrictions [off]
         override_mapclasses = CF_GetSetting("omc", "override_mapclasses", "off");
 
-        // Maximum number of primary grenades per class
-        /*
-        max_gren1_scout = CF_GetSetting("mg1_1", "max_gren1_scout", ftos(PC_SCOUT_GRENADE_MAX_1));
-        max_gren1_sniper = CF_GetSetting("mg1_2", "max_gren1_sniper", ftos(PC_SNIPER_GRENADE_MAX_1));
-        max_gren1_soldier = CF_GetSetting("mg1_3", "max_gren1_soldier", ftos(PC_SOLDIER_GRENADE_MAX_1));
-        max_gren1_demoman = CF_GetSetting("mg1_4", "max_gren1_demoman", ftos(PC_DEMOMAN_GRENADE_MAX_1));
-        max_gren1_medic = CF_GetSetting("mg1_5", "max_gren1_medic", ftos(PC_MEDIC_GRENADE_MAX_1));
-        max_gren1_hwguy = CF_GetSetting("mg1_6", "max_gren1_hwguy", ftos(PC_HVYWEAP_GRENADE_MAX_1));
-        max_gren1_pyro = CF_GetSetting("mg1_7", "max_gren1_pyro", ftos(PC_PYRO_GRENADE_MAX_1));
-        max_gren1_spy = CF_GetSetting("mg1_8", "max_gren1_spy", ftos(PC_SPY_GRENADE_MAX_1));
-        max_gren1_engineer = CF_GetSetting("mg2_9", "max_gren1_engineer", ftos(PC_ENGINEER_GRENADE_MAX_1));
-        */
-        Role_None.gren1_limits[0] = 0; 
-        Role_None.gren1_limits[1] = CF_GetSetting("mg1_1", "max_gren1_scout", ftos(PC_SCOUT_GRENADE_MAX_1));
-        Role_None.gren1_limits[2]  = CF_GetSetting("mg1_2", "max_gren1_sniper", ftos(PC_SNIPER_GRENADE_MAX_1));
-        Role_None.gren1_limits[3]  = CF_GetSetting("mg1_3", "max_gren1_soldier", ftos(PC_SOLDIER_GRENADE_MAX_1));
-        Role_None.gren1_limits[4]  = CF_GetSetting("mg1_4", "max_gren1_demoman", ftos(PC_DEMOMAN_GRENADE_MAX_1));
-        Role_None.gren1_limits[5]  = CF_GetSetting("mg1_5", "max_gren1_medic", ftos(PC_MEDIC_GRENADE_MAX_1));
-        Role_None.gren1_limits[6]  = CF_GetSetting("mg1_6", "max_gren1_hwguy", ftos(PC_HVYWEAP_GRENADE_MAX_1));
-        Role_None.gren1_limits[7]  = CF_GetSetting("mg1_7", "max_gren1_pyro", ftos(PC_PYRO_GRENADE_MAX_1));
-        Role_None.gren1_limits[8]  = CF_GetSetting("mg1_8", "max_gren1_spy", ftos(PC_SPY_GRENADE_MAX_1));
-        Role_None.gren1_limits[9]  = CF_GetSetting("mg2_9", "max_gren1_engineer", ftos(PC_ENGINEER_GRENADE_MAX_1));
+        Role_None.gren1_limits[0] = 0;
+        Role_None.gren1_limits[1] = FO_GetGrenadeSetting("mg1_1", "max_gren1_scout", ftos(PC_SCOUT_GRENADE_MAX_1));
+        Role_None.gren1_limits[2] = FO_GetGrenadeSetting("mg1_2", "max_gren1_sniper", ftos(PC_SNIPER_GRENADE_MAX_1));
+        Role_None.gren1_limits[3] = FO_GetGrenadeSetting("mg1_3", "max_gren1_soldier", ftos(PC_SOLDIER_GRENADE_MAX_1));
+        Role_None.gren1_limits[4] = FO_GetGrenadeSetting("mg1_4", "max_gren1_demoman", ftos(PC_DEMOMAN_GRENADE_MAX_1));
+        Role_None.gren1_limits[5] = FO_GetGrenadeSetting("mg1_5", "max_gren1_medic", ftos(PC_MEDIC_GRENADE_MAX_1));
+        Role_None.gren1_limits[6] = FO_GetGrenadeSetting("mg1_6", "max_gren1_hwguy", ftos(PC_HVYWEAP_GRENADE_MAX_1));
+        Role_None.gren1_limits[7] = FO_GetGrenadeSetting("mg1_7", "max_gren1_pyro", ftos(PC_PYRO_GRENADE_MAX_1));
+        Role_None.gren1_limits[8] = FO_GetGrenadeSetting("mg1_8", "max_gren1_spy", ftos(PC_SPY_GRENADE_MAX_1));
+        Role_None.gren1_limits[9] = FO_GetGrenadeSetting("mg1_9", "max_gren1_engineer", ftos(PC_ENGINEER_GRENADE_MAX_1));
 
         // Maximum number of secondary grenades per class
-        Role_None.gren2_limits[1] = CF_GetSetting("mg2_1", "max_gren2_scout", ftos(PC_SCOUT_GRENADE_MAX_2));
-        Role_None.gren2_limits[2] = CF_GetSetting("mg2_2", "max_gren2_sniper", ftos(PC_SNIPER_GRENADE_MAX_2));
-        Role_None.gren2_limits[3] = CF_GetSetting("mg2_3", "max_gren2_soldier", ftos(PC_SOLDIER_GRENADE_MAX_2));
-        Role_None.gren2_limits[4] = CF_GetSetting("mg2_4", "max_gren2_demoman", ftos(PC_DEMOMAN_GRENADE_MAX_2));
-        Role_None.gren2_limits[5] = CF_GetSetting("mg2_5", "max_gren2_medic", ftos(PC_MEDIC_GRENADE_MAX_2));
-        Role_None.gren2_limits[6] = CF_GetSetting("mg2_6", "max_gren2_hwguy", ftos(PC_HVYWEAP_GRENADE_MAX_2));
-        Role_None.gren2_limits[7] = CF_GetSetting("mg2_7", "max_gren2_pyro", ftos(PC_PYRO_GRENADE_MAX_2));
-        Role_None.gren2_limits[8] = CF_GetSetting("mg2_8", "max_gren2_spy", ftos(PC_SPY_GRENADE_MAX_2));
-        Role_None.gren2_limits[9] = CF_GetSetting("mg2_9", "max_gren2_engineer", ftos(PC_ENGINEER_GRENADE_MAX_2));
+        Role_None.gren2_limits[1] = FO_GetGrenadeSetting("mg2_1", "max_gren2_scout", ftos(PC_SCOUT_GRENADE_MAX_2));
+        Role_None.gren2_limits[2] = FO_GetGrenadeSetting("mg2_2", "max_gren2_sniper", ftos(PC_SNIPER_GRENADE_MAX_2));
+        Role_None.gren2_limits[3] = FO_GetGrenadeSetting("mg2_3", "max_gren2_soldier", ftos(PC_SOLDIER_GRENADE_MAX_2));
+        Role_None.gren2_limits[4] = FO_GetGrenadeSetting("mg2_4", "max_gren2_demoman", ftos(PC_DEMOMAN_GRENADE_MAX_2));
+        Role_None.gren2_limits[5] = FO_GetGrenadeSetting("mg2_5", "max_gren2_medic", ftos(PC_MEDIC_GRENADE_MAX_2));
+        Role_None.gren2_limits[6] = FO_GetGrenadeSetting("mg2_6", "max_gren2_hwguy", ftos(PC_HVYWEAP_GRENADE_MAX_2));
+        Role_None.gren2_limits[7] = FO_GetGrenadeSetting("mg2_7", "max_gren2_pyro", ftos(PC_PYRO_GRENADE_MAX_2));
+        Role_None.gren2_limits[8] = FO_GetGrenadeSetting("mg2_8", "max_gren2_spy", ftos(PC_SPY_GRENADE_MAX_2));
+        Role_None.gren2_limits[9] = FO_GetGrenadeSetting("mg2_9", "max_gren2_engineer", ftos(PC_ENGINEER_GRENADE_MAX_2));
+
+        // disable resupply giving grenades (1-bit for gren1, 2-bit for gren2)
+        disable_resup_gren = CF_GetSetting("drg", "disable_resup_gren", "0");
 
         // solid detpack toggle [0]
         solid_detpack = CF_GetSetting("sdp", "solid_detpack", "0");
@@ -756,6 +815,9 @@ void () DecodeLevelParms = {
 
         map_restart_time = CF_GetSetting("map_restart_Time", "mrt", "120");
 
+        // if 1, quad round will not finish immediately if result is determined [off]
+        play_to_completion = CF_GetSetting("ptc", "play_to_completion", "0");
+
         // enforces login
         loginRequired = CF_GetSetting("loginrequired", "logreq", "0");
 
@@ -769,18 +831,27 @@ void () DecodeLevelParms = {
             loginRequired = 0;
         }
 
+        // specify demo filehost address e.g. https://fortressone-demos.s3.amazonaws.com/sydney/staging/
+        demo_files_address = FO_GetUserSettingString(world, "demo_files_address", "demofileaddy", "");
+
+        // specify stats filehost address e.g. http://fortressone-stats.s3-ap-southeast-2.amazonaws.com/sydney/staging/
+        stats_files_address = FO_GetUserSettingString(world, "stats_files_address", "statsfileaddy", "");
+
+        // specify discord channel [""]
+        discord_channel_id = infokey(world, "discord_channel_id");
+
         // fortress one flash time in seconds
         fo_flashtime = CF_GetSetting("ff", "fo_flashtime", "2");
 
         // health repair 
         fo_repair_ratio = CF_GetSetting("forep", "fo_repair_ratio", "2");
-        
+
         // keep teams on map change [off]
         cb_keepteams = CF_GetSetting("kt", "keep_teams", "0");
 
         // use att/def roles in quad mode [off]
         quad_roles = CF_GetSetting("qr", "quad_roles", "0");
-        
+
         LoadRole(&Role_Attack);
         LoadRole(&Role_Defence);
         InitTeamRoles();
@@ -794,13 +865,19 @@ void () DecodeLevelParms = {
 
         // disable hit sounds [off]
         nohitsounds = CF_GetSetting("nhs", "nohitsounds", "0");
-        
+
+        //test zutmode for testing stuff [off]
+        zutmode = CF_GetSetting("zm", "zutmode", "1");
+
+        // disable hit text [off]
+        nohittext = CF_GetSetting("nht", "nohittext", "0");
+
         // disable setinfo keepcells [off]
         nokeepcells = CF_GetSetting("nkc", "nokeepcells", "0");
-        
+
         // allow clients to place a personal practice spawn [off]
         allowpracspawns = CF_GetSetting("aps", "allowpracspawns", "0");
-        
+
         // split backpack.mdl into deathbag.mdl and discard.mdl [on] (visual change only)
         splitbackpackmodels = CF_GetSetting("sbm", "splitbackpackmodels", "on");
 	
@@ -824,6 +901,7 @@ void () DecodeLevelParms = {
         }
 
         engineer_move = CF_GetSetting("em","engineer_move", "1");
+        grenade_lockout = CF_GetSetting("gl","grenade_lockout", "0");
 
         max_active_gren2_soldier = CF_GetSetting("mg2s","max_active_gren2_soldier", "3");
 
@@ -836,24 +914,21 @@ void () DecodeLevelParms = {
             drop_grenpack = TRUE;
             drop_gren1 = 1;
             drop_gren2 = 0;
-            grentimers = TRUE;
             id_extended = TRUE;
             remember_weapon = TRUE;
             discammo_pickup = FALSE;
             old_dropflag = FALSE;
             scoutdash = TRUE;
-            sniperreload = TRUE;
             old_sniperrange = FALSE;
             Role_None.detpipe_limit = 6;
             detpipe_limit_world = -1;
-            old_pipecooldown = FALSE;
+            pipecooldown_time = 0.5;
             medicaura = TRUE;
             old_biodamage = FALSE;
             cannon_lock = TRUE;
             cannon_air = TRUE;
             cannon_move = TRUE;
             cannon_movespin = FALSE;
-            cannon_conc = TRUE;
             cannon_accuracy = 0;
             flame_knockback = TRUE;
             old_spanner = FALSE;
@@ -865,10 +940,10 @@ void () DecodeLevelParms = {
             spawnfull = TRUE;
             stockfull = TRUE;
             stock_on_cap = TRUE;
+            cap_strip = FALSE;
             stock_reload = TRUE;
             classtips = TRUE;
             sniperpower = TRUE;
-            sniperreloadpercent = TRUE;
             buildstatus = TRUE;
             old_hp_armor = FALSE;
             superaxe = TRUE;
@@ -876,7 +951,6 @@ void () DecodeLevelParms = {
             superspanner = FALSE;
             superknife = TRUE;
             superknife_multihit = FALSE;
-            pyro_type = PYRO_OZTF;
             Role_None.gren1_limits[1] = PC_SCOUT_GRENADE_MAX_1;
             Role_None.gren1_limits[2] = PC_SNIPER_GRENADE_MAX_1;
             Role_None.gren1_limits[3] = PC_SOLDIER_GRENADE_MAX_1;
@@ -899,9 +973,6 @@ void () DecodeLevelParms = {
             walls_block_emp = FALSE;
             solid_nailgren = FALSE;
             scoutscanspike = TRUE;
-            airblastpushmin = 470;
-            airblastpushmax = 600;
-            airblastsize    = 150;
         }
 
         st = infokey(world, "faithful");
@@ -912,24 +983,21 @@ void () DecodeLevelParms = {
             drop_grenpack = FALSE;
             drop_gren1 = 0;
             drop_gren2 = 0;
-            grentimers = FALSE;
             id_extended = FALSE;
             remember_weapon = FALSE;
             discammo_pickup = TRUE;
             old_dropflag = TRUE;
             scoutdash = FALSE;
-            sniperreload = FALSE;
             old_sniperrange = TRUE;
             Role_None.detpipe_limit = 7;
             detpipe_limit_world = 7;
-            old_pipecooldown = TRUE;
+            pipecooldown_time = 0.8;
             medicaura = FALSE;
             old_biodamage = TRUE;
             cannon_lock = FALSE;
             cannon_air = TRUE;
             cannon_move = TRUE;
             cannon_movespin = TRUE;
-            cannon_conc = TRUE;
             cannon_accuracy = 1;
             flame_knockback = FALSE;
             old_spanner = TRUE;
@@ -941,10 +1009,10 @@ void () DecodeLevelParms = {
             spawnfull = FALSE;
             stockfull = FALSE;
             stock_on_cap = FALSE;
+            cap_strip = FALSE;
             stock_reload = FALSE;
             classtips = FALSE;
             sniperpower = FALSE;
-            sniperreloadpercent = FALSE;
             buildstatus = FALSE;
             old_hp_armor = TRUE;
             superaxe = FALSE;
@@ -952,7 +1020,6 @@ void () DecodeLevelParms = {
             superspanner = FALSE;
             superknife = FALSE;
             superknife_multihit = FALSE;
-            pyro_type = PYRO_ORIGINAL;
             Role_None.gren1_limits[1] = 4;
             Role_None.gren1_limits[2] = 4;
             Role_None.gren1_limits[3] = 4;
@@ -975,6 +1042,7 @@ void () DecodeLevelParms = {
             walls_block_emp = FALSE;
             solid_nailgren = TRUE;
             scoutscanspike = FALSE;
+            fo_config.old_ng_rof = TRUE;
         }
 
         st = infokey(world, "huetf");
@@ -997,9 +1065,7 @@ void () DecodeLevelParms = {
             detpipe_limit_world = 7;
             medicaura = FALSE;
             medicnocuss = FALSE;
-            project_weapons = FALSE;
             distance_based_cuss_duration = FALSE;
-            pyro_type = 1;
             drop_grenades = FALSE;
             drop_grenpack = FALSE;
             drop_gren1 = 0;
@@ -1008,16 +1074,18 @@ void () DecodeLevelParms = {
             spawnfull = FALSE;
             stockfull = FALSE;
             stock_on_cap = FALSE;
+            cap_strip = FALSE;
             stock_reload = FALSE;
             classtips = FALSE;
             nohitsounds = TRUE;
+            nohittext = TRUE;	//damned luddites
+            zutmode = FALSE;
             detpack_when_reloading = TRUE;
             old_hp_armor = TRUE;
             //server_sbflaginfo = FALSE;
             localcmd("localinfo server_sbflaginfo 0\n");
             solid_detpack = TRUE;
             walls_block_emp = FALSE;
-            grentimers = FALSE;
             Role_None.gren2_limits[1] = 3;
             Role_None.gren2_limits[3] = 2;
             Role_None.gren2_limits[4] = 4;
@@ -1025,6 +1093,7 @@ void () DecodeLevelParms = {
             Role_None.gren2_limits[8] = 3;
             max_active_gren2_soldier = 1;
             round_delay_time = 10;
+            fo_config.old_ng_rof = TRUE;
         }
 
         // Must be after we've set up conditional options (e.g. hwguy reload).
@@ -1063,6 +1132,15 @@ void () DecodeLevelParms = {
         p = find(p, classname, "player");
     }
 */
+
+    // Overrides other settings.
+    new_balance = CF_GetSetting("new_balance", "new_balance", "1");
+    // mirror current state into desired state bit
+    new_balance |= (new_balance << 1);
+
+    if (org_game)  // This used to depend on new balance
+        ActivateOrgGame();
+
 };
 
 entity() FindIntermission =
@@ -1326,11 +1404,11 @@ void () respawn = {
     }
 
     if (coop) {
-        CopyToBodyQue(self);
+        AddToBodyQueue(self);
         setspawnparms(self);
         PutClientInServer();
     } else if (deathmatch) {
-        CopyToBodyQue(self);
+        AddToBodyQueue(self);
         SetNewParms();
         PutClientInServer();
     } else
@@ -1429,7 +1507,8 @@ void () RemovePlayerOwnedEnts = {
         if (self.tfstate & TFSTATE_RANDOMPC) {
             te.tfstate = TFSTATE_RANDOMPC;
         }
-    }  
+    }
+    RemoveDeadBody(self);
 }
 
 void (string cn) RemoveAllEntsByClassname = {
@@ -1495,7 +1574,6 @@ void () StartSpawnGuard = {
 void () DuelFinish = {
     FO_Sound(world, CHAN_AUTO, "boss1/sight1.wav", 1, ATTN_NONE);
     NextLevel();
-    RemoveGrenadeTimers();
     RemovePrimeTimers();
     RemoveGrenades();
 };
@@ -1572,7 +1650,7 @@ void () ResetPlayers = {
                 //    DuelWin(te);
                 //    return;
                 //}
-            }            
+            }
             RemovePlayerOwnedEnts();
             setspawnparms(self);
             PutClientInServer();
@@ -1679,8 +1757,6 @@ void () ClientKill = {
             return;
         }
     }
-
-    Sniper_ZoomReset(self);
 
     set_suicide_frame();
     self.modelindex = modelindex_player;
@@ -1951,6 +2027,7 @@ void (entity p) SetVoteParams = {
     p.ammo_rockets = 0;
     p.ammo_cells = 0;
     p.armortype = 0;
+    // why?
     p.team_no = 0;
     p.playerclass = 0;
     p.flags |= FL_ONGROUND;
@@ -1962,7 +2039,6 @@ void (entity p) SetVoteParams = {
     p.th_pain = player_pain;
     p.th_die = PlayerDie;
     p.height = 0;
-    Sniper_ZoomReset(p);
 
     p.deadflag = 0;
     p.pausetime = 0;
@@ -2023,28 +2099,35 @@ void (float all_dimensions) SetDimensions = {
         switch (self.team_no)
         {
             case TEAM_BLUE:
-                self.dimension_see = DMN_NOFLASH | DMN_TEAMBLUE;
+                self.dimension_see = DMN_NOFLASH | DMN_HIDDEN | DMN_TEAMBLUE;
                 break;
             case TEAM_RED:
-                self.dimension_see = DMN_NOFLASH | DMN_TEAMRED;
+                self.dimension_see = DMN_NOFLASH | DMN_HIDDEN | DMN_TEAMRED;
                 break;
             case TEAM_YELL:
-                self.dimension_see = DMN_NOFLASH | DMN_TEAMYELL;
+                self.dimension_see = DMN_NOFLASH | DMN_HIDDEN | DMN_TEAMYELL;
                 break;
             case TEAM_GREN:
-                self.dimension_see = DMN_NOFLASH | DMN_TEAMGREN;
+                self.dimension_see = DMN_NOFLASH | DMN_HIDDEN | DMN_TEAMGREN;
                 break;
             default:
-                self.dimension_see = DMN_NOFLASH;
+                self.dimension_see = DMN_NOFLASH | DMN_HIDDEN;
                 break;
         }
     }
 };
 
 void () PutClientInServer = {
+    UpdateClientPlayerSpawn(self);
+
+    if (fo_login_required && self.fo_login == string_null)
+        UpdateClient_Login(self);
+
     local float oldclass;
     local entity spot;
     local entity te;
+
+    self.spawn_gen += 1;
 
     self.touch = player_touch;
     self.classname = "player";
@@ -2071,18 +2154,20 @@ void () PutClientInServer = {
     self.saveme_time = 0;
     self.display_tip = 0;
     self.tip_type = 0;
+    self.feign_next_damage = 0;
+    self.conc_state.mag = 0;
 
     FO_InstantReloadAllWeapons(self);
 
     // Only need initial init here.
-    if (!self.prng_base[PRNG_WEAP])
-        self.prng_base[PRNG_WEAP] = 65535 * random();
     // For hwguy we rotate the seed value, each seed generates many random nums.
-    self.prng_base[PRNG_HWGUY] = 65535 * random();
+    for (int i = 0; i < PRNG_NUM_STATES; i++)
+        self.prng_base[i] = 65535 * random();
+    self.primed_gren_exp = 0;
 
     self.immune_to_check = time + 10;
     SetDimensions(TRUE);
-    self.special_cooldown = 0;
+    self.special_next = 0;
 
     setmodel(self, string_null);
     modelindex_null = self.modelindex;
@@ -2093,10 +2178,10 @@ void () PutClientInServer = {
     setmodel(self, "progs/player.mdl");
     modelindex_player = self.modelindex;
 
-    if(votemode) {
-        SetVoteParams(self);
-        return;
-    }
+    // TODO: There's a bug here where self.team_no is set to 0 immediately after joining team
+    /* if(votemode) { */
+    /*     SetVoteParams(self); */
+    /* } */
 
     if(no_fire_mode) {
         return;
@@ -2117,6 +2202,8 @@ void () PutClientInServer = {
     if (self.playerclass != PC_CIVILIAN && TeamFortress_TeamIsCivilian(self.team_no)) {
         TeamFortress_ChangeClass(11);
     }
+
+    int prev_playerclass = self.playerclass;
 
     if (deathmatch == 3) {
         if(self.nextpc != self.playerclass) {
@@ -2185,7 +2272,6 @@ void () PutClientInServer = {
     self.th_pain = player_pain;
     self.th_die = PlayerDie;
     self.height = 0;
-    Sniper_ZoomReset(self);
 
     self.deadflag = 0;
     self.pausetime = 0;
@@ -2202,7 +2288,7 @@ void () PutClientInServer = {
 
     if ((spot.classname == "info_player_teamspawn") &&
         (!cb_prematch)) {
-        
+
         if (spot.items != 0) {
             te = Finditem(spot.items);
             if (te)
@@ -2227,7 +2313,7 @@ void () PutClientInServer = {
             spot.think = SUB_Remove;
         }
     }
-    
+
     setmodel(self, string_null);
     modelindex_null = self.modelindex;
 
@@ -2241,6 +2327,7 @@ void () PutClientInServer = {
         self.modelindex = modelindex_null;
         self.menu_input = nil;
     }
+
     setsize(self, VEC_HULL_MIN, VEC_HULL_MAX);
     self.view_ofs = '0 0 22';
     self.velocity = '0 0 0';
@@ -2297,6 +2384,11 @@ void () PutClientInServer = {
         if (!(self.tf_items_flags & NIT_SCANNER_ENEMY))
             self.tf_items_flags = self.tf_items_flags | NIT_SCANNER_ENEMY;
     }
+
+    // Activate medic aura by default when changing to class and off
+    if (self.playerclass == PC_MEDIC && prev_playerclass != PC_MEDIC &&
+        !self.aura_active)
+        CF_Medic_AuraToggle();
 
     UpdateReadyStatus();
 };
@@ -2425,7 +2517,6 @@ void () CheckRules = {
         if ((timelimit && (time >= timelimit)))
         {
             NextLevel();
-            RemoveGrenadeTimers();
             RemovePrimeTimers();
             RemoveGrenades();
         }
@@ -2433,7 +2524,6 @@ void () CheckRules = {
     if ((fraglimit && (self.frags >= fraglimit)))
     {
         NextLevel();
-        RemoveGrenadeTimers();
         RemovePrimeTimers();
         RemoveGrenades();
     }
@@ -2454,8 +2544,7 @@ void () PlayerDeathThink = {
         if (self.button2 || self.button1 || self.button0)
             return;
         self.deadflag = DEAD_RESPAWNABLE;
-        self.tfstate =
-            self.tfstate - (self.tfstate & TFSTATE_RESPAWN_READY);
+        self.tfstate &= ~TFSTATE_RESPAWN_READY;
         return;
     }
     if ((!self.button2 && !self.button1) && !self.button0) {
@@ -2482,6 +2571,23 @@ void () PlayerDeathThink = {
 
 void player_asscan_down1();
 
+enum ConcMode {
+    CONC_IDLESCALE,
+    CONC_CLASSIC,
+    CONC_AIM,
+};
+
+ConcMode GetConcMode() {
+    if (old_grens)
+        return CONC_IDLESCALE;
+    else if (fo_concuss)
+        return CONC_AIM;
+    else
+        return CONC_CLASSIC;
+}
+
+entity FindConcTimer(entity player);
+
 void () PlayerJump = {
     local entity te;
     local float stumble;
@@ -2490,6 +2596,7 @@ void () PlayerJump = {
         return;
     if (self.flags & FL_WATERJUMP)
         return;
+
 
     if (self.waterlevel >= 2) {
         if (self.watertype == CONTENT_WATER)
@@ -2522,6 +2629,8 @@ void () PlayerJump = {
     self.flags = self.flags - (self.flags & FL_JUMPRELEASED);
     self.button2 = 0;
 
+    NB_ConcCapAction(self, self.playerclass, &self.tfstate,
+                     time, &self.conc_cap_time, kLand);
     FO_Sound(self, CHAN_AUTO, "player/plyrjmp8.wav", 1, ATTN_NORM);
 
     if (!cannon_air && self.tfstate & TFSTATE_AC_FIRING) {
@@ -2532,24 +2641,8 @@ void () PlayerJump = {
         StopAssCan();
     }
 
-    if (old_grens != 1) {
-        te = find(world, classname, "timer");
-        while (((te.owner != self) || (te.think != ConcussionGrenadeTimer))
-               && (te != world))
-            te = find(te, classname, "timer");
-
-        if ((te != world) && (te != self)) {
-            crandom();
-            stumble = crandom() * (te.health / 100);
-            if (crandom() < 0) {
-                self.velocity_x = self.velocity_y + stumble;
-                self.velocity_y = self.velocity_x + stumble;
-            } else {
-                self.velocity_x = (-1 * self.velocity_y) + stumble;
-                self.velocity_y = (-1 * self.velocity_x) + stumble;
-            }
-        }
-    }
+    if (GetConcMode() == CONC_CLASSIC && (self.tfstate & TFSTATE_CONC))
+        Conc_Jump(&self.conc_state, self);
 };
 
 .float dmgtime;
@@ -2652,8 +2745,53 @@ void () CheckWaterJump = {
     }
 };
 
+void SpawnBubble(vector origin);
+
+static void ConcUpdate() {
+    if (self.tfstate & TFSTATE_CONC == 0)
+        return;
+
+    if (self.invincible_finished > time) {
+        self.conc_state.mag = 0;
+    } else {
+        if (!Conc_Update(&self.conc_state, self, time))
+            return;
+    }
+
+    if (self.conc_state.mag) {
+        if (self.conc_state.mag % CONC_HZ == 0)
+            SpawnBubble(self.origin);
+    } else {
+        RemoveConc(self, FALSE);
+        sprint(self.owner, PRINT_HIGH, "Your head feels better now\n");
+    }
+}
+
+// If a forceinfokey and a SVC_SETINFO are both set in the same frame, they
+// will clobber each other. Thus we do skin setinfos like normal, and then
+// per-player custom skin infos are immediately applied for those who need to
+// update on the next frame.
+void () UpdateAllSkins = {
+    local entity target = find(world, classname, "player");
+    local entity pov;
+
+    while (target != world) {
+        if (target.needs_skin_update) {
+            pov = find(world, classname, "player");
+            while (pov != world) {
+                SetSkinInfoFor(pov, target);
+                pov = find(pov, classname, "player");
+            }
+            target.needs_skin_update = 0;
+        }
+        target = find(target, classname, "player");
+    }
+}
+
 void () PlayerPreThink = {
     FO_UpdateClientTime();
+    ConcUpdate();
+    UpdateAllSkins();
 
     if (self.impulse) {
         if (self.impulse == TF_VOTENEXT) {
@@ -2691,7 +2829,7 @@ void () PlayerPreThink = {
         WaterMove();
     }
 
-    if (self.deadflag >= 2) {
+    if (self.deadflag >= DEAD_DEAD) {
         PlayerDeathThink();
         return;
     }
@@ -2703,11 +2841,11 @@ void () PlayerPreThink = {
             Spy_RemoveDisguise(self);
         }
     }
-    if (self.deadflag == 1) {
+    if (self.deadflag == DEAD_DYING) {
         return;
     }
 
-    if (self.is_feigning) {
+    if (IsFeigned(self)) {
         if (self.flags & FL_ONGROUND) {
             // check area for entities - if found, bounce player forward
             if (!self.feign_areachecked) {
@@ -2769,7 +2907,7 @@ void () CheckPowerups = {
             self.modelindex = modelindex_eyes;
         } else {
             if (self.invisible_finished) {
-                if (self.tfstate & 64) {
+                if (self.pstate & PSTATE_INVISIBLE) {
                     if (self.invisible_finished < (time + 10)) {
                         self.invisible_finished = time + 666;
                     }
@@ -2804,7 +2942,7 @@ void () CheckPowerups = {
         }
     }
     if (self.invincible_finished) {
-        if (self.tfstate & 32) {
+        if (self.pstate & PSTATE_INVINCIBLE) {
             if (self.invincible_finished < (time + 10)) {
                 self.invincible_finished = time + 666;
             }
@@ -2848,7 +2986,7 @@ void () CheckPowerups = {
         }
     }
     if (self.super_damage_finished) {
-        if (self.tfstate & 128) {
+        if (self.pstate & PSTATE_QUAD) {
             if (self.super_damage_finished == (time + 10)) {
                 self.super_damage_finished = time + 666;
             }
@@ -2871,8 +3009,7 @@ void () CheckPowerups = {
             self.super_time = 0;
         }
         if (self.super_damage_finished > time) {
-            self.effects = self.effects | 8;
-            self.effects = self.effects | 64;
+            self.effects |= EF_DIMLIGHT | EF_BLUE;
         } else {
             lighton = 0;
             te = find(world, classname, "item_tfgoal");
@@ -2891,7 +3028,7 @@ void () CheckPowerups = {
     }
     if (self.radsuit_finished) {
         self.air_finished = time + 12;
-        if (self.tfstate & 256) {
+        if (self.pstate & PSTATE_RADSUIT) {
             if (self.radsuit_finished == (time + 10)) {
                 self.radsuit_finished = time + 666;
             }
@@ -2930,32 +3067,15 @@ void FO_HandleTFStateUpdate() {
     self.last_tfstate = self.tfstate;
 }
 
-void () PlayerPostThink = {
-    FO_CheckClientThink();
-    UpdateScoreboardInfo(self);
-    FOPlayer fop = (FOPlayer)self;
-    fop.RewindUpdate();
-    Forward_OpenDoors(self);
+void TeamFortress_MOTD();
+
+static void PlayerPostThinkAlive() {
+    float fdmg;
 
     FO_WeapState ws;
     FO_FillCurrentWeapState(&ws);
     self.currentammo =
         (ws->wi)->ammo_type != AMMO_NONE ? *ws->ammo_remaining : 0;
-
-    Predict_Update();
-
-    if (self.view_ofs == '0 0 0') {
-        return;
-    }
-
-    if (self.deadflag) {
-        DeadImpulses();
-        self.impulse = 0;
-        return;
-    }
-
-    local float fdmg;
-    local float csqcactive = infokeyf(self, INFOKEY_P_CSQCACTIVE);
 
     if (((self.jump_flag < -300) && (self.flags & FL_ONGROUND)) &&
         (self.health > 0)) {
@@ -2983,6 +3103,8 @@ void () PlayerPostThink = {
     }
     self.jump_flag = self.velocity_z;
 
+    Forward_OpenDoors(self);
+
     if(votemode) {
         CheckPowerups();
         FO_ReloadFrame();
@@ -2993,7 +3115,7 @@ void () PlayerPostThink = {
         FO_ReloadFrame();
         ButtonFrame();
         W_WeaponFrame();
-        if (self.motd <= 400) {
+        if (self.motd >= 0) {
             TeamFortress_MOTD();
         } else {
             if (self.cheat_check == 0) {
@@ -3001,7 +3123,7 @@ void () PlayerPostThink = {
             }
         }
         if (self.cheat_check <= time) {
-            TeamFortress_CheckTeamCheats();
+            TeamFortress_CheckTeamCheats(self);
             self.cheat_check = time + 3;
         }
     }
@@ -3009,6 +3131,25 @@ void () PlayerPostThink = {
     FO_HandleTFStateUpdate();
     if (time >= self.StatusRefreshTime)
         RefreshStatusBar(self);
+}
+
+void () PlayerPostThink = {
+    FO_CheckClientThink();
+    UpdateScoreboardInfo(self);
+
+    if (self.motd >= 0)
+        TeamFortress_MOTD();
+
+    if (self.deadflag || self.playerclass == 0) {
+        DeadImpulses();
+        self.impulse = 0;
+    } else {
+        PlayerPostThinkAlive();
+    }
+
+    FOPlayer fop = (FOPlayer)self;
+    fop.RewindUpdate();
+    Predict_Update(TRUE);
 };
 
 void () UpdateAllClientsTeamScores = {
@@ -3027,17 +3168,46 @@ void () UpdateAllClientsTeamScores = {
     }
 }
 
-//do not rely on csqcactive - it may misbehave when using `join` from spectator
+void (entity pov, entity target) SetBottomColorInfoFor = {
+    local float target_idx = target.colormap - 1;
+    local string color = TeamFortress_TeamGetColorFor(pov, target.team_no);
+
+    msg_entity = pov;
+    WriteByte(MSG_ONE, SVC_SETINFO);
+    WriteByte(MSG_ONE, target_idx);
+    WriteString(MSG_ONE, "bottomcolor");
+    WriteString(MSG_ONE, color);
+}
+
+void (entity pov, entity target) SetTopColorInfoFor = {
+    local float target_idx = target.colormap - 1;
+    local string color = TeamFortress_TeamGetColorFor(pov, target.team_no);
+
+    msg_entity = pov;
+    WriteByte(MSG_ONE, SVC_SETINFO);
+    WriteByte(MSG_ONE, target_idx);
+    WriteString(MSG_ONE, "topcolor");
+    WriteString(MSG_ONE, color);
+}
+
+void (entity pov, entity target) SetSkinInfoFor = {
+    SetTopColorInfoFor(pov, target);
+    SetBottomColorInfoFor(pov, target);
+}
+
 void () ClientConnect = {
-    local float csqc_active = infokeyf(self, INFOKEY_P_CSQCACTIVE);
-    local string st;
-    local float got_one;
+    if (!infokeyf(self,INFOKEY_P_CSQCACTIVE)) {
+        sprint(self, PRINT_HIGH, "FTE/CSQC is required for this server, please download the latest client package at www.fortressone.org\n");
+        dropclient(self);
+        return;
+    }
+
+    bprint(PRINT_HIGH, self.netname, " entered the game\n");
+    sprint(self, PRINT_HIGH, "FortressOne: Weapon Prediction ", wp_version, "\n");
 
     spawnfunc_FOPlayer();
-    bprint(PRINT_HIGH, self.netname, " entered the game\n");
 
     self.motd = 0;
-    self.got_aliases = 0;
 
     if (self.netname == string_null)
         KickCheater(self);
@@ -3046,10 +3216,8 @@ void () ClientConnect = {
         self.login = infokey(self,"*login");
     if (infokey(self,"*admin"))
         self.is_admin = stof(infokey(self, "*admin"));
-    if (self.login == string_null)
+    if (loginRequired && self.login == string_null)
         sprint(self,2, "Login required, please use \"cmd login <login> <secret>\" \nbefore joining the game\n");
-
-    TeamFortress_Alias("id", TF_ID, 0);
 
     TeamFortress_ExecMapScript(self);
     self.has_disconnected = 0;
@@ -3059,39 +3227,35 @@ void () ClientConnect = {
         GotoNextMap();
     }
 
-    st = infokey(self, "apw");
+    string st = infokey(self, "apw");
     if (st == string_null)
         st = infokey(self, "adminpwd");
     if (st) {
         Admin_Check(st);
-        if (self.is_admin) 
+        if (self.is_admin)
             Admin_Aliases();
         else
             self.is_admin = FALSE;
     }
 
     if (clanbattle && (self.has_disconnected != 1)) {
-        got_one = 0;
         st = infokey(self, "tf_id");
         self.tf_id = stof(st);
         if (!loginRequired) {
-            if ((st != string_null) && (self.tf_id != 0)) {
-                got_one = RejoinWithTfId();
-            }
-            if (!got_one) {
+            if ((st != string_null) && (self.tf_id != 0))
+                RejoinWithTfId();
+            else
                 CreateTfIdAndJoin();
-            }
         }
     }
 
-    if(infokeyf(self, INFOKEY_P_CSQCACTIVE)) {
-        InitAllStatuses(self);
-        UpdateClientMOTD(self);
-        UpdateClientTeamScores(self);
-        //if(quadmode)
-        UpdateClientPrematch(self, !cb_prematch);
-        UpdateClient_VoteMap_AddAll(self);
-    }
+    InitAllStatuses(self);
+    UpdateClientMOTD(self);
+    UpdateClientTeamScores(self);
+    UpdateClientPrematch(self, !cb_prematch);
+    UpdateClient_VoteMap_AddAll(self);
+    TeamFortress_SetSkin(self);
+
     if (cb_prematch)
         sprint(self, PRINT_HIGH, "Currently in \sprematch\s time\n");
 };
@@ -3313,6 +3477,8 @@ string (entity pe_target, entity pe_attacker, float pf_deathmsg) GetDeathMessage
                     s_deathstring = " gets too friendly with his sentry gun\n";
                 else if (pf_deathmsg == DMSG_DISPENSER_EXPLODE)
                     s_deathstring = " dispenses with himself\n";
+                else if (pf_deathmsg == DMSG_IMPELLER)
+                    s_deathstring = " couldn't resist their inner impelsions\n";
 
                 return strcat(pe_target.netname, s_deathstring);
 
@@ -3580,6 +3746,9 @@ string (entity pe_target, entity pe_attacker, float pf_deathmsg) GetDeathMessage
                 } else if (pf_deathmsg == DMSG_LASERBOLT) {
                     s_deathstring = " gets a hole in his heart from ";
                     s_deathstring2 = "'s railgun\n";
+                } else if (pf_deathmsg == DMSG_IMPELLER) {
+                    s_deathstring = " gets pushed around by ";
+                    s_deathstring2 = "\n";
                 } else if (pf_deathmsg == DMSG_INCENDIARY) {
                     s_deathstring = " gets well done by ";
                     s_deathstring2 = "'s incendiary rocket\n";
@@ -3700,8 +3869,6 @@ string (entity pe_target, entity pe_attacker, float pf_deathmsg) GetDeathMessage
 
 void (entity targ, entity attacker) ClientObituary = {
     local string deathstring;
-
-    Sniper_ZoomReset(targ);
 
     if (cb_prematch)
         return;

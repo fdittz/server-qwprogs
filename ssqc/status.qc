@@ -17,7 +17,6 @@ string(entity pl) SentryDetailsToString;
 string(entity pl) BuildingToString;
 string(float pc) TeamFortress_GetClassName;
 entity(float ino) Finditem;
-void () tfgoalitem_droptouch;
 void () tfgoalitem_dropthink;
 void () tfgoalitem_remove;
 float (entity ent, string ps_short, string ps_setting, string ps_default) FO_GetUserSetting;
@@ -665,23 +664,18 @@ void (entity Player, entity Item) UpdateClientFlagStatus = {
         if (Item.origin != Item.oldorigin) {
             if((Item.nextthink - time) >= 0) {
                 WriteFloat(MSG_MULTICAST, FLAGINFO_DROPPED);
-                if(Item.think != tfgoalitem_droptouch) {
-                    if(noreturn) {
-                        WriteFloat(MSG_MULTICAST, -1);
-                    } else {
-                        WriteFloat(MSG_MULTICAST, rint(Item.bubble_count - time));
-                    }
-                    if((Item.think == tfgoalitem_dropthink || Item.think == tfgoalitem_remove) && !Item.owner) {
-                        WriteFloat(MSG_MULTICAST, FLAGINFO_LOCATION);
-                        WriteCoord(MSG_MULTICAST, Item.origin_x);
-                        WriteCoord(MSG_MULTICAST, Item.origin_y);
-                        WriteCoord(MSG_MULTICAST, Item.origin_z);
-                        WriteString(MSG_MULTICAST, getLocationName(Item.origin));
-                    } else {
-                        WriteFloat(MSG_MULTICAST, FLAGINFO_NOLOCATION);
-                    }
-                } else {
+                if(noreturn) {
                     WriteFloat(MSG_MULTICAST, -1);
+                } else {
+                    WriteFloat(MSG_MULTICAST, rint(Item.bubble_count - time));
+                }
+                if((Item.think == tfgoalitem_dropthink || Item.think == tfgoalitem_remove) && !Item.owner) {
+                    WriteFloat(MSG_MULTICAST, FLAGINFO_LOCATION);
+                    WriteCoord(MSG_MULTICAST, Item.origin_x);
+                    WriteCoord(MSG_MULTICAST, Item.origin_y);
+                    WriteCoord(MSG_MULTICAST, Item.origin_z);
+                    WriteString(MSG_MULTICAST, getLocationName(Item.origin));
+                } else {
                     WriteFloat(MSG_MULTICAST, FLAGINFO_NOLOCATION);
                 }
             } else {
@@ -724,7 +718,7 @@ string (entity Player, entity Item, float teamno) GetItemStatus = {
         if (Item.origin != Item.oldorigin) {
             //When the item is thrown, there is a touch think with a pad of 4.25s before the normal timer kicks in
             if((Item.nextthink - time) >= 0) {
-                if(Item.think != tfgoalitem_droptouch && !noreturn) {
+                if(!noreturn) {
                     st = strcat(st, Q"\s: Return: \s", ftos(rint(Item.bubble_count - time)));
                 } else {
                     st = strcat(st, Q"\s: Dropped\s");
@@ -763,73 +757,81 @@ string GetSBClassInfo(entity pl, float csqcactive)
     return st1;
 }
 
-// Temporary until we network player ents.
-static void TFxUpdateGrenadeTimer(entity player, float explodes_at) {
-    const float tfx_gren_mask =
-        TFX_SPEC_GRENTIMER | TFX_DEFENSE_GRENTIMER | TFX_OFFENSE_GRENTIMER;
-
-    if (!TFxEnabled(tfx_gren_mask))
+void UpdateClientPlayerDie(entity pl) {
+    if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
         return;
 
+    msg_entity = pl;
     WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
-    WriteByte(MSG_MULTICAST, MSG_TFX_GRENTIMER);
-    WriteEntity(MSG_MULTICAST, player);
-    WriteFloat(MSG_MULTICAST, explodes_at);
-    multicast('0 0 0', MULTICAST_ALL_R);
+    WriteByte(MSG_MULTICAST, MSG_PLAYER_DIE);
+    multicast('0 0 0', MULTICAST_ONE_NOSPECS);
+}
+
+void UpdateClientPlayerSpawn(entity pl) {
+    if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
+        return;
+
+    msg_entity = pl;
+    WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
+    WriteByte(MSG_MULTICAST, MSG_PLAYER_SPAWN);
+    multicast('0 0 0', MULTICAST_ONE_NOSPECS);
+}
+
+void UpdateClientBuilding(entity pl) {
+    if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
+        return;
+
+    msg_entity = pl;
+    WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
+    WriteByte(MSG_MULTICAST, MSG_BUILDING);
+    multicast('0 0 0', MULTICAST_ONE_NOSPECS);
+}
+
+void UpdateClientReloadSound(entity pl, float weapon) {
+    if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
+        return;
+
+    msg_entity = pl;
+    WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
+    WriteByte(MSG_MULTICAST, MSG_RELOADSOUND);
+    WriteFloat(MSG_MULTICAST, weapon);
+    multicast('0 0 0', MULTICAST_ONE_NOSPECS);
 }
 
 void UpdateClientGrenadePrimed(entity pl, float grentype, float explodes_at) = {
-    if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
-        return;
+#if 0  // Not needed until we re-enable TFX.
     msg_entity = pl;
     WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
     WriteByte(MSG_MULTICAST, MSG_GRENPRIMED);
+    WriteEntity(MSG_MULTICAST, pl);
     WriteByte(MSG_MULTICAST, grentype);
-    WriteFloat(MSG_MULTICAST, time);
     WriteFloat(MSG_MULTICAST, explodes_at);
-    multicast('0 0 0', MULTICAST_ONE_R_NOSPECS);
 
-    TFxUpdateGrenadeTimer(pl, explodes_at);
+    multicast('0 0 0', MULTICAST_ALL);  // Actual primer has reliable transport.
+#endif
 }
 
 void UpdateClientGrenadeThrown(entity pl) = {
-    if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
-        return;
+#if 0  // Not needed until we re-enable TFX.
     msg_entity = pl;
     WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
     WriteByte(MSG_MULTICAST, MSG_GRENTHROWN);
-    multicast('0 0 0', MULTICAST_ONE_NOSPECS);
-
-    TFxUpdateGrenadeTimer(pl, 0);
-}
-
-void UpdateClientPlayerDie(entity pl) = {
-    if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
-        return;
-    msg_entity = pl;
-    WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
-    WriteByte(MSG_MULTICAST, MSG_PLAYERDIE);
-    WriteFloat(MSG_MULTICAST, time);
-    multicast('0 0 0', MULTICAST_ONE_R_NOSPECS);
+    WriteEntity(MSG_MULTICAST, pl);
+    multicast('0 0 0', MULTICAST_ALL);
+#endif
 }
 
 void UpdateClientIDString(entity pl) {
-    if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
+    string ident = time < pl.ident_time ? pl.ident_string : "";
+
+    if (ident == "")  // No need to send null, we'll expire clientside.
         return;
-    // only send updates
-    //if(time < pl.ident_time && pl.ident_string == pl.last_ident_string)
-    //    return;
+
     msg_entity = pl;
-    WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET); 
+    WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
     WriteByte(MSG_MULTICAST, MSG_ID);
-    // identify
-    if (pl.ident_string && time < pl.ident_time) {
-        WriteString(MSG_MULTICAST, pl.ident_string);
-    } else {
-        WriteString(MSG_MULTICAST, "");
-    }
-    multicast('0 0 0', MULTICAST_ONE_NOSPECS);
-    pl.last_ident_string = pl.ident_string;
+    WriteString(MSG_MULTICAST, ident);
+    multicast('0 0 0', MULTICAST_ONE);
 }
 
 void UpdateClientStatusBar(entity pl)
@@ -992,6 +994,27 @@ void UpdateClientStatusBar(entity pl)
     multicast('0 0 0', MULTICAST_ONE_NOSPECS); 
 }
 
+void (entity pl, float flag_team) UpdateClientFlagPickUp = {
+    if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
+        return;
+
+    msg_entity = pl;
+    WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
+    WriteByte(MSG_MULTICAST, MSG_FLAG_PICKUP);
+    WriteFloat(MSG_MULTICAST, flag_team);
+    multicast('0 0 0', MULTICAST_ONE_NOSPECS);
+}
+
+void (entity pl) UpdateClientFlagDrop = {
+    if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
+        return;
+
+    msg_entity = pl;
+    WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
+    WriteByte(MSG_MULTICAST, MSG_FLAG_DROP);
+    multicast('0 0 0', MULTICAST_ONE_NOSPECS);
+}
+
 void (entity pl) RefreshStatusBar = {
     local string pad;
     local string s1 = ""; // will be used for grenade timers
@@ -1023,6 +1046,8 @@ void (entity pl) RefreshStatusBar = {
     if (height > 300)
         height = 300;
     height = height - pl.StatusStringLines - 13;
+
+    pl.StatusRefreshTime = time + 1.5;
 
     csqcactive = infokeyf(pl, INFOKEY_P_CSQCACTIVE);
     if(pl.classname == "observer" && csqcactive) {
@@ -1274,7 +1299,6 @@ void (entity pl) RefreshStatusBar = {
         }
     }
     centerprint(pl, pl.StatusString, pad, ident, ct, s1, s2, s3);
-    pl.StatusRefreshTime = time + 1.5;
     strunzone(pad); strunzone(ct); strunzone(s1); strunzone(s2); strunzone(s3);
 };
 

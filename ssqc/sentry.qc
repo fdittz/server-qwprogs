@@ -28,7 +28,7 @@ void () lvl1_sentry_stand =[0, lvl1_sentry_stand] {
 
 void () lvl1_sentry_atk1 =[1, lvl1_sentry_atk3] {
     ai_face();
-    if ((self.enemy == world) || self.enemy.is_feigning ||
+    if ((self.enemy == world) || IsFeigned(self.enemy) ||
         (self.enemy.health <= 0)
         || !visible(self.enemy) || (self.enemy.has_disconnected == 1))
 
@@ -57,13 +57,11 @@ void () lvl2_sentry_stand =[3, lvl2_sentry_stand] {
 
 void () lvl2_sentry_atk1 =[4, lvl2_sentry_atk2] {
     ai_face();
-    if (((((self.enemy == world) || self.enemy.is_feigning) ||
+    if (((((self.enemy == world) || IsFeigned(self.enemy)) ||
           (self.enemy.health <= 0)) || !visible(self.enemy)) ||
-        (self.enemy.has_disconnected == 1))
-
+            (self.enemy.has_disconnected == 1))
         lvl2_sentry_stand();
-
-    else if (self.ammo_shells <= 0)
+else if (self.ammo_shells <= 0)
         lvl2_sentry_stand();
     else if (Sentry_Fire() == 0)
         lvl2_sentry_atk3();
@@ -88,7 +86,7 @@ void () lvl3_sentry_stand =[6, lvl3_sentry_stand] {
 
 void () lvl3_sentry_atk1 =[7, lvl3_sentry_atk2] {
     ai_face();
-    if (((((self.enemy == world) || self.enemy.is_feigning) ||
+    if (((((self.enemy == world) || IsFeigned(self.enemy)) ||
           (self.enemy.health <= 0)) || !visible(self.enemy)) ||
         (self.enemy.has_disconnected == 1))
 
@@ -138,7 +136,7 @@ float () Sentry_FindTarget = {
                 (self.team_no != 0))
                 gotone = 0;
         }
-        if (client.is_feigning)
+        if (IsFeigned(client))
             gotone = 0;
         if ((client.flags & FL_NOTARGET) ||
             (client.items & IT_INVISIBILITY))
@@ -187,7 +185,7 @@ float (entity p) FO_Sentry_ValidTarget = {
             (self.team_no != 0))
             valid = FALSE;
     }
-    if (p.is_feigning)
+    if (IsFeigned(p))
         valid = FALSE;
     if ((p.flags & FL_NOTARGET) ||
         (p.items & IT_INVISIBILITY))
@@ -376,13 +374,14 @@ void () Sentry_Explode = {
 void () Sentry_Die = {
     sprint(self.real_owner, PRINT_HIGH, "Your sentry gun was destroyed\n");
     stuffcmd(self.real_owner, "play misc/chink.wav\n");
-    self.real_owner.has_sentry = 0;
-    
+    local entity ro = self.real_owner;
+    ro.has_sentry = 0;
+
     self.tfstate = self.tfstate | TFSTATE_RESPAWN_READY;
     self.think = Sentry_Explode;
     self.nextthink = time + 0.1;
-    if (self.real_owner.is_building) {
-        self = self.real_owner;
+    if (ro.is_building) {
+        self = ro;
         TeamFortress_EngineerBuildStop();
     }
 };
@@ -397,10 +396,10 @@ float () Sentry_Fire = {
 
     if (((self.ideal_yaw - anglemod(self.angles_y)) < -10)
         || ((self.ideal_yaw - anglemod(self.angles_y)) > 10))
-        return (0);
+        return 0;
 
-    if (self.enemy.is_feigning == 1)
-        return (0);
+    if (IsFeigned(self.enemy))
+        return 0;
 
     if ((self.weapon == 3) && (self.ammo_rockets > 0) &&
         (self.super_damage_finished < time)) {

@@ -65,7 +65,7 @@ static float ShowPlayerOutline(entity player) {
     if (prematch && TFxEnabled(TFX_PREMATCH_EVERYTHING))
         return TRUE;
 
-    if (!is_player)
+    if (!game_state.is_player)
         return TFxEnabled(TFX_SPEC_OUTLINE);
 
     if ((TFxEnabled(TFX_DEFENSE_OUTLINE) && !IsAttacking(player)) ||
@@ -80,9 +80,9 @@ static void RemoveOutline() {
         remove(self.outline);
 }
 
-static void AddOutline(entity ent, string model) {
+static void AddOutline(entity ent) {
     entity o = spawn();
-    setmodel(o, model);
+    setmodelindex(o, ent.modelindex);
     o.classname = "outline";
     o.fatness = 1;
     setsize(o, PLAYER_MINS, PLAYER_MAXS);
@@ -112,10 +112,10 @@ static void UpdateOutline(entity player) {
 
 float UpdatePlayer(float isnew) {
     if (isnew) {
-        if (self.entnum == player_localentnum && is_player)
+        if (self.entnum == player_localentnum && game_state.is_player)
             local_player = self;
 
-        AddOutline(self, "progs/player.mdl");
+        AddOutline(self);
     }
 
     if (self.entnum == player_localentnum)
@@ -130,7 +130,7 @@ float UpdatePlayer(float isnew) {
 }
 
 static float ShowTeamGrenTimer(float team, float my_team) {
-    if (!is_player && TFxEnabled(TFX_SPEC_GRENTIMER))
+    if (!game_state.is_player && TFxEnabled(TFX_SPEC_GRENTIMER))
         return TRUE;
 
     if (prematch && TFxEnabled(TFX_PREMATCH_EVERYTHING))
@@ -154,7 +154,7 @@ static float next_grenlist_update;
 static float RenderGrenTimer(entity p, float test_only) {
     const float maxd = 1000, mind = 200;
     vector po = p.origin + '0 0 40';
-    vector o = pmove_org;
+    vector o = PM_Org();
 
     if (p == local_player)
         return FALSE;
@@ -221,7 +221,7 @@ void TFxRenderGrenadeTimers() {
 }
 
 static float ShowFlagOutline() {
-    if (!is_player && TFxEnabled(TFX_SPEC_SEEFLAG))
+    if (!game_state.is_player && TFxEnabled(TFX_SPEC_SEEFLAG))
         return TRUE;
 
     if (prematch && TFxEnabled(TFX_PREMATCH_EVERYTHING))
@@ -252,12 +252,18 @@ static void UpdateFlagOutline(entity flag) {
 }
 
 float UpdateFlag(float isnew) {
-    if (isnew) {
-        AddOutline(self, "progs/ff_flag.mdl");
-        // Flags have their own shader already, just make them shiny for now.
-    }
+    /* if (isnew) { */
+    /*     float mindex = self.modelindex; */
+    /*     AddOutline(self); */
+    /*     // Flags have their own shader already, just make them shiny for now. */
+    /* } */
 
-    UpdateFlagOutline(self);
+    /* UpdateFlagOutline(self); */
+
+    if (self.skin == team_no) {
+        local float distance = vlen(self.origin - PM_Org());
+        self.alpha = min(0.25 + (distance / 200), 1);
+    }
 
     return TRUE;
 }
@@ -277,7 +283,6 @@ static string OutlineShader(string texture) {
      blendfunc GL_ONE GL_ONE_MINUS_SRC_COLOR\
      tcgen environment\
      tcmod rotate 30\
-     tcmod scroll 1.1\
      nodepthtest\
      depthfunc greater\
   }\
@@ -295,13 +300,22 @@ static string rnds(string prefix) {
 }
 
 void TF_Init() {
-    precache_model("progs/player.mdl");
+#if 0
+    Deltalisten breaks some default shaders even without a forceoverride.  Quick
+    fix to unblock.
+
     deltalisten("progs/player.mdl", UpdatePlayer, 0);
     deltalisten("progs/ff_flag.mdl", UpdateFlag, 0);
+    deltalisten("progs/tf_flag.mdl", UpdateFlag, 0);
 
     shader_team[0] = shaderforname(rnds("blue_team_outline"), OutlineShader("textures/sfx/quad.tga"));
     shader_team[1] = shaderforname(rnds("red_team_outline"), OutlineShader("textures/sfx/pent.tga"));
     shader_flag = shaderforname(rnds("flag_outline"), OutlineShader("textures/sfx/specular.tga"));
 
     shader_over_outline = shaderforname(rnds("over_outline"), "{ sort 7 }");
+#endif
+
+    deltalisten("progs/ff_flag.mdl", UpdateFlag, 0);
+    deltalisten("progs/tf_flag.mdl", UpdateFlag, 0);
+    deltalisten("progs/tf_stan.mdl", UpdateFlag, 0);
 }

@@ -8,12 +8,18 @@ FO_Hud_Panel* getHudPanel(PanelID);
 void FO_Hud_HidePanel(PanelID id);
 void FO_Hud_ShowPanel(PanelID id);
 
+DEFCVAR_FLOAT(fo_hud_noclipicon, 0);
+
 void(PanelID ignored, string text) drawClipSize = {
-    if (SBAR.ClipSize != "" || fo_hud_editor)
-        Hud_DrawPanelLMP(getHudPanel(HUDP_CLIPSIZE), text, ICON_CLIPSIZE, 1);
+    string icon = CVARF(fo_hud_noclipicon) ? "" : ICON_CLIPSIZE;
+    if (game_state.is_alive || fo_hud_editor)
+        Hud_DrawPanelLMP(getHudPanel(HUDP_CLIPSIZE), text, icon, 1);
 };
 
 void(PanelID ignored, string text) drawIdentify = {
+    if (time > last_id_time + 5)
+        return;
+
     if (strlen(text) > 0 || fo_hud_editor)
         Hud_DrawIdentifyPanel(text);
 };
@@ -43,32 +49,28 @@ void(PanelID ignored, string text) drawCapsPanel = {
 };
 
 void(PanelID panelid, string text) drawGren1Panel = {
-    local float playerclass = SBAR.PlayerClass;
+    float playerclass = WP_PlayerClass();
 
     if (playerclass < PC_SCOUT || playerclass > PC_ENGINEER)
         return;
 
-    local float gren_type = getstatf(STAT_TP_GREN1);
-    local string icon = GrenadeIcons[gren_type].icon;
-
+    string icon = FO_ClassGren(playerclass, 0)->icon;
     drawIconPanel(HUDP_GREN1, text, icon);
 };
 
 void(PanelID ignored, string text) drawGren2Panel = {
-    local float playerclass = SBAR.PlayerClass;
+    float playerclass = WP_PlayerClass();
 
     if (playerclass < PC_SCOUT || playerclass > PC_ENGINEER)
         return;
 
-    local float gren_type = getstatf(STAT_TP_GREN2);
-    local string icon = GrenadeIcons[gren_type].icon;
-
+    string icon = FO_ClassGren(playerclass, 1)->icon;
     drawIconPanel(HUDP_GREN2, text, icon);
 };
 
 void(PanelID ignored, string text) drawSpecial = {
-    if (SBAR.PlayerClass || fo_hud_editor)
-        Hud_DrawClassInfoPanel(SBAR.PlayerClass);
+    if (WP_PlayerClass() || fo_hud_editor)
+        Hud_DrawClassInfoPanel(WP_PlayerClass());
 };
 
 void(PanelID panelid, string text) drawGrenTimerPanel = {
@@ -107,9 +109,9 @@ void(PanelID panelid, string text) drawGrenTimerPanel = {
         // if things get reordered, but since we can only ever have one
         // grenade primed, we can obscure this by always considering
         // grenades after the first as primed.
-        float alpha = (gt.is_thrown() || timercount) ? 0.3 : 1.0;
-        Hud_DrawPanelLMP(&panel2, ftos(timeleft),
-                GrenadeIcons[gt.grentype()].icon, alpha);
+        float alpha = (gt.test_flag(FL_GT_THROWN) || timercount) ? 0.3 : 1.0;
+        string icon = FO_GrenDesc(gt.grentype())->icon;
+        Hud_DrawPanelLMP(&panel2, ftos(timeleft), icon, alpha);
         panel2.Position = panel2.Position +
             [0, panel2.FillSize.y * panel2.Scale];
         timercount++;
@@ -123,7 +125,7 @@ void(PanelID panelid, string text) drawFacePanel = {
     if (!CVARF(fo_fte_hud))
         return;
 
-    local float playerclass = SBAR.PlayerClass; //we could add different faces per class?
+    local float playerclass = WP_PlayerClass(); //we could add different faces per class?
 
     local string icon = FaceInvisibleInvulnerableIcon.icon;
     
@@ -162,7 +164,7 @@ void(PanelID panelid, string text) drawArmourPanel = {
     if(!CVARF(fo_fte_hud))
         return;
 
-    local float playerclass = SBAR.PlayerClass;
+    local float playerclass = WP_PlayerClass();
 
     local string icon = fo_hud_editor?ArmourIcons[1].icon:"";
     
@@ -298,30 +300,23 @@ string gameClockString() {
     float minutes = 0;
     float seconds = 0;
     float timelimit = stof(serverkey("timelimit"));
-    
-    if(round_time_remaining) {
-        float t = round_time_remaining - time; 
-        if(t < 0) t = t * -1;
-        minutes = floor(t/60);
-        seconds = floor(t - (minutes*60));
-    } else if(timelimit) {
-        minutes = floor(time/60);
-        seconds = 60 - floor(time - (minutes*60));
-        minutes = timelimit - ceil(time/60);
-        if(minutes < 0) minutes = minutes * -1;
-        if(seconds < 0) seconds = seconds * -1;
+
+    float end = getstatf(STAT_ROUND_END);
+    if (!end)
+        end = timelimit * 60;
+
+    if (end && end > servertime) {
+        minutes = (end - servertime)/60;
+        seconds = (end - servertime)%60;
     } else {
-        minutes = floor(time/60);
-        seconds = floor(time - (minutes*60));
+        minutes = time/60;
+        seconds = time%60;
     }
-    
-    string sm = strcat((minutes<10?"0":""),ftos(minutes));
-    string ss = strcat((seconds<10?"0":""),ftos(seconds));
-    
-    string tmp = strcat(sm,":",ss);
-    //if(round_time_remaining) tmp = ftos(floor(round_time_remaining - time));
-    
-    return tmp;  
+
+    string sm = strcat((minutes<10?"0":""),ftos(floor(minutes)));
+    string ss = strcat((seconds<10?"0":""),ftos(floor(seconds)));
+
+    return strcat(sm,":",ss);
 };
 
 static void(PanelID panelid, string text) doNothing = {};
@@ -513,7 +508,7 @@ void(PanelID panelid, string text) drawGameModePanel = {
     }
 }
 
-void(PanelID panelid, string text) drawReadyPanel = {
+void(PanelID panelid, string text) drawNotificationPanel = {
     FO_Hud_Panel* panel = getHudPanel(panelid);
 
     vector position = getPanelPosition(panel);
@@ -525,7 +520,7 @@ void(PanelID panelid, string text) drawReadyPanel = {
     local float pos_aligned;
     local string message = "";
     if (fo_hud_editor) {
-        message = "Ready Status";
+        message = "Notification panel";
         if (hud_panel(panelid, position, size, 0.3, panel.Display)) {
             // click event
         }
@@ -533,7 +528,8 @@ void(PanelID panelid, string text) drawReadyPanel = {
         if(showingscores || !panel.Display) {
             return;
         }
-        if(prematch && team_no && player_class && !SBAR.CountdownStarted && !is_spectator) {
+        if (prematch && team_no && WP_PlayerClass() && !SBAR.CountdownStarted &&
+              game_state.is_player) {
             if(SBAR.ReadyStatus & PLAYER_READY) {
                 message = "Ready";
                 textcolour = MENU_TEXT_GREEN;
@@ -610,6 +606,49 @@ void(PanelID panelid, string text) drawReadyPanel = {
                     }
                 }
             }
+        } else if (pick_up_time && time < pick_up_time + 1.5) {
+            local vector alert_text_size = MENU_TEXT_SMALL * panel.Scale;
+            local vector alert_text_position;
+            alert_text_position.y = ScreenSize.y / 3;
+            alert_text_position.x = (ScreenSize.x / 2) - (size.x / 2);
+
+            local string flag_team_str = "the";
+            local vector menu_text_color = MENU_TEXT_4;
+
+            switch(flag_team) {
+                case 1:
+                    flag_team_str = "blue's";
+                    menu_text_color = MENU_TEXT_BLUE_FO;
+                    break;
+                case 2:
+                    flag_team_str = "red's";
+                    menu_text_color = MENU_TEXT_RED_FO;
+                    break;
+                case 3:
+                    flag_team_str = "yellow's";
+                    menu_text_color = MENU_TEXT_YELLOW_FO;
+                    break;
+                case 4:
+                    flag_team_str = "green's";
+                    menu_text_color = MENU_TEXT_GREEN_FO;
+                    break;
+            }
+
+            local string alert_text_message = sprintf("You got %s flag!", flag_team_str);
+
+            pos_aligned = GetTextAlignOffset(
+                    alert_text_position.x,
+                    size.x,
+                    padding,
+                    alert_text_message,
+                    alert_text_size.x,
+                    panel.Orientation
+                    );
+
+            HRC_drawstring(
+                    [pos_aligned, alert_text_position.y],
+                    alert_text_message, alert_text_size, menu_text_color, 1, 0
+                    );
         }
     }
     if(message) {
@@ -620,64 +659,63 @@ void(PanelID panelid, string text) drawReadyPanel = {
     }
 }
 
-float (float val) AbbreviateNumber = {
-    val = val / 1000;
-    val = rint(val);
-    return val;
-};
-
 string (float val) AbbreviateNumberToString = {
-    string abbr = "";
+    val = rint(val);
+    if (val < 10000)
+        return ftos(rint(val));
 
-    int count = 0;
-    while (val >= 1000)
-    {
-        val = AbbreviateNumber(val);
+    float count = 0;
+    while (val >= 1000) {
+        val /= 1000;
         count++;
     }
 
-    switch (count)
-    {
-        case 1:
-            abbr = "k";
-            break;
-        case 2:
-            abbr = "m";
-            break;
-        case 3:
-            abbr = "b";
-            break;
-    }
-    
-    string s = strcat(ftos(val), abbr);
-    return s;
+    // Try to (with max density) use up to 4 characters.
+    const string abbr = "kmb";
+    if (count == 0)
+        return ftos(val);
+    else if (val < 100)
+        return sprintf("%0.1f%c", val, abbr[min(count - 1, 2)]);
+    else
+        return sprintf("%d%c", val, abbr[min(count - 1, 2)]);
 };
 
 void (vector position, vector size, string val, vector textcolour, float alpha
-    , float flags, string colname, optional float padright = FALSE) drawShowScoresColumnVal = {
-    float valwidth, colwidth;
-    
-    colwidth = strlen(colname);
-    if (padright == TRUE)
-    {
-        val = strpad(colwidth, val);
-    }
-    else
-    {
-        val = strpad(colwidth * -1, val);
-    }
-    
+    , float flags, string colname) drawShowScoresColumnVal = {
+    if (strlen(val) < strlen(colname))
+        val = strpad(strlen(colname) * -1, val);
     sui_text(position, size, val, textcolour, 1, 0);
 };
 
-vector (FO_ScoreBoardLine *lines, FO_Hud_Panel *panel
-    , float padding, vector columnColour) drawShowScoresTeamPanel = {
-    vector textcolour = MENU_TEXT_1;
+enum {
+    SCT_BLUE,
+    SCT_RED,
+    SCT_YELLOW,
+    SCT_GREEN,
+    SCT_SPECS,
+    NUM_SCT,
+};
+
+struct FO_ScoreBoardTeam {
+    FO_ScoreBoardLine lines[FO_SCOREBOARDLINES_LENGTH];
+    int count;
+};
+
+struct FO_ScoreBoard {
+    FO_ScoreBoardTeam team[NUM_SCT];
+};
+
+static FO_ScoreBoard score_board;
+
+DEFCVAR_FLOAT(fo_simple_names, 0);
+
+vector drawShowScoresTeamPanel (FO_Hud_Panel *panel, FO_ScoreBoardTeam* team,
+                                float padding, vector team_colour) {
     vector smalltext = MENU_TEXT_SMALL * panel.Scale;
     vector yspacer = [0, 20];
     vector position = [0, 0];
     vector size = getPanelFillSize(panel);
-    
+
     position = [0,0];
     sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
     size = [size_x, smalltext_y];
@@ -690,143 +728,112 @@ vector (FO_ScoreBoardLine *lines, FO_Hud_Panel *panel
 
     float classspace = strlen("class") * smalltext.x;
 
-    for (float i = 0; i < FO_ScoreBoardColumns.length; i++)
-    {
+    FO_ScoreBoardLine* lines = &team->lines;
+    for (float i = 0; i < FO_ScoreBoardColumns.length; i++) {
         string colname = FO_ScoreBoardColumns[i];
-        if (lines[i].team_no == TEAM_SPECTATOR || lines[i].team_no == TEAM_OBSERVER)
-        {
-            switch (colname)
-            {
+        if (lines[i].team_no == TEAM_SPECTATOR || lines[i].team_no == TEAM_OBSERVER) {
+            switch (colname) {
                 case "class":
                     colname = "type";
                 case "ping":
                 case "pl":
                 case "name":
-                    sui_text(position, smalltext, colname, columnColour, .7, 0);
+                    sui_text(position, smalltext, colname, SCOREB_HEADER, .7, 0);
                     break;
             }
+        } else {
+            sui_text(position, smalltext, colname, SCOREB_HEADER, .7, 0);
         }
-        else
-        {
-            sui_text(position, smalltext, colname, columnColour, .7, 0);
-        }
-        
+
         txtlength = strlen(colname) * smalltext.x;
         if (colname == "name")
-        {
             position_x += namespace;
-        }
         else
-        {
             position_x += txtlength + padding;
-        }
     }
 
     position = [0, smalltext.y];
     float lineCount = 1;
-    for (float i = 0; i < FO_SCOREBOARDLINES_LENGTH; i++)
-    {
+    for (float i = 0; i < team->count; i++) {
         string name = lines[i].name;
         if (!name)
             continue;
 
         lineCount++;
-        float trans = 1;
+        float alpha = 1;
         if (lineCount % 2 == 0)
-        {
-            trans = .7;
-        }
+            alpha = .7;
         else
-        {
-            trans = .3;
-        }
-        
-        sui_fill(position, size, columnColour, trans, 0);
+            alpha = .3;
 
-        textcolour = MENU_TEXT_1;
-        if(lines[i].name == getplayerkeyvalue(player_localnum, "name")) {
-            textcolour = MENU_TEXT_4;
-        } else if(lines[i].name == getplayerkeyvalue(player_localentnum - 1, "name")) {
-            textcolour = '0.8 0 0.8';
-        } else {
-            if (prematch && lines[i].team_no && !SBAR.CountdownStarted 
-                && lines[i].team_no != TEAM_SPECTATOR && lines[i].team_no != TEAM_OBSERVER)
-            {
-                float ready = lines[i].ready;
-                if (ready)
-                {
-                    textcolour = MENU_TEXT_GREEN_FO;
-                }
-                else
-                {
-                    textcolour = MENU_TEXT_RED_FO;
-                }
-            }
+        vector fill_colour = team_colour;
+        if (lines[i].name == getplayerkeyvalue(player_localnum, "name")) {
+            alpha = 0.5;
+            fill_colour = SCOREB_SELF_BG;
+        } else if (lines[i].name == getplayerkeyvalue(player_localentnum - 1, "name")) {
+            alpha = 0.5;
+            fill_colour = SCOREB_SPECTATED_BG;
         }
+
+        sui_fill(position, size, fill_colour, alpha, 0);
 
         float col = 0, alpha = 1, flags = 0;
         string val = AbbreviateNumberToString(lines[i].ping);
-        drawShowScoresColumnVal(position, smalltext, val, textcolour, alpha, flags, FO_ScoreBoardColumns[col]);
+        drawShowScoresColumnVal(position, smalltext, val, SCOREB_FIELD, alpha, flags, FO_ScoreBoardColumns[col]);
         position_x += strlen(FO_ScoreBoardColumns[col++]) * smalltext.x + padding;
 
         val = AbbreviateNumberToString(lines[i].pl);
-        drawShowScoresColumnVal(position, smalltext, val, textcolour, alpha, flags, FO_ScoreBoardColumns[col]);
+        drawShowScoresColumnVal(position, smalltext, val, SCOREB_FIELD, alpha, flags, FO_ScoreBoardColumns[col]);
         position_x += strlen(FO_ScoreBoardColumns[col++]) * smalltext.x + padding;
 
         if (team_no == lines[i].team_no || lines[i].team_no == TEAM_SPECTATOR || lines[i].team_no == TEAM_OBSERVER
-            || is_spectator || is_observer)
-        {
+            || game_state.is_spectator) {
             string c = lines[i].classtext;
-            if (lines[i].team_no != TEAM_SPECTATOR && lines[i].team_no != TEAM_OBSERVER)
-            {
+            if (lines[i].team_no != TEAM_SPECTATOR && lines[i].team_no != TEAM_OBSERVER) {
                 float cspace = strlen(c) * smalltext.x;
-                if (cspace > classspace)
-                {
+                if (cspace > classspace) {
                     float max = classspace / smalltext.x;
                     // TODO - maybe make this ok with non fixed width fonts one day... we're 90% of the way there
                     c = substring(c, 0, max);
                 }
             }
-            
-            sui_text(position, smalltext, c, textcolour, 1, 0);
+
+            sui_text(position, smalltext, c, SCOREB_FIELD, 1, 0);
         }
-        
+
         position_x += strlen(FO_ScoreBoardColumns[col++]) * smalltext.x + padding;
 
-        if (lines[i].team_no != TEAM_SPECTATOR && lines[i].team_no != TEAM_OBSERVER)
-        {
+        if (lines[i].team_no != TEAM_SPECTATOR && lines[i].team_no != TEAM_OBSERVER) {
             val = AbbreviateNumberToString(lines[i].score);
-            drawShowScoresColumnVal(position, smalltext, val, textcolour, alpha, flags, FO_ScoreBoardColumns[col]);
+            drawShowScoresColumnVal(position, smalltext, val, SCOREB_FIELD, alpha, flags, FO_ScoreBoardColumns[col]);
         }
         position_x += strlen(FO_ScoreBoardColumns[col++]) * smalltext.x + padding;
 
         string n = lines[i].name;
-        if (strlen(n) * smalltext.x >= (namespace - padding))
-        {
-            float diff = (namespace - padding) / smalltext.x;
-            n = substring(n, 0, diff);
+        if (CVARF(fo_simple_names))
+            n = strdecolorize(n);
+
+        if (stringwidth(n, TRUE, smalltext) >= namespace - padding) {
+            n = strdecolorize(n);
+            n = substring(n, 0, floor(namespace - padding) / smalltext.x);
         }
-        sui_text(position, smalltext, n, textcolour, 1, 0);
+        sui_text(position, smalltext, n, SCOREB_NAME, 1, 0);
         position_x += namespace;
 
-        vector iconpos = [size_x, position_y]; 
+        vector iconpos = [size_x, position_y];
         //check for icon files existing, otherwise use fallbacks
         float filehandle;
         if(lines[i].ready) {
-            filehandle = fopen(strcat("textures/wad/icon_ready.png"), FILE_READ);
-            if (filehandle >= 0) {
-                fclose(filehandle);
-                sui_pic(iconpos, smalltext, "textures/wad/icon_ready.png", '1 1 1', alpha, flags);
-            } else {
+            if (FO_ScoreBoardAssets.icon_ready != "")
+                sui_pic(iconpos, smalltext, FO_ScoreBoardAssets.icon_ready, '1 1 1', alpha, flags);
+            else
                 sui_text(iconpos, smalltext, "R", MENU_TEXT_GREEN_FO, 1, 0);
-            }
             iconpos_x += smalltext.x;
         }
+
         if(lines[i].chat & 1) {
-            filehandle = fopen(strcat("textures/wad/icon_chat.png"), FILE_READ);
-            if (filehandle >= 0) {
-                fclose(filehandle);
-                sui_pic(iconpos, smalltext, "textures/wad/icon_chat.png", '1 1 1', alpha, flags);
+            if (FO_ScoreBoardAssets.icon_chat != "") {
+                sui_pic(iconpos, smalltext, FO_ScoreBoardAssets.icon_chat, '1 1 1', alpha, flags);
             } else {
                 //use ezquake chaticons image. Couldn't get drawsubpic to work, so now we get this instead
                 drawsetcliparea(iconpos_x + panel.Position.x, iconpos_y + panel.Position.y + 20, smalltext.x, smalltext.y);
@@ -835,11 +842,10 @@ vector (FO_ScoreBoardLine *lines, FO_Hud_Panel *panel
             }
             iconpos_x += smalltext.x;
         }
+
         if(lines[i].chat & 2) {
-            filehandle = fopen(strcat("textures/wad/icon_afk.png"), FILE_READ);
-            if (filehandle >= 0) {
-                fclose(filehandle);
-                sui_pic(iconpos, smalltext, "textures/wad/icon_afk.png", '1 1 1', alpha, flags);
+            if (FO_ScoreBoardAssets.icon_afk != "") {
+                sui_pic(iconpos, smalltext, FO_ScoreBoardAssets.icon_afk, '1 1 1', alpha, flags);
             } else {
                 drawsetcliparea(iconpos_x + panel.Position.x, iconpos_y + panel.Position.y + 20, smalltext.x, smalltext.y);
                 sui_pic(iconpos - [smalltext_x,0], [smalltext_x * 4,smalltext_y * 256 / 56 ], "textures/chaticons.png", '1 1 1', alpha, flags);
@@ -848,61 +854,64 @@ vector (FO_ScoreBoardLine *lines, FO_Hud_Panel *panel
             iconpos_x += smalltext.x;
         }
 
-        if (lines[i].team_no == TEAM_SPECTATOR || lines[i].team_no == TEAM_OBSERVER)
-        {
+        if (lines[i].team_no == TEAM_SPECTATOR || lines[i].team_no == TEAM_OBSERVER) {
             position_y += smalltext_y;
             position_x = 0;
             continue;
         }
 
         val = AbbreviateNumberToString(lines[i].caps);
-        drawShowScoresColumnVal(position, smalltext, val, textcolour, alpha, flags, FO_ScoreBoardColumns[col]);
+        drawShowScoresColumnVal(position, smalltext, val, SCOREB_FIELD, alpha, flags, FO_ScoreBoardColumns[col]);
         position_x += strlen(FO_ScoreBoardColumns[col++]) * smalltext.x + padding;
 
         val = AbbreviateNumberToString(lines[i].touches);
-        drawShowScoresColumnVal(position, smalltext, val, textcolour, alpha, flags, FO_ScoreBoardColumns[col]);
+        drawShowScoresColumnVal(position, smalltext, val, SCOREB_FIELD, alpha, flags, FO_ScoreBoardColumns[col]);
         position_x += strlen(FO_ScoreBoardColumns[col++]) * smalltext.x + padding;
 
         val = AbbreviateNumberToString(lines[i].kills);
-        drawShowScoresColumnVal(position, smalltext, val, textcolour, alpha, flags, FO_ScoreBoardColumns[col]);
+        drawShowScoresColumnVal(position, smalltext, val, SCOREB_FIELD, alpha, flags, FO_ScoreBoardColumns[col]);
         position_x += strlen(FO_ScoreBoardColumns[col++]) * smalltext.x + padding;
 
         val = AbbreviateNumberToString(lines[i].teamkills);
-        drawShowScoresColumnVal(position, smalltext, val, textcolour, alpha, flags, FO_ScoreBoardColumns[col]);
+        drawShowScoresColumnVal(position, smalltext, val, SCOREB_FIELD, alpha, flags, FO_ScoreBoardColumns[col]);
         position_x += strlen(FO_ScoreBoardColumns[col++]) * smalltext.x + padding;
 
         val = AbbreviateNumberToString(lines[i].deaths);
-        drawShowScoresColumnVal(position, smalltext, val, textcolour, alpha, flags, FO_ScoreBoardColumns[col]);
+        drawShowScoresColumnVal(position, smalltext, val, SCOREB_FIELD, alpha, flags, FO_ScoreBoardColumns[col]);
         position_x += strlen(FO_ScoreBoardColumns[col++]) * smalltext.x + padding;
 
         val = AbbreviateNumberToString(lines[i].afflicted);
-        drawShowScoresColumnVal(position, smalltext, val, textcolour, alpha, flags, FO_ScoreBoardColumns[col]);
+        drawShowScoresColumnVal(position, smalltext, val, SCOREB_FIELD, alpha, flags, FO_ScoreBoardColumns[col]);
         position_x += strlen(FO_ScoreBoardColumns[col++]) * smalltext.x + padding;
 
         val = AbbreviateNumberToString(lines[i].teamafflicted);
-        drawShowScoresColumnVal(position, smalltext, val, textcolour, alpha, flags, FO_ScoreBoardColumns[col]);
+        drawShowScoresColumnVal(position, smalltext, val, SCOREB_FIELD, alpha, flags, FO_ScoreBoardColumns[col]);
         position_x += strlen(FO_ScoreBoardColumns[col++]) * smalltext.x + padding;
 
         val = AbbreviateNumberToString(lines[i].damagegiven);
-        drawShowScoresColumnVal(position, smalltext, val, textcolour, alpha, flags, FO_ScoreBoardColumns[col]);
+        drawShowScoresColumnVal(position, smalltext, val, SCOREB_FIELD, alpha, flags, FO_ScoreBoardColumns[col]);
         position_x += strlen(FO_ScoreBoardColumns[col++]) * smalltext.x + padding;
 
         val = AbbreviateNumberToString(lines[i].damagetaken);
-        drawShowScoresColumnVal(position, smalltext, val, textcolour, alpha, flags, FO_ScoreBoardColumns[col]);
+        drawShowScoresColumnVal(position, smalltext, val, SCOREB_FIELD, alpha, flags, FO_ScoreBoardColumns[col]);
         position_x += strlen(FO_ScoreBoardColumns[col++]) * smalltext.x + padding;
 
         position_x = 0;
         position_y += smalltext_y;
     }
-    
+
     size_y = smalltext.y * lineCount;
     sui_border_box([0, 0], size, 1, MENU_BORDER, FO_MENU_TRANSPARENCY, 0);
     return position;
 };
 
-void(PanelID panelid, string text) drawShowScoresPanel = {
+
+void drawShowScoresPanel(PanelID panelid, string text) {
     FO_Hud_Panel* panel = getHudPanel(panelid);
-    
+
+    if (!panel.Display && !fo_hud_editor)
+        return;
+
     vector position = getPanelPosition(panel);
     vector size = getPanelFillSize(panel);
     vector mediumtext = MENU_TEXT_SMALL * panel.Scale * 2;
@@ -913,144 +922,213 @@ void(PanelID panelid, string text) drawShowScoresPanel = {
         if (hud_panel(panelid, position, size, 0.3, panel.Display)) {
             // click event
         }
-    } else {
-        if(!panel.Display) {
-            return;
-        }       
-
-        FO_ScoreBoardLine FO_ScoreBoardLines_Blue[FO_SCOREBOARDLINES_LENGTH];
-        FO_ScoreBoardLine FO_ScoreBoardLines_Red[FO_SCOREBOARDLINES_LENGTH];
-        FO_ScoreBoardLine FO_ScoreBoardLines_Yellow[FO_SCOREBOARDLINES_LENGTH];
-        FO_ScoreBoardLine FO_ScoreBoardLines_Green[FO_SCOREBOARDLINES_LENGTH];
-        FO_ScoreBoardLine FO_ScoreBoardLines_Specs[FO_SCOREBOARDLINES_LENGTH];
-
-        sui_push_frame(position, [size.x, 1]);     
-        sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_START]);
-        position = [0,0];
-        sui_text(position, mediumtext, "Scoreboard", textcolour, 1, 0);
-
-        float bluecount = 0, redcount = 0, yellowcount = 0, greencount = 0, speccount = 0;
-        for (float i = 0; i < FO_SCOREBOARDLINES_LENGTH; i++)
-        {            
-            FO_ScoreBoardLine sbl;
-            sbl.ping = getplayerkeyfloat(i, INFOKEY_P_PING);
-            if (!sbl.ping)
-            {
-                continue;
-            }
-            sbl.pl = getplayerkeyfloat(i, INFOKEY_P_PACKETLOSS);
-            float class = getplayerkeyfloat(i, "playerclass");
-            sbl.classtext = ClassToString(class);
-            sbl.name = getplayerkeyvalue(i, INFOKEY_P_NAME);
-            sbl.score = getplayerkeyfloat(i, INFOKEY_P_FRAGS);
-            sbl.caps = getplayerkeyfloat(i, "caps");
-            sbl.touches = getplayerkeyfloat(i, "touches");
-            sbl.kills = getplayerkeyfloat(i, "kills");
-            sbl.teamkills = getplayerkeyfloat(i, "teamkills");
-            sbl.deaths = getplayerkeyfloat(i, "deaths");
-            sbl.afflicted = getplayerkeyfloat(i, "afflicted");
-            sbl.teamafflicted = getplayerkeyfloat(i, "teamafflicted");
-            sbl.damagegiven = getplayerkeyfloat(i, "damagegiven");
-            sbl.damagetaken = getplayerkeyfloat(i, "damagetaken");
-            sbl.team_no = getplayerkeyfloat(i, "team_no");
-            sbl.ready = getplayerkeyfloat(i, "ready");
-            sbl.chat = getplayerkeyfloat(i, "chat");
-
-            switch (sbl.team_no)
-            {
-                case 1:
-                    FO_ScoreBoardLines_Blue[bluecount++] = sbl;
-                    break;
-                case 2:
-                    FO_ScoreBoardLines_Red[redcount++] = sbl;
-                    break;
-                case 3:
-                    FO_ScoreBoardLines_Yellow[yellowcount++] = sbl;
-                    break;
-                case 4:
-                    FO_ScoreBoardLines_Green[greencount++] = sbl;
-                    break;
-                default:
-                    float spec = getplayerkeyfloat(i, "*spectator");
-                    sbl.team_no = (spec == 1) ? TEAM_SPECTATOR : TEAM_OBSERVER;
-                    sbl.classtext = (spec == 1) ? "Spectator" : "Observer";
-                    FO_ScoreBoardLines_Specs[speccount++] = sbl;
-                    break;
-            }
-        }
-
-        float sbCount = 0;
-
-        vector smalltext = MENU_TEXT_SMALL * panel.Scale;
-        vector yspacer = [0, 20];
-        size_y = smalltext_y;
-        
-        if (FO_ScoreBoardLines_Blue[0].name)
-        {
-            position += yspacer;
-            sui_push_frame(position, size);
-            position = drawShowScoresTeamPanel(FO_ScoreBoardLines_Blue, panel, padding, MENU_TEXT_BLUE_FO);
-            sbCount++;
-        }
-            
-        if (FO_ScoreBoardLines_Red[0].name)
-        {
-            position += yspacer;
-            sui_push_frame(position, size);
-            position = drawShowScoresTeamPanel(FO_ScoreBoardLines_Red, panel, padding, MENU_TEXT_RED_FO);
-            sbCount++;
-        }
-            
-        if (FO_ScoreBoardLines_Yellow[0].name)
-        {
-            position += yspacer;
-            sui_push_frame(position, size);
-            position = drawShowScoresTeamPanel(FO_ScoreBoardLines_Yellow, panel, padding, MENU_TEXT_YELLOW_FO);
-            sbCount++;
-        }
-            
-        if (FO_ScoreBoardLines_Green[0].name)
-        {
-            position += yspacer;
-            sui_push_frame(position, size);
-            position = drawShowScoresTeamPanel(FO_ScoreBoardLines_Green, panel, padding, MENU_TEXT_GREEN_FO);
-            sbCount++;
-        }
-
-        if (FO_ScoreBoardLines_Specs[0].name)
-        {
-            position += yspacer;
-            sui_push_frame(position, size);
-            position = drawShowScoresTeamPanel(FO_ScoreBoardLines_Specs, panel, padding, MENU_TEXT_SPEC_FO);
-            sbCount++;
-        }
-
-       
-        /*
-        // FIXME
-        maybe some colours on some columns to help differentiate them       
-        If possible, have AFK/msg indicators
-        Reset between rounds
-        Make a summary one for end of game too
-        show who you are on scoreboard
-        show who you are speccing
-        when player comes in after caps occur, they aren't getting team score
-
-        */
-
-        for (float i = 0; i < sbCount; i++)
-        {
-            sui_pop_frame();
-        }
-        
-        sui_pop_frame();
+        return;
     }
+
+    float i;
+
+    for (i = 0; i < NUM_SCT; i++)
+        score_board.team[i].count = 0;
+
+    sui_push_frame(position, [size.x, 1]);
+    sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_START]);
+    position = [0,0];
+    sui_text(position, mediumtext, "Scoreboard", textcolour, 1, 0);
+
+    for (i = 0; i < FO_SCOREBOARDLINES_LENGTH; i++) {
+        float ping = getplayerkeyfloat(i, INFOKEY_P_PING);
+        if (!ping)
+            continue;
+
+        int sbl_team_no = getplayerkeyfloat(i, "team_no");
+        switch (sbl_team_no) {
+            case 1: case 2: case 3: case 4:
+                sbl_team_no -= 1;  // Maps to SC enum
+                break;
+            default:
+                sbl_team_no = SCT_SPECS;
+                break;
+        }
+
+        FO_ScoreBoardTeam* team = &score_board.team[sbl_team_no];
+        FO_ScoreBoardLine* sbl = &team->lines[team->count++];
+
+        sbl->ping = ping;
+        sbl->pl = getplayerkeyfloat(i, INFOKEY_P_PACKETLOSS);
+        float class = getplayerkeyfloat(i, "playerclass");
+        sbl->classtext = ClassToString(class);
+        sbl->name = getplayerkeyvalue(i, INFOKEY_P_NAME);
+        sbl->score = getplayerkeyfloat(i, INFOKEY_P_FRAGS);
+        sbl->caps = getplayerkeyfloat(i, "caps");
+        sbl->touches = getplayerkeyfloat(i, "touches");
+        sbl->kills = getplayerkeyfloat(i, "kills");
+        sbl->teamkills = getplayerkeyfloat(i, "teamkills");
+        sbl->deaths = getplayerkeyfloat(i, "deaths");
+        sbl->afflicted = getplayerkeyfloat(i, "afflicted");
+        sbl->teamafflicted = getplayerkeyfloat(i, "teamafflicted");
+        sbl->damagegiven = getplayerkeyfloat(i, "damagegiven");
+        sbl->damagetaken = getplayerkeyfloat(i, "damagetaken");
+        sbl->team_no = getplayerkeyfloat(i, "team_no");
+        sbl->ready = getplayerkeyfloat(i, "ready");
+        sbl->chat = getplayerkeyfloat(i, "chat");
+
+        if (sbl_team_no == SCT_SPECS) {
+            float spec = getplayerkeyfloat(i, "*spectator");
+            sbl->team_no = (spec == 1) ? TEAM_SPECTATOR : TEAM_OBSERVER;
+            sbl->classtext = (spec == 1) ? "Spectator" : "Observer";
+        }
+    }
+
+    float sbCount = 0;
+
+    vector smalltext = MENU_TEXT_SMALL * panel.Scale;
+    vector yspacer = [0, 20];
+    size_y = smalltext_y;
+
+    for (i = 0; i < NUM_SCT; i++) {
+        FO_ScoreBoardTeam* team = &score_board.team[i];
+        if (!team->count)
+            continue;
+
+        position += yspacer;
+        sui_push_frame(position, size);
+        position = drawShowScoresTeamPanel(panel, team, padding,
+                                           TEXT_TEAM_COLOUR[i]);
+        sbCount++;
+    }
+
+    /*
+    // FIXME
+    maybe some colours on some columns to help differentiate them
+    If possible, have AFK/msg indicators
+    Reset between rounds
+    Make a summary one for end of game too
+    show who you are on scoreboard
+    show who you are speccing
+    when player comes in after caps occur, they aren't getting team score
+
+*/
+
+    for (float i = 0; i < sbCount; i++)
+        sui_pop_frame();
+    sui_pop_frame();
 }
 
 void (float show) FO_Show_Scores = {
     showingscores = show;
     getHudPanel(HUDP_SHOWSCORES)->Display = show;
 };
+
+struct SpeedBarColors {
+    float max_speed;
+    float frac;
+    vector color;
+};
+
+const float SPEEDBAR_MAX = 3000;
+static SpeedBarColors speedbar_colors[] = {
+    { 300, 0.40,       '0.6 0.2 0.2'},
+    { 400, 0.10,       '0.7 0.2 0.2'},
+    { 500, 0.25,       '0.7 0.4 0.2'},
+    { 750, 0.1225,     '0.7 0.7 0.3'},
+    {1000, 0.1225,     '0.1 0.5 0.1'},
+    {SPEEDBAR_MAX, 1,  '0.1 0.7 0.1'},
+};
+
+static float PlanarSpeed() {
+    vector pvel = PM_Vel();
+    pvel.z = 0;  // compiler bug: pvel becomes [1 0 0] if this is inlined
+    return vlen(pvel);
+}
+
+void drawSpeedBar(PanelID panelid, string text) {
+    FO_Hud_Panel* panel = getHudPanel(HUDP_SPEEDBAR);
+    vector fillsize = panel.FillSize * panel.Scale;
+    float alpha = fo_hud_editor ? 0.2:0.9;
+    vector position = getPanelPosition(panel);
+
+    if (hud_panel(panel->id, position, fillsize, alpha, panel.Display)) {
+        // click event
+    }
+
+    if (fo_hud_editor)
+        return;
+
+    HRC_drawfill(position, fillsize, '0.5 0.5 0.5');
+
+    position += '1 1 0';
+    fillsize -= '1 2 0';
+    float frac_start, frac_end = 1;
+
+    float tspeed = PlanarSpeed();
+    float rspeed = min(tspeed, SPEEDBAR_MAX);
+
+    float last_max = 0;
+    for (int i = 0; i < speedbar_colors.length; i++) {
+        SpeedBarColors* cur = &speedbar_colors[i];
+
+        if (frac_end > 0.99) {
+            frac_start = 0;
+            frac_end = cur.frac;
+        } else {
+            frac_start = frac_end;
+            frac_end = min(frac_start + cur.frac, 1);
+        }
+
+        float pos;
+        if (rspeed > cur.max_speed) {
+            pos = frac_end;
+            // When we know we're going to wrap, fill the prior color.
+            if (frac_end > 0.99)
+                frac_start = 0;
+        } else {
+            pos = (rspeed - last_max) / (cur.max_speed - last_max) *
+                  (frac_end - frac_start) + frac_start;
+        }
+
+        vector start = position, fill = fillsize;
+        start.x += frac_start * fill.x;
+        fill.x *= pos - frac_start;
+        HRC_drawfill(start, fill, cur.color);
+
+        last_max = cur.max_speed;
+        if (rspeed < last_max)
+            break;
+    }
+
+    HRC_drawstring(position + '3 0 0', ftos((int)tspeed), '9 9 0', '1 1 1');
+}
+
+void drawReloadProgress(PanelID panelid, string text) {
+    FO_Hud_Panel* panel = getHudPanel(HUDP_RELOADPROGRESS);
+    vector fillsize = panel.FillSize * panel.Scale;
+    vector position = getPanelPosition(panel);
+
+    if (fo_hud_editor &&
+        hud_panel(panel->id, position, fillsize, 0.2, panel.Display)) {
+        // click event
+    }
+
+    if (!game_state.is_alive)
+        return;
+
+    float per = WP_ReloadPercent();
+    if (per == 1)
+        return;
+
+    HRC_drawfill(position, fillsize, '0.5 0.5 0.5');
+    vector progress = fillsize;
+    progress.x *= per;
+
+    position += '1 1 0';
+    HRC_drawfill(position, progress - '1 2 0', '0.9 0.9 0.9');
+    const string text = "Reloading";
+    const vector fontsize = '8 8 0';
+    position.x += (fillsize.x - stringwidth(text, 0, fontsize)) / 2;
+    HRC_drawstring(position, text, fontsize, '1 0.4 0.4');
+}
+
+string getPingPanelText();
 
 var FO_Hud_Panel Hud_Panels[] = {
 //  id, Name, Position, FillSize, Scale, TextScale, Display, Orientation,
@@ -1064,17 +1142,18 @@ var FO_Hud_Panel Hud_Panels[] = {
     {HUDP_MENU, "menu", "Menu",                       '10 110',  '300 200',1,0,1,0,1, drawSimplePanel, {return "";}},
     {HUDP_MENU_HINT, "menuhint", FO_HUD_MENU_HINT_NAME,    '100 300', '300 24', 1,0,1,0,1, drawTextPanel, {return SBAR.Hint;}},
     {HUDP_CLIPSIZE, "clipsize", FO_HUD_CLIPSIZE_NAME,     '464 455', '26 26',  0.75,0,1,0,0, drawClipSize, { return WP_GetClip(); }},
+    {HUDP_RELOADPROGRESS, "reload_progress", "Reload Progress",  '0 0',  '100 10', 1,1,1,0,0, drawReloadProgress, {return "";}, 0, HUD_SNAP_CENTER},
     {HUDP_FRAGSTREAK, "fragstreak", FO_HUD_FRAGSTREAK_NAME, '10 50',   '26 26',  1,0,1,0,0, drawFragStreakPanel, {return ftos(SBAR.FragStreak);}},
     {HUDP_CAPS, "caps", FO_HUD_CAPS_NAME,             '10 80',   '26 26',  1,0,1,0,0, drawCapsPanel, {return ftos(SBAR.Caps);}},
-    {HUDP_GREN1, "gren1", FO_HUD_GREN1_NAME,           '10 110',  '26 26',  1,0,1,0,0, drawGren1Panel, {return ftos(getstatf(STAT_NO_GREN1));}},
-    {HUDP_GREN2, "gren2", FO_HUD_GREN2_NAME,           '10 140',  '26 26',  1,0,1,0,0, drawGren2Panel, {return ftos(getstatf(STAT_NO_GREN2));}},
-    {HUDP_SPECIAL, "playerclass", FO_HUD_SPECIAL_NAME,   '10 170',  '50 26',  1,0,1,0,0, drawSpecial, {return ftos(SBAR.PlayerClass);}},
+    {HUDP_GREN1, "gren1", FO_HUD_GREN1_NAME,           '10 110',  '26 26',  1,0,1,0,0, drawGren1Panel, {return ftos(WP_GrenCount(1));}},
+    {HUDP_GREN2, "gren2", FO_HUD_GREN2_NAME,           '10 140',  '26 26',  1,0,1,0,0, drawGren2Panel, {return ftos(WP_GrenCount(2));}},
+    {HUDP_SPECIAL, "playerclass", FO_HUD_SPECIAL_NAME,   '10 170',  '50 26',  1,0,1,0,0, drawSpecial, {return ftos(WP_PlayerClass());}},
     {HUDP_IDENTIFY, "identify", FO_HUD_IDENTIFY_NAME,     '10 200',  '50 26',  1,0,1,FO_HUD_INSERT_MIDDLE, 0, drawIdentify, {return SBAR.Identify;}},
     {HUDP_FLAGINFO, "flaginfo", FO_HUD_FLAGINFO_NAME,     '10 230',  '26 260', 1,0,1,0,0, drawFlagInfo, {return "";}},
     {HUDP_GRENTIMER, "grentimer", FO_HUD_GRENTIMER_NAME,   '100 110', '26 26',  1,0,1,0,0, drawGrenTimerPanel, {return "";}},
     {HUDP_MOTD, "motd", FO_HUD_MOTD_NAME,             '150 100', '100 24', 1,0,1,0,0, drawMOTDPanel, {return SBAR.MOTD;}},
     {HUDP_GAME_MODE, "gamemode", FO_HUD_GAME_MODE_NAME,    '100 140', '100 10', 1,0,1,0,0, drawGameModePanel, {return "";}},
-    {HUDP_READY, "ready", FO_HUD_READY_NAME,           '10 100',  '100 10', 2,0,1,FO_HUD_INSERT_MIDDLE, 1, drawReadyPanel, {return SBAR.Hint;}},
+    {HUDP_NOTIFICATION, "notification", FO_HUD_NOTIFICATION_NAME,           '10 100',  '100 10', 2,0,1,FO_HUD_INSERT_MIDDLE, 1, drawNotificationPanel, {return SBAR.Hint;}},
     {HUDP_HEALTH, "health", FO_HUD_HEALTH_NAME,         '-22 -2',  '72 24',  1,0,1,0,0, drawHealthArmourTextPanel, {return ftos(getstatf(STAT_HEALTH));}, 0, 34},
     {HUDP_FACE, "face", FO_HUD_FACE_NAME,             '-70 -2',  '24 24',  1,0,1,0,0, drawFacePanel, {return "";}, 0, 34},
     {HUDP_AMMO, "ammo", FO_HUD_AMMO_NAME,             '90 -2',   '72 24',  1,0,1,0,0, drawAmmoTextPanel, {return ftos(WP_CurrentAmmo());}, 0, 34},
@@ -1103,7 +1182,9 @@ var FO_Hud_Panel Hud_Panels[] = {
     {HUDP_GUN6, "gun6", "Grenade Launcher",           '-4 -90',  '36 24',  0.8,1.4,1,0,0, drawInvIconPanel, {return getGunIcon(IT_GRENADE_LAUNCHER);}, 0, 36},
     {HUDP_GUN7, "gun7", "Rocket Launcher",            '-4 -70',  '36 24',  0.8,1.4,1,0,0, drawInvIconPanel, {return getGunIcon(IT_ROCKET_LAUNCHER);}, 0, 36},
     {HUDP_GUN8, "gun8", "Lighning Gun",               '-4 -50',  '36 24',  0.8,1.4,1,0,0, drawInvIconPanel, {return getGunIcon(IT_LIGHTNING);}, 0, 36},
-    {HUDP_SPEED, "speed", "Speed",                     '4 15',    '26 26',  1,1.4,0,0,0, drawTextPanel, {return CVARF(fo_fte_hud) ? sprintf("%3.1f UPS", vlen(pmove_vel)) : "";}, 0, 4},
+    {HUDP_SPEED, "speed", "Speed",                     '4 15',    '26 26',  1,1.4,0,0,0, drawTextPanel, {return CVARF(fo_fte_hud) ? ftos((int)PlanarSpeed()) : "";}, 0, 4},
+    {HUDP_SPEEDBAR, "speedbar", "Speed Bar",           '4 30',    '150 10',  1,1.4,0,0,0, drawSpeedBar, {return "";}, 0, 4},
+    {HUDP_PING, "ping", "Ping",           '4 15',    '120 12',  1,1.4,0,0,0, drawTextPanel, getPingPanelText, 0, HUD_SNAP_TOP_RIGHT},
     {HUDP_OPTIONS, "hudoptions", FO_HUD_OPTIONS_NAME,    '10 10',   '150 182',1,   0,1,0,1, doNothing, {return "";}, 1},
 };
 

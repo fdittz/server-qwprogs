@@ -7,9 +7,6 @@ void (vector org, float damage) SpawnBlood;
 
 void () SuperDamageSound;
 
-void () ConcussionGrenadeTimer;
-void () OldConcussionGrenadeTimer;
-
 void (Slot slot) W_ChangeWeaponSlot;
 void () W_ChangeToBestWeapon;
 void () W_PrintWeaponMessage;
@@ -25,24 +22,19 @@ void () TeamFortress_DisplayLegalClasses;
 void () TeamFortress_ShowIDs;
 void () TeamFortress_ShowTF;
 
-void (float inp, float is_player) TeamFortress_PrimeGrenade;
+void TeamFortress_PrimeGrenade(float inp, float is_player);
 void () TeamFortress_ThrowGrenade;
 void (float inp) TeamFortress_PrimeThrowGrenade;
-void () TeamFortress_GrenadeSwitch;
 
 void () PipebombTouch;
 
 void () SniperSight_Create;
-
-void (float zoom_to) Sniper_Zoom;
 
 void () Help_Show;
 void () TeamFortress_Inventory;
 void () TeamFortress_SaveMe;
 void (entity pe_player, float f_type) CF_Identify;
 void () TeamFortress_ReloadNext;
-void () Sniper_ZoomToggle;
-void (float zoom_in) Sniper_ZoomAdjust;
 void () TeamFortress_StatusQuery;
 void () CF_Scout_Dash;
 void () CF_Spy_DisguiseStop;
@@ -50,8 +42,6 @@ void () TeamFortress_DetpackMenu;
 void () CF_Medic_AuraToggle;
 void () FO_LockToggle;
 void () FO_Airblast;
-void () UseAirBlast;
-void () UseAirBlastV2;
 void () TeamFortress_EngineerBuild;
 void () TeamFortress_EngineerBuildStop;
 void () TeamFortress_Scan;
@@ -82,6 +72,7 @@ void () Admin_CycleDeal;
 void () Admin_DoKick;
 void () Admin_DoBan;
 void () Admin_CeaseFire;
+void () Admin_UpdateServer;
 void () Admin_ListIPs;
 
 void () fadetoblack;
@@ -92,7 +83,6 @@ void () fadefromwhite;
 void (entity disp) Engineer_UseDispenser;
 void (entity gun) Engineer_UseSentryGun;
 
-void () TeamFortress_MOTD;
 void () TeamFortress_HelpMap;
 void () TeamFortress_NailGrenInfo;
 
@@ -102,9 +92,10 @@ void () BioInfection_MonsterDecay;
 float (float weap) W_GetSlot;
 float (float weap) W_OldGetSlot;
 void () W_FireFlame;
-void () W_FireIncendiaryCannon;
+void W_FireIncendiaryCannon(vector org, vector angles, float use_ctime=0);
 void () W_FireTranq;
 void () W_FireRailgun;
+void () W_FireImpeller;
 
 void () HallucinationTimer;
 void () TranquiliserTimer;
@@ -112,7 +103,6 @@ void () TranquiliserTimer;
 void () TeamFortress_CTF_FlagInfo;
 void () ClanMode;
 void () QuadMode;
-void () EndQuadRound;
 void () PlayerReady;
 void () PlayerNotReady;
 void () Broadcast_Players_NotReady;
@@ -193,7 +183,31 @@ void (float att_delay) Attack_Finished = {
         att_delay *= 2;
 
     self.attack_finished = self.client_time + att_delay;
+    self.last_attack_ctime = self.client_time;
 };
+
+float* W_ammo_to_p(entity player, AmmoType ammo_type) {
+    switch (ammo_type) {
+        case AMMO_SHELLS: return &player.ammo_shells;
+        case AMMO_CELLS: return &player.ammo_cells;
+        case AMMO_NAILS: return &player.ammo_nails;
+        case AMMO_ROCKETS:  return &player.ammo_rockets;
+        default:
+        case AMMO_NONE:
+                        return __NULL__;
+    }
+    return __NULL__;
+}
+
+float W_ConsumeAmmoIfPossible(float ammo_type, float amount) {
+    float *ammo = W_ammo_to_p(self, ammo_type);
+
+    if (*ammo < amount)
+        return FALSE;
+    *ammo -= amount;
+    return TRUE;
+}
+
 
 int () W_FireAxe = {
     local vector source;
@@ -394,6 +408,9 @@ int () W_FireSpanner = {
     }
 };
 
+void RemoveConc(entity player, float remove_timer = TRUE);
+entity FindConcTimer(entity player);
+
 int () W_FireMedikit = {
     local vector source;
     local vector org;
@@ -416,28 +433,19 @@ int () W_FireMedikit = {
                  (self.team_no != 0)) || coop) {
 
                 healam = 200;
-                te = find(world, classname, "timer");
-                while (((te.owner != trace_ent)
-                        || ((te.think != ConcussionGrenadeTimer)
-                            && (te.think != OldConcussionGrenadeTimer)))
-                       && (te != world))
-                    te = find(te, classname, "timer");
-
-                if (te != world) {
-
-                    if (old_grens == TRUE)
-                        stuffcmd(trace_ent, "v_idlescale 0\nfov 90\n");
-
+                if (trace_ent.tfstate & TFSTATE_CONC) {
                     SpawnBlood(org, 20);
 
                     bprint(PRINT_MEDIUM, self.netname, " cured ",
                            trace_ent.netname, "'s concussion\n");
 
+                    entity te = FindConcTimer(trace_ent);
                     if (te.team_no != self.team_no)
                         TF_AddFrags(self, 1);
 
-                    dremove(te);
+                    RemoveConc(trace_ent);
                 }
+
                 if (trace_ent.tfstate & TFSTATE_HALLUCINATING) {
 
                     te = find(world, classname, "timer");
@@ -851,93 +859,76 @@ void () W_FireSniperRifle = {
     src = self.origin + v_forward * 10;
     src_z = self.absmin_z + self.size_z * 0.7;
 
-    use_this = FALSE;
-
-    if (old_sniperrange)
-        traceline(src, src + dir * 8092, MOVE_LAGGED, self);
-    else
-        traceline(src, src + dir * 9192, MOVE_LAGGED, self);
-    if (trace_fraction != 1)
-        if (trace_ent != world)
-            if (trace_ent.classname == "player")
-                use_this = TRUE;
-
     KickPlayer(-4, self);
 
-    if (!use_this) {
-        dir = aim(self, 10000);
-        if (old_sniperrange)
-            traceline(src, src + dir * 3072, MOVE_LAGGED, self);
-        else
-            traceline(src, src + dir * 9192, MOVE_LAGGED, self);
-    }
+    dir = aim(self, 10000);
+    float range = old_sniperrange ? 3072 : 9192;  // Super arbitrary but ok.
+    traceline(src, src + dir * range, MOVE_LAGGED, self);
+
     deathmsg = DMSG_SNIPERRIFLE;
     dam_mult = 1;
-    if (trace_ent) {
-        if (trace_ent.classname == "player") {
+    if (trace_fraction < 1 && trace_ent && trace_ent.classname == "player") {
+        f = trace_endpos - src;
 
-            f = trace_endpos - src;
+        g_x = trace_endpos_x;
+        g_y = trace_endpos_y;
+        g_z = 0;
 
-            g_x = trace_endpos_x;
-            g_y = trace_endpos_y;
-            g_z = 0;
+        h_x = trace_ent.origin_x;
+        h_y = trace_ent.origin_y;
+        h_z = 0;
 
-            h_x = trace_ent.origin_x;
-            h_y = trace_ent.origin_y;
-            h_z = 0;
+        x = vlen(g - h);
+        f = (normalize(f) * x) + trace_endpos;
 
-            x = vlen(g - h);
-            f = (normalize(f) * x) + trace_endpos;
+        zdif = f_z - trace_ent.origin_z;
+        deathmsg = DMSG_SNIPERRIFLE;
 
-            zdif = f_z - trace_ent.origin_z;
+        trace_ent.head_shot_vector = '0 0 0';
+        if (zdif < 0) {
+
+            dam_mult = 0.5;
+            trace_ent.leg_damage = trace_ent.leg_damage + 1;
+            TeamFortress_SetSpeed(trace_ent);
+            deathmsg = DMSG_SNIPERLEGSHOT;
+            TF_T_Damage(trace_ent, self, self, self.heat * dam_mult, TF_TD_NOTTEAM,
+                    TF_TD_SHOT);
+
+            if (trace_ent.health > 0) {
+                sprint(trace_ent, PRINT_LOW, "Leg injury!\n");
+                sprint(self, PRINT_MEDIUM,
+                        "Leg shot - that'll slow him down!\n");
+            }
+            return;
+
+        } else if (zdif > 20) {
+
+            dam_mult = 2;
+            stuffcmd(trace_ent, "bf\n");
+            trace_ent.head_shot_vector =
+                trace_ent.origin - self.origin;
+            deathmsg = DMSG_SNIPERHEADSHOT;
+            TF_T_Damage(trace_ent, self, self, (self.heat * dam_mult),
+                    TF_TD_NOTTEAM, TF_TD_SHOT);
+
+            if (trace_ent.health > 0) {
+                sprint(trace_ent, PRINT_LOW, "Head injury!\n");
+                sprint(self, PRINT_MEDIUM,
+                        "Head shot - that's gotta hurt!\n");
+            }
+
+        } else {
             deathmsg = DMSG_SNIPERRIFLE;
-
-            trace_ent.head_shot_vector = '0 0 0';
-            if (zdif < 0) {
-
-                dam_mult = 0.5;
-                trace_ent.leg_damage = trace_ent.leg_damage + 1;
-                TeamFortress_SetSpeed(trace_ent);
-                deathmsg = DMSG_SNIPERLEGSHOT;
-                TF_T_Damage(trace_ent, self, self, self.heat * dam_mult, 2,
-                            1);
-
-                if (trace_ent.health > 0) {
-                    sprint(trace_ent, PRINT_LOW, "Leg injury!\n");
-                    sprint(self, PRINT_MEDIUM,
-                           "Leg shot - that'll slow him down!\n");
-                }
-                return;
-
-            } else if (zdif > 20) {
-
-                dam_mult = 2;
-                stuffcmd(trace_ent, "bf\n");
-                trace_ent.head_shot_vector =
-                    trace_ent.origin - self.origin;
-                deathmsg = DMSG_SNIPERHEADSHOT;
-                TF_T_Damage(trace_ent, self, self, (self.heat * dam_mult),
-                            2, 1);
-
-                if (trace_ent.health > 0) {
-                    sprint(trace_ent, PRINT_LOW, "Head injury!\n");
-                    sprint(self, PRINT_MEDIUM,
-                           "Head shot - that's gotta hurt!\n");
-                }
-                return;
-
-            } else
-                deathmsg = DMSG_SNIPERRIFLE;
         }
     }
-    ClearMultiDamage();
 
-    if (trace_fraction != 1)
+    if (trace_fraction < 1) {
+        ClearMultiDamage();
         TraceAttack(self.heat * dam_mult, dir);
-
-    FireBullets(1, dir, '0 0 0');
-
-    ApplyMultiDamage();
+        ApplyMultiDamage();
+    } else {
+        FireBullets(1, dir, '0 0 0');
+    }
 };
 
 void () W_FireAutoRifle = {
@@ -1039,10 +1030,8 @@ void () BecomeExplosion = {
     dremove(self);
 };
 
-.float al_dmg;
-
 static void Antilag_Knock(entity e) {
-    T_RadiusDamage(e, e.owner, e.al_dmg, __NULL__, __NULL__, e.owner);
+    T_RadiusDamage(e, e.owner, e.heat, __NULL__, __NULL__, e.owner);
     dremove(e);
 }
 
@@ -1051,27 +1040,29 @@ void T_Knock_Antilag() {
 }
 
 float AntilagKnock(entity e, float dmg) {
-    if (!RewindFlagEnabled(REWIND_FORWARD_PROJ_SELFKNOCK) || e.s_time == 0)
+    e.forward_knock = -1;
+    // Only applies during initial antilag forward
+    if (e.flags & FL_FORWARD_KNOCK == 0)
         return FALSE;
 
     entity knock_e = spawn();
 
     setorigin(knock_e, e.origin);
+    setsize(knock_e, '0 0 0', '0 0 0');
     knock_e.s_origin = e.s_origin;
     knock_e.owner = e.owner;
     knock_e.classname = e.classname;
     knock_e.oldenemy = other;
-    knock_e.al_dmg = dmg;
+    knock_e.heat = dmg;
+    knock_e.filter_ent = e;
 
     vector diff = e.origin - e.s_origin;
     float ttime = vlen(diff) / vlen(e.velocity);
-    float dtime = time - e.s_time;
 
-    float delay = ttime - dtime;
-
-    if (delay > SERVER_FRAME_DT && dtime < 0.25) {
+    if (ttime > SERVER_FRAME_DT) {
         knock_e.think = T_Knock_Antilag;
-        knock_e.nextthink = time + delay;
+        knock_e.nextthink = time + ttime;
+        e.forward_knock = time + ttime;
     } else {
         Antilag_Knock(knock_e);
     }
@@ -1086,10 +1077,6 @@ void () T_MissileTouch = {
         return;
     self.voided = 1;
 
-    if (pointcontents(self.origin) == CONTENT_SKY) {
-        dremove_sent(self);
-        return;
-    }
     damg = 92 + random() * 20;
 
     deathmsg = self.weapon;
@@ -1114,13 +1101,13 @@ void () T_MissileTouch = {
     dremove_sent(self);
 };
 
-void () W_FireRocket = {
+void W_FireRocket(vector org, vector v_ang, float use_ctime=0) = {
     entity proj = FOProj_Create(FPP_ROCKET);
     proj.owner = self;
     proj.movetype = MOVETYPE_FLYMISSILE;
     proj.solid = SOLID_BBOX;
 
-    makevectors(self.v_angle);
+    makevectors(v_ang);
     proj.velocity = v_forward * FPP_Get(FPP_ROCKET)->speed;
     proj.angles = vectoangles(proj.velocity);
 
@@ -1132,11 +1119,10 @@ void () W_FireRocket = {
 
     proj.weapon = DMSG_ROCKETL;
     proj.classname = "proj_rocket";
-    proj.origin = self.origin + v_forward * 8 + '0 0 16';
+    proj.origin = org + v_forward * 8 + '0 0 16';
 
-    FOProj_Finalize(proj);
+    FOProj_Finalize(proj, use_ctime);
 
-    self.ammo_rockets = self.ammo_rockets - 1;
     KickPlayer(-2, self);
 };
 
@@ -1256,9 +1242,6 @@ void FO_T_GrenExplode() {
     dremove(self);
 }
 
-void T_RadiusDamage_Antilag(entity inflictor, entity attacker, float damage,
-                            entity ignore);
-
 void () GrenadeExplode = {
     local entity te;
     float use_antilag = FALSE;
@@ -1331,8 +1314,7 @@ void () ExplodeOldestPipebomb = {
     }
 };
 
-void () W_FireGrenade = {
-    self.ammo_rockets = self.ammo_rockets - 1;
+void W_FireGrenade(vector org, vector v_ang, float use_ctime=0) {
     Pred_Sound(SND_GREN);
     KickPlayer(-2, self);
 
@@ -1348,10 +1330,7 @@ void () W_FireGrenade = {
         proj.nextthink = time + 2.5;
         proj.fpp.gren_type = GREN_RED;
     } else {
-        if (old_pipecooldown)
-            self.pipecooldown = time + 0.8;
-        else
-            self.pipecooldown = time + 0.5;
+        self.pipecooldown = time + pipecooldown_time;
         ExplodeOldestPipebomb();
         proj.classname = "pipebomb";
         proj.touch = PipebombTouch;
@@ -1360,7 +1339,7 @@ void () W_FireGrenade = {
         proj.team_no = self.team_no;
         proj.fpp.gren_type = GREN_PIPE;
     }
-    makevectors(self.v_angle);
+    makevectors(v_ang);
     if (self.v_angle_x) {
         proj.velocity = (v_forward * 600) +
             (200 + shared_crandom(PRNG_WEAP) * 10) * v_up +
@@ -1372,9 +1351,9 @@ void () W_FireGrenade = {
     }
     proj.angles = vectoangles(proj.velocity);
     proj.think = GrenadeExplode;
-    setorigin(proj, self.origin);
+    setorigin(proj, org);
 
-    FOProj_Finalize(proj);
+    FOProj_Finalize(proj, use_ctime);
 };
 
 void () spike_touch;
@@ -1421,6 +1400,9 @@ void (float ox) W_FireSpikes = {
     }
 
     *ws->ammo_remaining -= wi->ammo_per_shot;
+    if (wi->needs_reload)
+        *ws->clip_fired += wi->ammo_per_shot;
+
     if (wi->weapon == WEAP_NAILGUN)
         W_FireNail(FPP_NAIL, v_right * ox);
     else
@@ -1485,10 +1467,6 @@ void () spike_touch = {
     if (other.solid == SOLID_TRIGGER)
         return;
 
-    if (pointcontents(self.origin) == CONTENT_SKY) {
-        dremove_sent(self);
-        return;
-    }
     if (other.takedamage) {
         spawn_touchblood(9);
         deathmsg = self.weapon;
@@ -1539,10 +1517,6 @@ void () superspike_touch = {
     if (other.solid == SOLID_TRIGGER)
         return;
 
-    if (pointcontents(self.origin) == CONTENT_SKY) {
-        dremove_sent(self);
-        return;
-    }
     if (other.takedamage) {
         spawn_touchblood(18);
         deathmsg = self.weapon;
@@ -1615,6 +1589,7 @@ Slot W_BestWeaponSlot()  {
     for (float i = 1; i <= TF_NUM_SLOTS; i++) {
         Slot slot = MakeSlot(i);
         FO_FillWeapState(self, slot, &ws);
+        FO_WeapInfo* wi = ws->wi;
 
         // AC also takes cells to fire.
         if (ws->weapon == WEAP_ASSAULT_CANNON && self.ammo_cells < 7)
@@ -1623,7 +1598,7 @@ Slot W_BestWeaponSlot()  {
         // We don't need to handle out of ammo medi/spanner here because of
         // fallback below.
         if (ws.weapon != WEAP_NONE &&
-            ((ws.wi)->ammo_type == AMMO_NONE || *ws.ammo_remaining))
+            (wi->ammo_type == AMMO_NONE || (*ws.ammo_remaining >= wi->ammo_per_shot)))
             return slot;
     }
     return SlotMelee;
@@ -1648,6 +1623,8 @@ void () player_asscan_up1;
 
 void () player_medikit1;
 void () player_medikitb1;
+
+float AssCanTryBeginFire();
 
 void () W_Attack = {
     FO_WeapState ws;
@@ -1711,15 +1688,18 @@ void () W_Attack = {
         player_nail1();
     } else if (ws.weapon == WEAP_GRENADE_LAUNCHER) {
         player_rocket1();
-        W_FireGrenade();
+        self.ammo_rockets = self.ammo_rockets - 1;
+        W_FireGrenade(self.origin, self.v_angle);
         Status_Refresh(self);
     } else if (ws.weapon == WEAP_PIPE_LAUNCHER) {
         player_rocket1();
-        W_FireGrenade();
+        self.ammo_rockets = self.ammo_rockets - 1;
+        W_FireGrenade(self.origin, self.v_angle);
         Status_Refresh(self);
     } else if (ws.weapon == WEAP_ROCKET_LAUNCHER) {
         player_rocket1();
-        W_FireRocket();
+        self.ammo_rockets = self.ammo_rockets - 1;
+        W_FireRocket(self.origin, self.v_angle);
         Status_Refresh(self);
     } else if (ws.weapon == WEAP_LIGHTNING) {
         player_light1();
@@ -1728,27 +1708,14 @@ void () W_Attack = {
         if (self.flags & FL_ONGROUND) {
             player_shot1();
             W_FireSniperRifle();
-            if (sniperreload) {
-                Status_Refresh(self);
-            }
         }
     } else if (ws.weapon == WEAP_AUTO_RIFLE) {
         player_autorifle1();
         W_FireAutoRifle();
     } else if (ws.weapon == WEAP_ASSAULT_CANNON) {
-        if (self.ammo_cells < 7) {
-            if (time >= self.antispam_assault_cannon) {
-                sprint(self, PRINT_MEDIUM, "Not enough cells to power up the Assault Cannon\n");
-                self.antispam_assault_cannon = time + 3;
-            }
+        self.immune_to_check = time + 5;
+        if (!AssCanTryBeginFire())
             W_ChangeToBestWeapon();
-        } else {
-            self.ammo_cells -= - 7;
-            self.count = 0;
-            self.immune_to_check = time + 5;
-            self.tfstate |= TFSTATE_AIMING;
-            player_asscan_up1();
-        }
     } else if (ws.weapon == WEAP_FLAMETHROWER) {
         player_flamethrower1();
         W_FireFlame();
@@ -1759,7 +1726,8 @@ void () W_Attack = {
     } else if (ws.weapon == WEAP_INCENDIARY) {
         if (self.ammo_rockets >= 3) {
             player_rocket1();
-            W_FireIncendiaryCannon();
+            self.ammo_rockets = self.ammo_rockets - 3;
+            W_FireIncendiaryCannon(self.origin, self.v_angle);
         } else if (time >= self.antispam_incendiary_cannon) {
             sprint(self, PRINT_HIGH, "Not enough ammo\n");
             self.antispam_incendiary_cannon = time + 3;
@@ -1776,21 +1744,24 @@ void () W_Attack = {
     } else if (ws.weapon == WEAP_RAILGUN) {
         player_shot1();
         W_FireRailgun();
+    } else if (ws.weapon == WEAP_IMPELLER) {
+        if (!new_balance || time < self.special_next)
+            return;
+
+        player_shot1();
+        W_FireImpeller();
     }
 
-    if (ws.weapon != WEAP_FLAMETHROWER &&    // Variable
-        ws.weapon != WEAP_ASSAULT_CANNON &&  // In animation
-        ws.weapon != WEAP_NAILGUN &&         // In animation
-        ws.weapon != WEAP_SUPER_NAILGUN)     // In animation
+    if (!wi->fire_in_anim) {
         Attack_Finished(wi->attack_time);
-
-    if (wi->needs_reload) {
-        if (ws.weapon != WEAP_ASSAULT_CANNON)  // In animation
+        if (wi->needs_reload) {
             *ws->clip_fired += wi->ammo_per_shot;
-        FO_CheckForReload();
+            FO_CheckForReload();
+        }
     }
 
     //These weapons have to log each projectile launched/bullet fired
+    // TODO: probably equivalent to fire_in_anim...
     if (ws.weapon != WEAP_ASSAULT_CANNON || ws.weapon != WEAP_NAILGUN ||
         ws.weapon != WEAP_SUPER_NAILGUN)
         LogEventAttack(self);
@@ -1897,17 +1868,6 @@ static void W_AmmoError() {
     }
 }
 
-void W_ChangeWeaponByInput(float input) {
-    if (input < 1 || input > GetMaxWeaponInput())
-        return;
-
-    Slot slot = FO_SlotByInput(input);
-    if (IsSlotNull(slot))
-        return;
-
-    W_ChangeWeaponSlot(slot);
-}
-
 void W_ChangeWeaponSlot(Slot slot) {
     if (self.playerclass == 0)
         return;
@@ -1917,7 +1877,7 @@ void W_ChangeWeaponSlot(Slot slot) {
 
     FO_WeapState ws;
     FO_FillWeapState(self, slot, &ws);
-    if (ws.weapon == WEAP_NONE)
+    if (ws.weapon == WEAP_NONE || !FO_WeapAvailable(ws.weapon))
         return;
 
     // queue next weapon if queue is not empty or has changed
@@ -1947,8 +1907,16 @@ void W_ChangeWeaponSlot(Slot slot) {
     Status_Refresh(self);
 };
 
+void W_ChangeQueuedWeaponIfReady() {
+    if (!IsSlotNull(self.queue_slot) && WeaponReady())
+        W_ChangeWeaponSlot(self.queue_slot);
+}
+
 void W_ChangeWeaponLast() {
-    if (!IsSlotNull(self.last_slot))
+    // Clearing queued counts as swap to whatever was pre-queued.
+    if (!IsSlotNull(self.queue_slot))
+        self.queue_slot = SlotNull;
+    else if (!IsSlotNull(self.last_slot))
         W_ChangeWeaponSlot(self.last_slot);
 };
 
@@ -1972,7 +1940,7 @@ void () ImpulseCommands = {
     if ((self.last_impulse == TF_DETPACK) && self.impulse)
         TeamFortress_SetDetpack(self.impulse);
 
-    if (!self.is_feigning) {
+    if (!IsFeigned(self)) {
         if (self.impulse == TF_GRENADE_1)
             TeamFortress_PrimeGrenade(1, TRUE);
         else if (self.impulse == TF_GRENADE_2)
@@ -2053,8 +2021,6 @@ void () ImpulseCommands = {
         TeamFortress_SaveMe();
     else if (self.impulse == TF_GRENADE_T)
         TeamFortress_ThrowGrenade();
-    else if (self.impulse == TF_GRENADE_SWITCH)
-        TeamFortress_GrenadeSwitch();
     else if (self.impulse == TF_ID)
         CF_Identify(self, 1);
     else if (self.impulse == TF_ID_TEAM)
@@ -2310,10 +2276,6 @@ void () DeadImpulses = {
             }
         }
         Status_Refresh(self);
-    } else if (self.impulse == TF_ALIAS_CHECK) {
-        sprint(self, PRINT_HIGH, "Aliases checked\n");
-        self.got_aliases = 1;
-        self.impulse = 0;
     }
     if (self.impulse == TF_PLAYER_READY) {
         if (clanbattle == 1) {
@@ -2347,15 +2309,6 @@ void () ButtonFrame = {
 
     local float keydowns = changed_buttons & input_buttons;
     local float keyups = changed_buttons & ~input_buttons;
-
-    // +attack keyup
-    if (keyups & BUTTON0) {
-        local float default_weapon = FO_GetUserSetting(self, "default_weapon", "dw", "0");
-
-        if (default_weapon >= 1 && default_weapon <= 4) {
-            self.impulse = InputHandlePyroSlotSwap(default_weapon);
-        }
-    }
 
     // +special every frame
     if (input_buttons & BUTTON3) {
@@ -2407,14 +2360,14 @@ void () ButtonFrame = {
     if (input_buttons & BUTTON4) {
         switch (self.playerclass) {
             case PC_SOLDIER:
-                self.impulse = TF_IMPULSE_SLOT1;
+                self.impulse = TF_SLOT1;
                 // Intercepted by InterceptRocketJump()
                 break;
             case PC_PYRO:
                 if (IsUsingCFImpulses()) {
-                    self.impulse = TF_IMPULSE_SLOT2;
+                    self.impulse = TF_SLOT2;
                 } else {
-                    self.impulse = TF_IMPULSE_SLOT1;
+                    self.impulse = TF_SLOT1;
                 }
                 // Intercepted by InterceptRocketJump()
                 break;
@@ -2531,20 +2484,18 @@ void () W_WeaponFrame = {
     }
 
     if (self.impulse == TF_CLASSMENU && self.playerclass != PC_MEDIC) {
-        if (self.playerclass == PC_ENGINEER)
-            Menu_Engineer(self);
-        else if (self.playerclass == PC_SCOUT)
-            Menu_Scout();
-        else if (self.playerclass == PC_SPY)
-            Menu_Spy(self);
-        else if (self.playerclass == PC_DEMOMAN)
-            TeamFortress_DetpackMenu();
+        switch (self.playerclass) {
+            case PC_ENGINEER: Menu_Engineer(self); break;
+            case PC_SCOUT: Menu_Scout(); break;
+            case PC_SPY: Menu_Spy(self); break;
+            case PC_DEMOMAN: TeamFortress_DetpackMenu(); break;
+        }
 
         self.impulse = 0;
         return;
     }
 
-    if ((self.is_feigning) &&
+    if (IsFeigned(self) &&
             (self.impulse != TF_SPECIAL_SKILL) &&
             (self.impulse != TF_SPECIAL_SKILL_2) &&
             (self.impulse != TF_MEDIC_HELPME) &&
@@ -2557,42 +2508,15 @@ void () W_WeaponFrame = {
         self.impulse = 0;
     }
 
-    // +slot/-slot handle attack; we only need to swap back to last weapon.
-    // Let's see if we can get away with just treating this as last weapon;
-    // there were already so many edge cases in the old code such as swapping on
-    // an empty weapon.
-    if (self.impulse == TF_QUICKSTOP) {
-        if (self.tfstate & TFSTATE_QUICKSLOT)
-            self.impulse = TF_WEAPLAST;
-        else
-            self.impulse = 0;
-        self.tfstate &= ~TFSTATE_QUICKSLOT;
-    }
-
-    float can_change_weapon = WeaponReady();
-
-    // TODO: Open up queueing by moving queue can_change to ChangeWeapon?
-    if (self.impulse >= 1 && self.impulse <= GetMaxWeaponInput() &&
-        can_change_weapon) {
-        // slot 1-4 (or 1-7) binds
-        W_ChangeWeaponByInput(self.impulse);
-        self.impulse = 0;
-    } else if (self.impulse >= TF_QUICKSLOT1 &&
-               self.impulse <= TF_QUICKSLOT4 && can_change_weapon) {
-        float input = InputHandlePyroSlotSwap(self.impulse - TF_QUICKSLOT1 + 1);
-        Slot slot = MakeSlot(input);
-
-        if (IsSameSlot(slot, self.current_slot)) {
-            self.tfstate &= ~TFSTATE_QUICKSLOT;
-        } else {
-            self.tfstate |= TFSTATE_QUICKSLOT;
+    // slot 1-4 (or 1-7) binds
+    if (self.impulse >= 1 && self.impulse <= GetMaxWeaponInput() ||
+        self.impulse >= TF_SLOT1 && self.impulse <= TF_SLOT4) {
+        Slot slot = FO_SlotByInput(self.playerclass, self.impulse);
+        if (!IsSlotNull(slot))
             W_ChangeWeaponSlot(slot);
-        }
         self.impulse = 0;
-    } else if (!IsSlotNull(self.queue_slot) && can_change_weapon) {
-        // change slot if queue_slot has been set
-        W_ChangeWeaponSlot(self.queue_slot);
     }
+    W_ChangeQueuedWeaponIfReady();
 
     if (self.impulse == TF_CHANGETEAM) {
         Menu_Team(0);
@@ -2624,22 +2548,6 @@ void () W_WeaponFrame = {
         }
     }
 
-    if (self.playerclass == PC_SNIPER) {
-        if (self.impulse == TF_SPECIAL_SKILL || self.impulse == TF_ZOOMTOGGLE) {
-            Sniper_ZoomToggle();
-            self.impulse = 0;
-            return;
-        } else if (self.impulse == TF_ZOOMIN || (self.is_zooming && self.impulse == TF_WEAPPREV)) {
-            Sniper_ZoomAdjust(1);
-            self.impulse = 0;
-            return;
-        } else if (self.impulse == TF_ZOOMOUT || (self.is_zooming && self.impulse == TF_WEAPNEXT)) {
-            Sniper_ZoomAdjust(0);
-            self.impulse = 0;
-            return;
-        }
-    }
-
     // whitelist of commands that can be used even when reloading
     switch (self.impulse)
     {
@@ -2666,6 +2574,8 @@ void () W_WeaponFrame = {
         case TF_SPY_DIE_ON:
         case TF_SPY_DIE_OFF:
         case TF_SPY_SILENT_DIE:
+        case TF_PLAYER_READY:
+        case TF_PLAYER_NOT_READY:
             ImpulseCommands();
             return;
             // allows setting detpack while reloading on toggle, defaults to off
@@ -2682,7 +2592,7 @@ void () W_WeaponFrame = {
     }
 
     //  grenade impulses always possible
-    if ((self.impulse >= TF_GRENADE_1 && self.impulse <= TF_GRENADE_SWITCH)) {
+    if ((self.impulse >= TF_GRENADE_1 && self.impulse <= TF_GRENADE_PT_2)) {
         ImpulseCommands();
         return;
     }
@@ -2699,7 +2609,7 @@ void () W_WeaponFrame = {
         if (FO_CurrentWeapon() == WEAP_SNIPER_RIFLE) {
             if (self.tfstate & TFSTATE_AIMING) {
                 if (self.heat < PC_SNIPER_MAXDAM) {
-                    self.heat = max(self.heat + 3, PC_SNIPER_MAXDAM);
+                    self.heat = min(self.heat + 3, PC_SNIPER_MAXDAM);
                     if ((sniperpower) && (self.power_time < (time - 0.3))) {
                         self.power_time = time;
                         Status_Refresh(self);
@@ -2744,16 +2654,42 @@ void () SuperDamageSound = {
 };
 
 void () ToggleInvincibility = {
-    if(self.tfstate & TFSTATE_INVINCIBLE) {
-        self.items = self.items - (self.items & IT_INVULNERABILITY);
+    if(self.pstate & PSTATE_INVINCIBLE) {
+        self.items &= ~IT_INVULNERABILITY;
         self.invincible_time = 0;
         self.invincible_finished = 0;
-        self.tfstate = self.tfstate - (self.tfstate & TFSTATE_INVINCIBLE);
-        self.effects = self.effects - (self.effects & (EF_RED + EF_DIMLIGHT + EF_BRIGHTLIGHT));
+        self.pstate &= ~PSTATE_INVINCIBLE;
+        self.effects &= ~(EF_RED | EF_DIMLIGHT | EF_BRIGHTLIGHT);
     } else {
-        self.items = self.items | IT_INVULNERABILITY;
+        self.items |= IT_INVULNERABILITY;
         self.invincible_time = 1;
-        self.tfstate = self.tfstate | TFSTATE_INVINCIBLE;
+        self.pstate |= PSTATE_INVINCIBLE;
         self.invincible_finished = time + 666;
+    }
+};
+
+// TODO: trust the client less, validate more.
+// TODO: Could support hitscan (e.g. sg/ssg)
+void (int weap, float ctime, vector pos, vector angles) CSEv_Attack_ifvv = {
+    if (!RewindFlagEnabled(REWIND_SENDEVENT))
+        return;
+
+    // Only applies to attacks before the last death.   We can't use
+    // attack_finished here as there's an 0.3s lockout on spawn that obscures.
+    float lockout = 15*MSEC;  // Be a tiny bit conservative
+    if (ctime >= self.last_death_ctime - lockout ||
+        ctime < self.last_attack_ctime - lockout)
+        return;
+
+    switch (weap) {
+        case WEAP_ROCKET_LAUNCHER:
+            W_FireRocket(pos, angles, ctime);
+            break;
+        case WEAP_INCENDIARY:
+            W_FireIncendiaryCannon(pos, angles, ctime);
+            break;
+        case WEAP_GRENADE_LAUNCHER:
+            W_FireGrenade(pos, angles, ctime);
+            break;
     }
 };

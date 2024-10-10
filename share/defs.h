@@ -248,30 +248,36 @@ enumflags {
     TFSTATE_GRENTHROWING,  // is throwing a grenade
     TFSTATE_AIMING,        // is using the laser sight or spinning
     TFSTATE_CANT_MOVE,
+    TFSTATE_CONC,
+    TFSTATE_CONC_CAP,      // Speed-cap next jump
     TFSTATE_NO_WEAPON,     // Weapon is disabled and not visible (e.g. detpack)
                            // (Note: We don't use NO_WEAPON for reloading
                            // as it could result in stacked no-weapon states.)
     TFSTATE_FLASHED,
-    TFSTATE_QUICKSLOT,     // QUICKSTOP should change to last weapon.
     TFSTATE_AC_SPINUP,     // These cover the 3 assault cannon states.
     TFSTATE_AC_SPINNING,
     TFSTATE_AC_SPINDOWN,
     TFSTATE_LOCK,          // assault cannon locked
     TFSTATE_INFECTED,      // set when player is infected by the bioweapon
-    TFSTATE_INVINCIBLE,    // Player has permanent Invincibility (Usually by GoalItem)
-    TFSTATE_INVISIBLE,     // Player has permanent Invisibility (Usually by GoalItem)
-    TFSTATE_QUAD,          // Player has permanent Quad Damage (Usually by GoalItem)
-    TFSTATE_RADSUIT,       // Player has permanent Radsuit (Usually by GoalItem)
     TFSTATE_BURNING,       // Is on fire
+    TFSTATE_FEIGNED,       // Is feigned
     TFSTATE_AIMING,        // is using the laser sight or spinning cannon
     TFSTATE_RESPAWN_READY, // is waiting for respawn, and has pressed fire,
                            // as sentry gun,indicate it needs to die
     TFSTATE_HALLUCINATING, // set when player is hallucinating
-    TFSTATE_TRANQUILISED,  // set when player is tranquilised
+
     TFSTATE_FLAMES_MAX,    // Peak burnination.
+    TFSTATE_TRANQUILISED,  // set when player is tranquilised
     TFSTATE_RANDOMPC,
+    // QC/Compiler limitation: Bits past-24 unsafe with bitops
 };
 
+enumflags {
+    PSTATE_INVINCIBLE,    // Player has permanent Invincibility (Usually by GoalItem)
+    PSTATE_INVISIBLE,     // Player has permanent Invisibility (Usually by GoalItem)
+    PSTATE_QUAD,          // Player has permanent Quad Damage (Usually by GoalItem)
+    PSTATE_RADSUIT,       // Player has permanent Radsuit (Usually by GoalItem)
+};
 
 #define TFSTATE_GREN_MASK_PRIMED (TFSTATE_GREN1_PRIMED|TFSTATE_GREN2_PRIMED)
 #define TFSTATE_GREN_MASK_ALL (TFSTATE_GREN_MASK_PRIMED|TFSTATE_GRENTHROWING)
@@ -282,6 +288,7 @@ enumflags {
 enum {
     PRNG_WEAP,
     PRNG_HWGUY,
+    PRNG_CONC,
     PRNG_NUM_STATES,
 };
 
@@ -320,8 +327,7 @@ enum {
 /*======================================================*/
 
 // Opaque token that encapsulates slots for correctness.
-
-
+struct Slot { int id; };
 
 // Some of the toggleflags aren't used anymore, but the bits are still
 // there to provide compatability with old maps
@@ -398,10 +404,10 @@ enum {
 /*======================================================*/
 /* Impulse Defines                                      */
 /*======================================================*/
-#define TF_IMPULSE_SLOT1            1   // Changes weapon to slot 1 (primary weapon)
-#define TF_IMPULSE_SLOT2            2   // Changes weapon to slot 2 (secondary weapon)
-#define TF_IMPULSE_SLOT3            3   // Changes weapon to slot 3 (tertiary weapon)
-#define TF_IMPULSE_SLOT4            4   // Changes weapon to slot 4 (melee weapon)
+#define TF_IMPULSE1                 1   // Ambiguous impulses that can be either
+#define TF_IMPULSE2                 2   // slots or classical weapons.  Prefer
+#define TF_IMPULSE3                 3   // TF_SLOT1 .. TF_SLOT4
+#define TF_IMPULSE4                 4
 #define TF_NUM_SLOTS                4
 
 #define TF_CLASSMENU                5   // Brings up class menu
@@ -418,12 +424,7 @@ enum {
 #define TF_GRENADE_T                16  // Throw primed grenade
 #define TF_GRENADE_PT_1             17  // Prime and throw grenade type 1 (two clicks)
 #define TF_GRENADE_PT_2             18  // Prime and throw grenade type 2 (two clicks)
-#define TF_GRENADE_SWITCH           19  // Switch grenade mode 1/2
-#define TF_QUICKSLOT1               20  // Fire weapon slot 1 and then switch back to current weapon
-#define TF_QUICKSLOT2               21  // Fire weapon slot 2 and then switch back to current weapon
-#define TF_QUICKSLOT3               22  // Fire weapon slot 3 and then switch back to current weapon
-#define TF_QUICKSLOT4               23  // Fire weapon slot 4 and then switch back to current weapon
-#define TF_QUICKSTOP                24  // Used to tell server that quick firing has stopped
+// unused
 #define TF_RELOAD_SLOT1             25  // Reload weapon slot 1
 #define TF_RELOAD_SLOT2             26  // Reload weapon slot 2
 #define TF_RELOAD_SLOT3             27  // Reload weapon slot 3
@@ -445,9 +446,9 @@ enum {
 #define TF_SCAN_ENEMY               43  // Scout: Toggle scanning of enemies
 #define TF_SCAN_FRIENDLY            44  // Scout: Toggle scanning of friendlies
 #define TF_SCAN_SOUND               45  // Scout: Toggle scanner sound
-#define TF_ZOOMTOGGLE               46  // Sniper: Toggle zoom mode on/off
-#define TF_ZOOMIN                   47  // Sniper: Zoom in (while zoom mode is on)
-#define TF_ZOOMOUT                  48  // Sniper: Zoom out (while zoom mode is on)
+//				    46
+//				    47
+//				    48
 #define TF_DEMOMAN_DETPACK          49  // Demoman: Bring up detpack menu
 #define TF_DETPACK                  50  // Demoman: Detpack Pre-Impulse
 #define TF_DETPACK_STOP             51  // Demoman: Impulse to stop setting detpack
@@ -509,7 +510,7 @@ enum {
 #define TF_SHOWTF                   107 // Displays server settings and mod version
 #define TF_SHOWLEGALCLASSES         108 // Show what classes are allowed by current map
 #define TF_SHOW_IDS                 109 // Show ids of connected players
-#define TF_ALIAS_CHECK              110 // Check if client has gotten all the aliases
+// unused                           110
 #define TF_CHANGECLASS              111 // Bring up class selection menu
 #define TF_CHANGEPC_SCOUT           112 // Change class to Scout
 #define TF_CHANGEPC_SNIPER          113 // Change class to Sniper
@@ -599,6 +600,10 @@ enum {
 // unused                           197
 // unused                           198
 #define TF_ADMIN_LISTIPS            199
+#define TF_SLOT1                    200   // Changes weapon to slot 1 (primary weapon)
+#define TF_SLOT2                    201   // Changes weapon to slot 2 (secondary weapon)
+#define TF_SLOT3                    202   // Changes weapon to slot 3 (tertiary weapon)
+#define TF_SLOT4                    203   // Changes weapon to slot 4 (melee weapon)
 // unused                           200
 // unused                           201
 // unused                           202
@@ -674,6 +679,12 @@ enum {
 #define YELLOW 		13
 #define DARKBLUE   	14
 
+#define NOTEAMCOLOR     "0xffffff"
+#define BLUETEAMCOLOR   "0x00aaff"
+#define REDTEAMCOLOR    "0xff3333"
+#define YELLOWTEAMCOLOR "0xffdd00"
+#define GREENTEAMCOLOR  "0x00ff44"
+
 /*======================================================*/
 /* Defines for the ENGINEER's Building ability		*/
 /*======================================================*/
@@ -733,8 +744,8 @@ enum {
 /*======================================================*/
 
 #define WEAP_NONE 0
-enumflags {
-    WEAP_HOOK,
+enum {
+    WEAP_HOOK = 1,
     WEAP_KNIFE,
     WEAP_MEDIKIT,
     WEAP_SPANNER,
@@ -755,7 +766,8 @@ enumflags {
     WEAP_DETPACK,
     WEAP_TRANQ,
     WEAP_RAILGUN,
-    WEAP_LAST = WEAP_RAILGUN,
+    WEAP_IMPELLER,
+    WEAP_LAST = WEAP_IMPELLER,
 };
 
 // still room for 12 more weapons
@@ -795,24 +807,6 @@ enumflags {
 
 // Tranquiliser Gun
 #define TRANQ_TIME		15
-
-// Grenades
-#define GR_PRIMETIME		3
-
-#define GR_TYPE_NONE		0
-#define GR_TYPE_NORMAL		1
-#define GR_TYPE_CONCUSSION	2
-#define GR_TYPE_NAIL		3
-#define GR_TYPE_MIRV		4
-#define GR_TYPE_NAPALM		5
-#define GR_TYPE_FLARE		6
-#define GR_TYPE_GAS		7
-#define GR_TYPE_EMP		8
-#define GR_TYPE_FLASH		9
-#define GR_TYPE_CALTROP		10
-#define GR_TYPE_BLAST	11
-#define GR_TYPE_SHOCK	12
-#define GR_TYPE_BURST	13
 
 // Defines for NailGren Types
 #define NGR_TYPE_NAIL	0
@@ -905,8 +899,6 @@ enumflags {
 #define PC_SCOUT_INITAMMO_NAIL		100	// Amount of nail ammo this class has when respawned
 #define PC_SCOUT_INITAMMO_CELL		50 	// Amount of cell ammo this class has when respawned
 #define PC_SCOUT_INITAMMO_ROCKET	0 	// Amount of rocket ammo this class has when respawned
-/* #define PC_SCOUT_GRENADE_TYPE_1	 	// Configured in TeamFortress_SetEquipment() */
-#define PC_SCOUT_GRENADE_TYPE_2		GR_TYPE_CONCUSSION	//    <- 2nd Type of Grenade this class has
 #define PC_SCOUT_GRENADE_INIT_1		2 	// Number of grenades of Type 1 this class has when respawned
 #define PC_SCOUT_GRENADE_INIT_2		3 	// Number of grenades of Type 2 this class has when respawned
 #define PC_SCOUT_GRENADE_MAX_1		3
@@ -934,8 +926,6 @@ enumflags {
 #define PC_SNIPER_INITAMMO_NAIL		50
 #define PC_SNIPER_INITAMMO_CELL		0
 #define PC_SNIPER_INITAMMO_ROCKET	0
-#define PC_SNIPER_GRENADE_TYPE_1	GR_TYPE_NORMAL
-#define PC_SNIPER_GRENADE_TYPE_2	GR_TYPE_FLARE
 #define PC_SNIPER_GRENADE_INIT_1	2
 #define PC_SNIPER_GRENADE_INIT_2	3
 #define PC_SNIPER_GRENADE_MAX_1	        4
@@ -962,8 +952,6 @@ enumflags {
 #define PC_SOLDIER_INITAMMO_NAIL	0
 #define PC_SOLDIER_INITAMMO_CELL	0
 #define PC_SOLDIER_INITAMMO_ROCKET	10
-#define PC_SOLDIER_GRENADE_TYPE_1	GR_TYPE_NORMAL
-/* #define PC_SOLDIER_GRENADE_TYPE_2	 	// Configured in TeamFortress_SetEquipment() */
 #define PC_SOLDIER_GRENADE_INIT_1	4
 #define PC_SOLDIER_GRENADE_INIT_2	1
 #define PC_SOLDIER_GRENADE_MAX_1	4
@@ -991,12 +979,10 @@ enumflags {
 #define PC_DEMOMAN_INITAMMO_CELL	0
 #define PC_DEMOMAN_INITAMMO_ROCKET	20
 #define PC_DEMOMAN_INITAMMO_DETPACK	1
-#define PC_DEMOMAN_GRENADE_TYPE_1	GR_TYPE_NORMAL
-#define PC_DEMOMAN_GRENADE_TYPE_2	GR_TYPE_MIRV
 #define PC_DEMOMAN_GRENADE_INIT_1	4
 #define PC_DEMOMAN_GRENADE_INIT_2	4
 #define PC_DEMOMAN_GRENADE_MAX_1	4
-#define PC_DEMOMAN_GRENADE_MAX_2	4
+#define PC_DEMOMAN_GRENADE_MAX_2	1
 #define PC_DEMOMAN_TF_ITEMS		0
 
 // Class Details for COMBAT MEDIC
@@ -1020,12 +1006,10 @@ enumflags {
 #define PC_MEDIC_INITAMMO_CELL		0
 #define PC_MEDIC_INITAMMO_ROCKET	0
 #define PC_MEDIC_INITAMMO_MEDIKIT	50
-#define PC_MEDIC_GRENADE_TYPE_1		GR_TYPE_NORMAL
-/* #define PC_MEDIC_GRENADE_TYPE_2	 	// Configured in TeamFortress_SetEquipment() */
 #define PC_MEDIC_GRENADE_INIT_1		3
 #define PC_MEDIC_GRENADE_INIT_2		3
 #define PC_MEDIC_GRENADE_MAX_1		4
-#define PC_MEDIC_GRENADE_MAX_2		3
+#define PC_MEDIC_GRENADE_MAX_2		2
 #define PC_MEDIC_TF_ITEMS		0
 #define PC_MEDIC_REGEN_TIME		3	// Number of seconds between each regen.
 #define PC_MEDIC_REGEN_AMOUNT		2	// Amount of health regenerated each regen.
@@ -1058,14 +1042,12 @@ enumflags {
 #define PC_HVYWEAP_INITAMMO_NAIL	0
 #define PC_HVYWEAP_INITAMMO_CELL	30
 #define PC_HVYWEAP_INITAMMO_ROCKET	0
-#define PC_HVYWEAP_GRENADE_TYPE_1	GR_TYPE_NORMAL
-#define PC_HVYWEAP_GRENADE_TYPE_2	GR_TYPE_MIRV
 #define PC_HVYWEAP_GRENADE_INIT_1	4
 #define PC_HVYWEAP_GRENADE_INIT_2	1
 #define PC_HVYWEAP_GRENADE_MAX_1	4
 #define PC_HVYWEAP_GRENADE_MAX_2	1
 #define PC_HVYWEAP_TF_ITEMS		0
-
+#define PC_HVYWEAP_CELL_FIRE		7
 
 // Class Details for PYRO
 #define PC_PYRO_SKIN			21
@@ -1085,37 +1067,22 @@ enumflags {
 #define PC_PYRO_INITAMMO_NAIL		0
 #define PC_PYRO_INITAMMO_CELL		120
 #define PC_PYRO_INITAMMO_ROCKET		15
-#define PC_PYRO_GRENADE_TYPE_1		GR_TYPE_NORMAL
-#define PC_PYRO_GRENADE_TYPE_2		GR_TYPE_NAPALM
 #define PC_PYRO_GRENADE_INIT_1		1
 #define PC_PYRO_GRENADE_INIT_2		4
 #define PC_PYRO_GRENADE_MAX_1		4
-#define PC_PYRO_GRENADE_MAX_2		4
+#define PC_PYRO_GRENADE_MAX_2		1
 #define PC_PYRO_TF_ITEMS		0
 #define PC_PYRO_AIRBLAST_RANGE	        400
-#define PC_PYRO_AIRBLAST_COOLDOWN	5
 #define PC_PYRO_AIRBLAST_CELLS			55
 #define PC_PYRO_AIRBLASTJUMP_CELLS		75
 #define PC_PYRO_LAVA_LIFETIME	3
 #define PC_PYRO_LAVA_RETICK		1.2
-#define PC_PYRO_FLAMETHROWER_DAM_FO	15
-#define PC_PYRO_FLAMETHROWER_DAM_ORIG	10
-#define PC_PYRO_NAPALM_INIT_DAM_ORIG	20
-#define PC_PYRO_NAPALM_INIT_DAM_FO		40
-#define PC_PYRO_NAPALM_MAX_EXPLOSIONS_ORIG	8
-#define PC_PYRO_NAPALM_MAX_EXPLOSIONS_FO	4
-#define PC_PYRO_INIT_BURN_DAM_ORIG		6
-#define PC_PYRO_INIT_BURN_DAM_FO		12
-#define PC_PYRO_BURN_MULTIPLIER_ORIG	.3
-#define PC_PYRO_BURN_MULTIPLIER_FO		1
+#define PC_PYRO_FLAMETHROWER_DAM	15
+#define PC_PYRO_NAPALM_INIT_DAM		40
+#define PC_PYRO_NAPALM_MAX_EXPLOSIONS	4
+#define PC_PYRO_INIT_BURN_DAM		12
+#define PC_PYRO_BURN_MULTIPLIER		1
 #define PC_PYRO_BURN_DAMAGE_AMP			1.2
-#define PC_PYRO_OLD_PROJSPEED			600
-#define PC_PYRO_NEW_PROJSPEED			800
-
-// pyro types
-#define PYRO_ORIGINAL	0
-#define PYRO_OZTF		1
-#define PYRO_FO			2
 
 // Class Details for SPY
 #define PC_SPY_SKIN			22
@@ -1135,12 +1102,10 @@ enumflags {
 #define PC_SPY_INITAMMO_NAIL		50
 #define PC_SPY_INITAMMO_CELL		10
 #define PC_SPY_INITAMMO_ROCKET		0
-#define PC_SPY_GRENADE_TYPE_1		GR_TYPE_NORMAL
-#define PC_SPY_GRENADE_TYPE_2		GR_TYPE_GAS
 #define PC_SPY_GRENADE_INIT_1		2
 #define PC_SPY_GRENADE_INIT_2		2
 #define PC_SPY_GRENADE_MAX_1		4
-#define PC_SPY_GRENADE_MAX_2		2
+#define PC_SPY_GRENADE_MAX_2		1
 #define PC_SPY_TF_ITEMS			0
 #define PC_SPY_CELL_REGEN_TIME		5
 #define PC_SPY_CELL_REGEN_AMOUNT	1
@@ -1166,14 +1131,11 @@ enumflags {
 #define PC_ENGINEER_INITAMMO_NAIL	25
 #define PC_ENGINEER_INITAMMO_CELL	100	// synonymous with metal
 #define PC_ENGINEER_INITAMMO_ROCKET	0
-#define PC_ENGINEER_GRENADE_TYPE_1	GR_TYPE_NORMAL
-#define PC_ENGINEER_GRENADE_TYPE_2	GR_TYPE_EMP
 #define PC_ENGINEER_GRENADE_INIT_1	2
 #define PC_ENGINEER_GRENADE_INIT_2	2
 #define PC_ENGINEER_GRENADE_MAX_1	4
-#define PC_ENGINEER_GRENADE_MAX_2	4
+#define PC_ENGINEER_GRENADE_MAX_2	2
 #define PC_ENGINEER_TF_ITEMS		0
-#define PC_ENGINEER_GRENADE_TYPE_2_RANGE	240
 #define PC_ENGINEER_RAILSPEED		1500
 
 // Class Details for CIVILIAN
@@ -1194,8 +1156,6 @@ enumflags {
 #define PC_CIVILIAN_INITAMMO_NAIL	0
 #define PC_CIVILIAN_INITAMMO_CELL	0
 #define PC_CIVILIAN_INITAMMO_ROCKET	0
-#define PC_CIVILIAN_GRENADE_TYPE_1	0
-#define PC_CIVILIAN_GRENADE_TYPE_2	0
 #define PC_CIVILIAN_GRENADE_INIT_1	0
 #define PC_CIVILIAN_GRENADE_INIT_2	0
 #define PC_CIVILIAN_GRENADE_MAX_1	0
@@ -1357,6 +1317,7 @@ enumflags {
 #define DMSG_GREN_SHOCK			42
 #define DMSG_GREN_BURST			43
 #define DMSG_KNIFE			44
+#define DMSG_IMPELLER			45
 
 /*======================================================*/
 /* Menus						*/
@@ -1417,6 +1378,7 @@ enumflags {
 
 #define FO_HUD_CONFIG_PATH	"fortressone_hud.cfg"
 #define FO_CONFIG_PATH	"fortressone_csqc.cfg"
+#define FO_TOKEN_PATH	"fortressone_token.cfg"
 
 #define HUD_ICON_SIZE_X   24
 #define HUD_ICON_SIZE_Y   24
@@ -1439,7 +1401,7 @@ enumflags {
 #define FO_HUD_MOTD_NAME "MOTD"
 #define FO_HUD_MENU_HINT_NAME "Menu Hints"
 #define FO_HUD_GAME_MODE_NAME "Game Mode"
-#define FO_HUD_READY_NAME "Ready Status"
+#define FO_HUD_NOTIFICATION_NAME "Notification"
 #define FO_HUD_SHOWSCORES_NAME "Show Scores"
 #define FO_HUD_MAP_MENU_NAME "Map Menu"
 #define FO_HUD_HEALTH_NAME "Health"
@@ -1498,23 +1460,25 @@ enumflags {
 // first 32 are reserved
 #define STAT_TEAMNO             33
 #define STAT_FLAGS              34
-#define STAT_CLASS              35
-#define STAT_NO_GREN1           36
-#define STAT_NO_GREN2           37
-#define STAT_TP_GREN1           38
-#define STAT_TP_GREN2           39
-#define STAT_PAUSED             40
-#define STAT_TEAMNO_ATTACK      41
+#define STAT_PAUSED             35
+#define STAT_NOFIRE             36
+#define STAT_TEAMNO_ATTACK      37
+#define STAT_ALL_TIME           38
+#define STAT_SPAWN_GEN          39
+#define STAT_ROUND_END          40
+#define STAT_HAS_SENTRY         41
 
 // Dimensions
 #define DMN_FLASH 1 // when flashed, we set dimension see to this
 // all bits between 1 and 255 are reserved for flash
 #define DMN_NOFLASH	256	// see all the things
 #define DMN_TEAMBLUE	512
-#define DMN_TEAMRED		1024
+#define DMN_TEAMRED	1024
 #define DMN_TEAMYELL	2048
 #define DMN_TEAMGREN	4096
 #define DMN_INVISIBLE	8192	// special dimension to hide stuff in
+#define DMN_HIDDEN	16384   // put an entity here instead of noflash, then remove DMN_HIDDEN from a player's dimension_see to hide it from that player
+#define DMN_GHOST	32768   // put ghosts in here
 
 // trigger_push
 #define PUSH_ONCE	1
@@ -1534,3 +1498,183 @@ enumflags {
 #define TEAM_RED	2
 #define TEAM_YELL	3
 #define TEAM_GREN	4
+
+// all time teams
+#define ALL_TIME_COLOUR		0
+#define ALL_TIME_ATTACK		1
+#define ALL_TIME_DEFENCE	2
+
+// web request index
+#define BR_LOGIN_REQUEST			1
+#define FO_QUAD_STARTED_REQUEST		2
+#define FO_QUAD_FINISHED_REQUEST	3
+#define FO_LOGIN_REQUEST			4
+
+#define SPEC_MAXSPEED 1000
+
+struct TFAlias {
+    string alias;
+    float impulse;
+    string cmd;
+    float nocsqc_impulse;
+    string nocsqc_cmd;
+};
+
+TFAlias client_aliases[] = {
+    {"slot1",                   TF_SLOT1},
+    {"slot2",                   TF_SLOT2},
+    {"slot3",                   TF_SLOT3},
+    {"slot4",                   TF_SLOT4},
+    {"+slot1",                  0,  "+slot 1"},
+    {"-slot1",                  0,  "-slot 1"},
+    {"+slot2",                  0,  "+slot 2"},
+    {"-slot2",                  0,  "-slot 2"},
+    {"+slot3",                  0,  "+slot 3"},
+    {"-slot3",                  0,  "-slot 3"},
+    {"+slot4",                  0,  "+slot 4"},
+    {"-slot4",                  0,  "-slot 4"},
+    {"+quick1",                 0,  "slot1;+attack"},
+    {"-quick1",                 0,  "-attack"},
+    {"+quick2",                 0,  "slot2;+attack"},
+    {"-quick2",                 0,  "-attack"},
+    {"+quick3",                 0,  "slot3;+attack"},
+    {"-quick3",                 0,  "-attack"},
+    {"+quick4",                 0,  "slot4;+attack"},
+    {"-quick4",                 0,  "-attack"},
+    {"menu",                    0,  "fo_menu_special", 0, "cmd menu"},
+    {"changeteam",              0,  "fo_menu_team", TF_CHANGETEAM},
+    {"teamblue",                0,  "cmd changeteam 1",   TF_TEAM_1},
+    {"teamred",                 0,  "cmd changeteam 2",   TF_TEAM_2},
+    {"teamyellow",              0,  "cmd changeteam 3",   TF_TEAM_3},
+    {"teamgreen",               0,  "cmd changeteam 4",   TF_TEAM_4},
+    {"changeclass",             0,  "fo_menu_class",      TF_CHANGECLASS},
+    {"scout",                   0,  "cmd changeclass 1",  TF_CHANGEPC_SCOUT},
+    {"sniper",                  0,  "cmd changeclass 2",  TF_CHANGEPC_SNIPER},
+    {"soldier",                 0,  "cmd changeclass 3",  TF_CHANGEPC_SOLDIER},
+    {"demoman",                 0,  "cmd changeclass 4",  TF_CHANGEPC_DEMOMAN},
+    {"medic",                   0,  "cmd changeclass 5",  TF_CHANGEPC_MEDIC},
+    {"hwguy",                   0,  "cmd changeclass 6",  TF_CHANGEPC_HVYWEAP},
+    {"pyro",                    0,  "cmd changeclass 7",  TF_CHANGEPC_PYRO},
+    {"spy",                     0,  "cmd changeclass 8",  TF_CHANGEPC_SPY},
+    {"engineer",                0,  "cmd changeclass 9",  TF_CHANGEPC_ENGINEER},
+    {"randompc",                0,  "cmd changeclass 10", TF_CHANGEPC_RANDOM},
+    {"showclasses",             TF_TEAM_CLASSES},
+    {"legalclasses",            TF_SHOWLEGALCLASSES},
+    {"classhelp",               TF_CLASSHELP},
+    {"query",                   TF_STATUS_QUERY},
+    {"inv",                     TF_INVENTORY},
+    {"showtf",                  TF_SHOWTF},
+    {"showscores",              TF_TEAM_SCORES},
+    {"flaginfo",                FLAG_INFO},
+    {"maphelp",                 TF_HELP_MAP},
+    {"showids",                 TF_SHOW_IDS},
+    {"id",                      TF_ID},
+    {"idteam",                  TF_ID_TEAM},
+    {"idenemy",                 TF_ID_ENEMY},
+    {"nexttip",                 TF_NEXTTIP},
+    {"votenext",                TF_VOTENEXT},
+    {"votetrick",               TF_VOTETRICK},
+    {"voterace",                TF_VOTERACE},
+    {"forcenext",               TF_FORCENEXT},
+    {"togglevote",              TF_TOGGLEVOTE},
+    {"dropkey",                 TF_DROPKEY},
+    {"dropammo",                0,  "fo_menu_dropammo", TF_DROP_AMMO},
+    {"dropflag",                TF_DROPFLAG},
+    {"dropitems",               TF_DROPFLAG},
+    {"showloc",                 TF_DISPLAYLOCATION},
+    {"special",                 TF_SPECIAL_SKILL},
+    {"special2",                TF_SPECIAL_SKILL_2},
+    {"saveme",                  TF_MEDIC_HELPME},
+    {"discard",                 TF_DISCARD},
+    {"discard_drop_ammo",       TF_DISCARD_DROP_AMMO},
+    {"weapnext",                TF_WEAPNEXT},
+    {"weapprev",                TF_WEAPPREV},
+    {"weaplast",                TF_WEAPLAST},
+    {"reload",                  TF_RELOAD},
+    {"reload1",                 TF_RELOAD_SLOT1},
+    {"reload2",                 TF_RELOAD_SLOT2},
+    {"reload3",                 TF_RELOAD_SLOT3},
+    {"reloadnext",              TF_RELOAD_NEXT},
+    {"throwgren",               TF_GRENADE_T},
+    {"primeone",                TF_GRENADE_1},
+    {"primetwo",                TF_GRENADE_2},
+    {"+gren1",                  TF_GRENADE_1},
+    {"-gren1",                  TF_GRENADE_T},
+    {"+gren2",                  TF_GRENADE_2},
+    {"-gren2",                  TF_GRENADE_T},
+    {"gren1",                   TF_GRENADE_PT_1},
+    {"gren2",                   TF_GRENADE_PT_2},
+    {"dash",                    TF_DASH},
+    {"autoscan",                TF_SCAN},
+    {"scansound",               TF_SCAN_SOUND},
+    {"scanf",                   TF_SCAN_FRIENDLY},
+    {"scane",                   TF_SCAN_ENEMY},
+    {"detpipe",                 TF_PB_DETONATE},
+    {"+det5",                   TF_DETPACK_5},
+    {"-det5",                   TF_DETPACK_STOP},
+    {"+det20",                  TF_DETPACK_20},
+    {"-det20",                  TF_DETPACK_STOP},
+    {"+det50",                  TF_DETPACK_50},
+    {"-det50",                  TF_DETPACK_STOP},
+    {"+det255",                 TF_DETPACK},
+    {"-det255",                 TF_DETPACK_STOP},
+    {"aura",                    TF_MEDIC_AURA_TOGGLE},
+    {"locktoggle",              TF_HVYWEAP_LOCK_TOGGLE},
+    {"lock",                    TF_LOCKON},
+    {"unlock",                  TF_LOCKOFF},
+    {"+lock",                   TF_LOCKON},
+    {"-lock",                   TF_LOCKOFF},
+    {"airblast",                TF_AIRBLAST},
+    {"disguise",                0,  "fo_menu_disguise", TF_SPY_SPY},
+    {"+feign",                  TF_SPY_DIE_ON},
+    {"-feign",                  TF_SPY_DIE_OFF},
+    {"feign",                   TF_SPY_DIE},
+    {"sfeign",                  TF_SPY_SILENT_DIE},
+    {"dreset",                  TF_DISGUISE_RESET},
+    {"dscout",                  TF_DISGUISE_SCOUT},
+    {"dsniper",                 TF_DISGUISE_SNIPER},
+    {"dsoldier",                TF_DISGUISE_SOLDIER},
+    {"ddemoman",                TF_DISGUISE_DEMOMAN},
+    {"dmedic",                  TF_DISGUISE_MEDIC},
+    {"dhwguy",                  TF_DISGUISE_HWGUY},
+    {"dpyro",                   TF_DISGUISE_PYRO},
+    {"dengineer",               TF_DISGUISE_ENGINEER},
+    {"dblue",                   TF_DISGUISE_BLUE},
+    {"dred",                    TF_DISGUISE_RED},
+    {"dyellow",                 TF_DISGUISE_YELLOW},
+    {"dgreen",                  TF_DISGUISE_GREEN},
+    {"denemy",                  TF_DISGUISE_ENEMY},
+    {"dlast",                   TF_DISGUISE_LAST},
+    {"dlastspawn",              TF_DISGUISE_LAST_SPAWNED},
+    {"build",                   0,  "fo_menu_build", TF_ENGINEER_BUILD},
+    {"detsentry",               TF_ENGINEER_DETSENTRY},
+    {"detdispenser",            TF_ENGINEER_DETDISP},
+    {"toggledispenser",         TF_ENGINEER_TOGGLEDISPENSER},
+    {"togglesentry",            TF_ENGINEER_TOGGLESENTRY},
+    {"ready",                   TF_PLAYER_READY},
+    {"notready",                TF_PLAYER_NOT_READY},
+    {"nginfo",                  TF_NAILGREN_INFO},
+    {"break",                   0,  "cmd break"},
+    {"voteyes",                 0,  "cmd voteyes"},
+    {"yes",                     0,  "cmd voteyes"},
+    {"fo_settings_status",      0,  "cmd fo_settings_status"},
+    {"placepracspawn",          TF_PRACSPAWN_PLACE},
+    {"removepracspawn",         TF_PRACSPAWN_REMOVE},
+    {"tracktarget",             0, "cmd tracktarget", 0, "cmd track target"},
+};
+
+TFAlias csqc_aliases[] = {
+    {"+special",                0, "+button3"},
+    {"-special",                0, "-button3"},
+    {"+special2",               0, "+button4"},
+    {"-special2",               0, "-button4"},
+    {"+grenade1",               0, "+button5"},
+    {"-grenade1",               0, "-button5"},
+    {"+grenade2",               0, "+button6"},
+    {"-grenade2",               0, "-button6"},
+    {"+dropflag",               0, "+button7"},
+    {"-dropflag",               0, "-button7"},
+};
+
+#define NB_CONC_CAP_AIR 1100
+#define NB_CONC_CAP_LAND 950
