@@ -1095,7 +1095,6 @@ void () DecodeLevelParms = {
             round_delay_time = 10;
             fo_config.old_ng_rof = TRUE;
         }
-
         // Must be after we've set up conditional options (e.g. hwguy reload).
         FO_Weapons_Init();
         InitFppProjectiles();

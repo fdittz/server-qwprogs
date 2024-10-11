@@ -240,20 +240,7 @@ struct FO_ClassGrenades {
     float gren[2];
 };
 
-FO_ClassGrenades class_grenades[] = {
-    { PC_UNDEFINED, {GREN_NONE,   GREN_NONE} },
-    { PC_SCOUT,     {GREN_FLASH,  GREN_CONC} },
-    { PC_SNIPER,    {GREN_NORMAL, GREN_FLARE} },
-    { PC_SOLDIER,   {GREN_NORMAL, GREN_SHOCK} },
-    { PC_DEMOMAN,   {GREN_NORMAL, GREN_MIRV} },
-    { PC_MEDIC,     {GREN_NORMAL, GREN_CONC} },
-    { PC_HVYWEAP,   {GREN_NORMAL, GREN_MIRV} },
-    { PC_PYRO,      {GREN_NORMAL, GREN_NAPALM} },
-    { PC_SPY,       {GREN_NORMAL, GREN_GAS} },
-    { PC_ENGINEER,  {GREN_NORMAL, GREN_EMP} },
-    { PC_RANDOM,    {GREN_NONE,   GREN_NONE} },  // TODO: Probably needs attention
-    { PC_CIVILIAN,  {GREN_NONE,   GREN_NONE} },
-};
+FO_ClassGrenades class_grenades[12];
 
 FO_GrenInfo* FO_GrenDesc(float gren_type) {
     if (gren_type < GREN_FIRST) {
@@ -742,8 +729,59 @@ Slot FO_FindPrevNextWeaponSlot(float playerclass, Slot slot, float is_prev) {
     }
 }
 
+void FO_Grenades_Init() {
+    class_grenades[0].id = PC_UNDEFINED;
+        class_grenades[0].gren[0] = GREN_NONE;
+        class_grenades[0].gren[1] = GREN_NONE;
+
+        class_grenades[1].id = PC_SCOUT;
+        class_grenades[1].gren[0] = GREN_CALTROP;
+        class_grenades[1].gren[1] = GREN_CONC;
+
+        class_grenades[2].id = PC_SNIPER;
+        class_grenades[2].gren[0] = GREN_NORMAL;
+        class_grenades[2].gren[1] = GREN_FLARE;
+
+        class_grenades[3].id = PC_SOLDIER;
+        class_grenades[3].gren[0] = GREN_NORMAL;
+        class_grenades[3].gren[1] = GREN_NAIL;
+
+        class_grenades[4].id = PC_DEMOMAN;
+        class_grenades[4].gren[0] = GREN_NORMAL;
+        class_grenades[4].gren[1] = GREN_MIRV;
+
+        class_grenades[5].id = PC_MEDIC;
+        class_grenades[5].gren[0] = GREN_NORMAL;
+        class_grenades[5].gren[1] = GREN_CONC;
+
+        class_grenades[6].id = PC_HVYWEAP;
+        class_grenades[6].gren[0] = GREN_NORMAL;
+        class_grenades[6].gren[1] = GREN_MIRV;
+
+        class_grenades[7].id = PC_PYRO;
+        class_grenades[7].gren[0] = GREN_NORMAL;
+        class_grenades[7].gren[1] = GREN_NAPALM;
+
+        class_grenades[8].id = PC_SPY;
+        class_grenades[8].gren[0] = GREN_NORMAL;
+        class_grenades[8].gren[1] = GREN_GAS;
+
+        class_grenades[9].id = PC_ENGINEER;
+        class_grenades[9].gren[0] = GREN_NORMAL;
+        class_grenades[9].gren[1] = GREN_EMP;
+
+        class_grenades[10].id = PC_RANDOM;
+        class_grenades[10].gren[0] = GREN_NONE;
+        class_grenades[10].gren[1] = GREN_NONE;
+
+        class_grenades[11].id = PC_CIVILIAN;
+        class_grenades[11].gren[0] = GREN_NONE;
+        class_grenades[11].gren[1] = GREN_NONE;
+}
+
 
 void FO_Weapons_Init() {
+    FO_Grenades_Init();
     float i, j;
 
     ASSERTD_EQ(weapon_names.length, weapon_info.length);
