@@ -260,6 +260,8 @@ float UpdateFlag(float isnew) {
 
     /* UpdateFlagOutline(self); */
 
+    LocalEffects(self.effects, self.origin);
+
     if (self.skin == team_no) {
         local float distance = vlen(self.origin - PM_Org());
         self.alpha = min(0.25 + (distance / 200), 1);
