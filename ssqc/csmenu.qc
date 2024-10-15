@@ -276,6 +276,8 @@ void UpdateClientTeamScores(entity e) = {
 }
 
 void UpdateClientQuadRoundBegin(entity pl, float round_time) = {
+    if(!infokeyf(pl, INFOKEY_P_CSQCACTIVE))
+        return;
     WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
     WriteByte(MSG_MULTICAST, MSG_QUAD_ROUND_BEGIN);
     multicast('0 0 0', MULTICAST_ALL_R);

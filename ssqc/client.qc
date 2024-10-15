@@ -3140,7 +3140,8 @@ void () PlayerPostThink = {
     if (self.motd >= 0)
         TeamFortress_MOTD();
 
-    if (self.deadflag || self.playerclass == 0) {
+    if (((self.deadflag || self.playerclass == 0) && infokeyf(self, INFOKEY_P_CSQCACTIVE)) || // FTE
+        (self.deadflag && !infokeyf(self, INFOKEY_P_CSQCACTIVE))) { // EZQUAKE
         DeadImpulses();
         self.impulse = 0;
     } else {
