@@ -1101,7 +1101,10 @@ void () TeamFortress_SetHealth = {
         else
             self.max_health = PC_ENGINEER_MAXHEALTH;
     } else {
-        self.max_health = 0;
+        if (infokeyf(self, INFOKEY_P_CSQCACTIVE))
+            self.max_health = 0;
+        else 
+            self.max_health = 1;
         self.takedamage = DAMAGE_NO;
     }
     self.health = self.max_health;

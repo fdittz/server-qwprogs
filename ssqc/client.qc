@@ -3196,11 +3196,11 @@ void (entity pov, entity target) SetSkinInfoFor = {
 }
 
 void () ClientConnect = {
-    if (!infokeyf(self,INFOKEY_P_CSQCACTIVE)) {
+    /*if (!infokeyf(self,INFOKEY_P_CSQCACTIVE)) {
         sprint(self, PRINT_HIGH, "FTE/CSQC is required for this server, please download the latest client package at www.fortressone.org\n");
         dropclient(self);
         return;
-    }
+    }*/
 
     bprint(PRINT_HIGH, self.netname, " entered the game\n");
     sprint(self, PRINT_HIGH, "FortressOne: Weapon Prediction ", wp_version, "\n");
