@@ -72,6 +72,7 @@ void () NailGrenadeExplode = {
     self.avelocity = '0 500 0';
     self.nextthink = time + 0.7;
     self.think = NailGrenadeNailEm;
+    self.SendFlags |= FOPP_POS | FOPP_MOVETYPE;
 };
 
 void () ShockGrenadeExplode = {
