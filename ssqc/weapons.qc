@@ -172,6 +172,11 @@ void () W_Precache = {
     precache_sound("weapons/flashgrenburst.wav");
     precache_sound("misc/killsound.wav");
     precache_sound("misc/killsoundteam.wav");
+    precache_sound("weapons/reload_gren.wav");
+    precache_sound("weapons/reload_rocket.wav");
+    precache_sound("weapons/reload_shotgun.wav");
+    precache_sound("weapons/reload_super_shotgun.wav");
+    precache_sound("weapons/reload_assault_cannon.wav");
 };
 
 float () crandom = {

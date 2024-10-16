@@ -275,6 +275,7 @@ void () worldspawn = {
     precache_model2("progs/caltrop.mdl");
     precache_model2("progs/deathbag.mdl");
     precache_model2("progs/discard.mdl");
+    precache_model2("progs/proj_diam2.mdl");
     precache_sound("doors/baseuse.wav");
     precache_sound("doors/medtry.wav");
     precache_sound2("speech/saveme1.wav");
