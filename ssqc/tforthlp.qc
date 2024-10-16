@@ -12,18 +12,20 @@ void TeamFortress_MOTD() {
     if (votemode)
         return;
 
-    if (loginRequired && !self.login)
+    float csqcactive = infokeyf(self, INFOKEY_P_CSQCACTIVE);
+    if (csqcactive) {
+        if (loginRequired && !self.login)
         Menu_Login();
     else
         Menu_Team(0);
+    }
 
-    float csqcactive = infokeyf(self, INFOKEY_P_CSQCACTIVE);
     if (csqcactive) {
         self.motd = -1;
         return;
     }
     // Below is not really tested, it's an attempt at preserving for posterity.
-    // Expect potential bugs if we ever reintroduce !CSQC support.
+    // Should work for non-csqc clients
     const float ALIAS_OFFSET = 100;
 
     if (self.motd == 0) {
@@ -50,8 +52,8 @@ void TeamFortress_MOTD() {
         self.motd = ALIAS_OFFSET;
     }
 
-    float idx = self.motd - ALIAS_OFFSET;
-    if (idx  >= 0 && idx < client_aliases.length) {
+    float idx;
+    for (idx = 0; idx < client_aliases.length; idx++) {
         TFAlias* alias = &client_aliases[idx];
 
         if (alias->nocsqc_cmd)
@@ -64,10 +66,15 @@ void TeamFortress_MOTD() {
             TeamFortress_AliasString(alias->alias, alias->cmd);
     }
 
-    if (idx < client_aliases.length)
-        self.motd += 1;
+
+    if (loginRequired && !self.login)
+        Menu_Login();
     else
-        self.motd = -1;
+        Menu_Team(1);
+
+    self.motd = -1;
+
+
 };
 
 void () TeamFortress_HelpMap = {
