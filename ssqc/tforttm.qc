@@ -60,8 +60,45 @@ string (float tno) TeamFortress_TeamGetColor = {
     return color;
 };
 
+string EZQ_TeamFortress_TeamGetColorFor(entity pov, float tno) {
+    local string color = 0;
+
+    if (pov.team_no == tno && cvar("teamcolor")) {
+        color = cvar_string("teamcolor");
+    } else if (pov.team_no != tno && cvar("enemycolor")) {
+        color = cvar_string("enemycolor");
+    } else {
+        switch (tno) {
+            case 1:
+                color = infokey(pov, "team1color");
+                if (color == "" || color == "off")
+                    color = ftos(DARKBLUE - 1);
+                break;
+            case 2:
+                color = infokey(pov, "team2color");
+                if (color == "" || color == "off")
+                    color = ftos(RED - 1);
+                break;
+            case 3:
+                color = infokey(pov, "team3color");
+                if (color == "" || color == "off")
+                    color = ftos(YELLOW - 1);
+                break;
+            case 4:
+                color = infokey(pov, "team4color");
+                if (color == "" || color == "off")
+                    color = ftos(DARKGREEN - 1);
+                break;
+        }
+    }
+    return color;
+}
+
 string TeamFortress_TeamGetColorFor(entity pov, float tno) {
     local string color = NOTEAMCOLOR;
+
+    if (!infokeyf(pov, INFOKEY_P_CSQCACTIVE))
+        return EZQ_TeamFortress_TeamGetColorFor(pov, tno);
 
     if (pov.team_no == tno && cvar("teamcolor")) {
         color = cvar_string("teamcolor");
@@ -94,7 +131,6 @@ string TeamFortress_TeamGetColorFor(entity pov, float tno) {
 
     return color;
 }
-
 
 void (float tno) TeamFortress_TeamSetColor = {
     if (tno == 1) {
