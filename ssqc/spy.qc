@@ -602,6 +602,65 @@ void (entity own) Spy_SetClientSkins = {
     }
 }
 
+void (entity pov, entity own) EZQ_Spy_SetClientSkin = { //TODO: improve on this, too much repeated code
+    string skin, dskin, sendcolor, sendskin, pteam, dsteam, sendteam;
+    float dteam, dpc;
+
+    dteam = own.undercover_team == 0 ? own.team_no : own.undercover_team;
+    dpc = own.undercover_skin == 0 ? own.playerclass : own.undercover_skin;
+
+    skin = TeamFortress_GetSkin(own.playerclass);
+    dskin = TeamFortress_GetSkin(dpc);
+
+    pteam = GetTeamName(own.team_no);
+    dsteam = GetTeamName(dteam);
+
+    if (pov.team_no)
+    {
+        if (pov.team_no == own.team_no)
+        {
+            // on same team, send them spy/team (initial spawn etc)
+            sendcolor = TeamFortress_TeamGetColorFor(pov, own.team_no);
+            sendskin = skin;
+            sendteam = pteam;
+        }
+        else // not on same team, send them disguise
+        {
+            sendcolor = TeamFortress_TeamGetColorFor(pov, dteam);
+            sendskin = dskin;
+            sendteam = dsteam;
+        }
+
+        msg_entity = pov;
+
+        // set skin
+        WriteByte(MSG_ONE, SVC_SETINFO);
+        WriteByte(MSG_ONE, own.colormap-1); // ???? 0 based player index
+        WriteString(MSG_ONE, "skin");
+        WriteString(MSG_ONE, sendskin);
+
+        // set top colour / color
+        WriteByte(MSG_ONE, SVC_SETINFO);
+        WriteByte(MSG_ONE, own.colormap-1);
+        WriteString(MSG_ONE, "topcolor");
+        WriteString(MSG_ONE, sendcolor);
+
+        // set bottom colour / color
+        WriteByte(MSG_ONE, SVC_SETINFO);
+        WriteByte(MSG_ONE, own.colormap-1);
+        WriteString(MSG_ONE, "bottomcolor");
+        WriteString(MSG_ONE, sendcolor);
+
+        // set team to fix r_enemyskincolor cheat in clients
+        WriteByte(MSG_ONE, SVC_SETINFO);
+        WriteByte(MSG_ONE, own.colormap-1);
+        WriteString(MSG_ONE, "team");
+        WriteString(MSG_ONE, sendteam);
+    }
+
+
+}
+
 void () CF_Spy_UndercoverThink = {
     local string s_team, s_class;
 

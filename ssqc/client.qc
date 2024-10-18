@@ -73,6 +73,9 @@ void Predict_InitPlayer(entity player);
 void Predict_Destroy(entity player);
 
 void SetSkinInfoFor(entity pov, entity target);
+void EZQ_CheckAndUpdateAllSkins(entity pov);
+void EZQ_SkinUpdater();
+void EZQ_Spy_SetClientSkin(entity pov, entity target);
 
 void () info_intermission =
 {
@@ -1140,7 +1143,6 @@ void () DecodeLevelParms = {
 
     if (org_game)  // This used to depend on new balance
         ActivateOrgGame();
-
 };
 
 entity() FindIntermission =
@@ -2117,6 +2119,7 @@ void (float all_dimensions) SetDimensions = {
     }
 };
 
+
 void () PutClientInServer = {
     UpdateClientPlayerSpawn(self);
 
@@ -2788,6 +2791,43 @@ void () UpdateAllSkins = {
     }
 }
 
+void (entity pov, entity target) EZQ_CheckAndUpdateTargetSkin = {
+    local float current_color;
+    current_color = infokeyf(target, "bottomcolor") + 1;
+    switch (current_color) {
+        case DARKBLUE:
+        case RED:
+        case YELLOW:
+        case DARKGREEN:
+            break;
+        default:
+            SetSkinInfoFor(pov, target);
+    }
+}
+
+void (entity pov, string class_name) EZQ_CheckAndUpdateAllSkinsByClassname = {
+    local entity target = find(world, classname, class_name);
+    while (target != world) {
+        if (!target.is_undercover)
+            EZQ_CheckAndUpdateTargetSkin(pov, target);
+        else
+            EZQ_Spy_SetClientSkin(pov, target);
+        target = find(target, classname, class_name);
+   }
+}
+
+void (entity pov) EZQ_CheckAndUpdateAllSkins = {
+    EZQ_CheckAndUpdateAllSkinsByClassname(pov, "observer");
+    EZQ_CheckAndUpdateAllSkinsByClassname(pov, "player");
+}
+
+void () EZQ_SkinUpdater =  {
+    EZQ_CheckAndUpdateAllSkins(self.owner);
+    self.nextthink = time + 0.1;
+}
+
+
+
 void () PlayerPreThink = {
     FO_UpdateClientTime();
     ConcUpdate();
@@ -3257,6 +3297,14 @@ void () ClientConnect = {
 
     if (cb_prematch)
         sprint(self, PRINT_HIGH, "Currently in \sprematch\s time\n");
+
+    
+    if (!infokeyf(self,INFOKEY_P_CSQCACTIVE)) {
+        self.ezq_skin_updater = spawn();
+        self.ezq_skin_updater.owner = self;
+        self.ezq_skin_updater.think = EZQ_SkinUpdater;
+        self.ezq_skin_updater.nextthink = time + 1;
+    }
 };
 
 float () RejoinWithTfId = {

@@ -94,6 +94,7 @@ float remote_client_time();
 .float fragstreak;              // Frag streak
 .float caps;                    // Caps during this game
 .float needs_skin_update;       // Set true when per-player skins need updating
+.entity ezq_skin_updater;       // EZQuake clients need to periodically update their clients
 
 .entity nopickup;               // Don't pick up this backpack/ammobox because it doesn't contain any of your ammo types
 .entity disguised_as;           // Used when cycling through disguises
