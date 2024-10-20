@@ -732,7 +732,7 @@ stg_table_entry stg_table[] = {
     { GREN_NORMAL,  NormalGrenadeTouch,     FO_T_GrenExplode},
     { GREN_CONC,    ConcussionGrenadeTouch, FO_T_GrenExplode},
     { GREN_BLAST,   BlastGrenadeTouch,      BlastGrenadeExplode},
-    { GREN_NAIL,    NailGrenadeTouch,       NailGrenadeExplode},
+    { GREN_NAIL,    NailGrenadeTouch,       NailGrenadeExplode, TRUE},
     { GREN_SHOCK,   ShockGrenadeTouch,      ShockGrenadeExplode, TRUE},
     { GREN_BURST,   BurstGrenadeTouch,      BurstGrenadeExplode},
     { GREN_MIRV,    MirvGrenadeTouch,       MirvGrenadeExplode},
