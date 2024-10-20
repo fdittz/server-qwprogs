@@ -289,34 +289,37 @@ static float NB_UseMinPing() {
 }
 
 void ActivateOrgGame() {
-    disable_resup_gren = 2;  // No gren2 pickups
+    if (!vanilla_inventory) {
+        disable_resup_gren = 2;  // No gren2 pickups
 
-    drop_gren1 = 0;  // No grenades in backpacks
+        drop_gren1 = 0;  // No grenades in backpacks
 
-    int i;
-    for (i = 1; i <= 9; i++) // 3 gren spawn
-        SetAllRoles(i, 1, 3);
+        int i;
+        for (i = 1; i <= 9; i++) // 3 gren spawn
+            SetAllRoles(i, 1, 3);
 
-    SetAllRoles(4, 2, 1); // 1 mirv for demoman
-    SetAllRoles(6, 2, 1); // 1 mirv for hwguy
-    SetAllRoles(9, 2, 1); // 1 emp for engineer
-    SetAllRoles(9, 1, 4); // 4 gren1 for engineer
-    SetAllRoles(3, 1, 4); // 4 gren1 for soldier
+        SetAllRoles(4, 2, 1); // 1 mirv for demoman
+        SetAllRoles(6, 2, 1); // 1 mirv for hwguy
+        SetAllRoles(9, 2, 1); // 1 emp for engineer
+        SetAllRoles(9, 1, 4); // 4 gren1 for engineer
+        SetAllRoles(3, 1, 4); // 4 gren1 for soldier
+    
 
-    PC_PYRO_AIRBLAST_COOLDOWN = 10;
-    PC_ENGINEER_GRENADE_TYPE_2_RANGE = 200;
+        PC_PYRO_AIRBLAST_COOLDOWN = 10;
+        PC_ENGINEER_GRENADE_TYPE_2_RANGE = 200;
 
-    float use_new_cap = CF_GetSetting("nbcc", "new_balance_conc_cap", "0");
-    if (use_new_cap == 4)
-        use_new_cap = 1;
-    else
-        use_new_cap = 0;
+        float use_new_cap = CF_GetSetting("nbcc", "new_balance_conc_cap", "0");
+        if (use_new_cap == 4)
+            use_new_cap = 1;
+        else
+            use_new_cap = 0;
 
-    if (use_new_cap)
-        fo_config.new_balance_flags |= NBF_CONC_NEW_CAP;
+        if (use_new_cap)
+            fo_config.new_balance_flags |= NBF_CONC_NEW_CAP;
 
-    if (CF_GetSetting("nbnc", "new_balance_no_cap", "0"))
-        fo_config.new_balance_flags |= NBF_NO_CAP;
+        if (CF_GetSetting("nbnc", "new_balance_no_cap", "0"))
+            fo_config.new_balance_flags |= NBF_NO_CAP;
+    }
 
     if (NB_UseMinPing()) {
         if (fo_config.min_ping_ms < 50) // 50 min-ping
@@ -748,6 +751,8 @@ void () DecodeLevelParms = {
         // override map-set class restrictions [off]
         override_mapclasses = CF_GetSetting("omc", "override_mapclasses", "off");
 
+        vanilla_inventory = CF_GetSetting("vinv", "vanlla_inventory", "off");
+
         Role_None.gren1_limits[0] = 0;
         Role_None.gren1_limits[1] = FO_GetGrenadeSetting("mg1_1", "max_gren1_scout", ftos(PC_SCOUT_GRENADE_MAX_1));
         Role_None.gren1_limits[2] = FO_GetGrenadeSetting("mg1_2", "max_gren1_sniper", ftos(PC_SNIPER_GRENADE_MAX_1));
@@ -1046,6 +1051,8 @@ void () DecodeLevelParms = {
             solid_nailgren = TRUE;
             scoutscanspike = FALSE;
             fo_config.old_ng_rof = TRUE;
+            disable_resup_gren = 0;
+            vanilla_inventory = TRUE;
         }
 
         st = infokey(world, "huetf");
@@ -1097,6 +1104,8 @@ void () DecodeLevelParms = {
             max_active_gren2_soldier = 1;
             round_delay_time = 10;
             fo_config.old_ng_rof = TRUE;
+            disable_resup_gren = 0;
+            vanilla_inventory = TRUE;
         }
 
         // Must be after we've set up conditional options (e.g. hwguy reload).
