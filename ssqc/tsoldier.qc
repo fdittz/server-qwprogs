@@ -156,6 +156,7 @@ void () NailGrenadeLaunchNail = {
         self.angles_y = current_yaw;
         self.angles_x = 0;
         self.angles_z = 0;
+        self.SendFlags |= FOPP_ANGLES;
         makevectors(self.angles);
 
         deathmsg = DMSG_GREN_NAIL;
