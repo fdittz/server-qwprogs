@@ -55,6 +55,7 @@ var struct {
 
     float new_balance;
     float new_balance_flags;
+    float vanilla_inventory;
 } fo_config;
 
 enumflags {

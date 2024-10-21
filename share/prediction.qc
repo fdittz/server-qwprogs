@@ -492,6 +492,7 @@ void EntUpdate_Config() {
     COMM(Short, fo_concuss);
     COMM(Byte, new_balance);
     COMM(Byte, new_balance_flags);
+    COMM(Float, vanilla_inventory);
 
 #ifdef SSQC
     return TRUE;
@@ -740,6 +741,7 @@ void Predict_InitDefaultConfig() {
     fo_config.fo_concuss = 0;
     fo_config.new_balance = 0;
     fo_config.new_balance_flags = 0;
+    fo_config.vanilla_inventory = 0;
 }
 
 #ifdef SSQC

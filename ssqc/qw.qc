@@ -623,7 +623,7 @@ float deathammo_cells;
 float reverse_cap;
 float engineer_move;
 float grenade_lockout;
-float vanilla_inventory;
+float allow_ezquake;
 
 float fo_projectiles;
 

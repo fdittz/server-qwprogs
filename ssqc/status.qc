@@ -821,18 +821,44 @@ void UpdateClientGrenadeThrown(entity pl) = {
 #endif
 }
 
+void UpdateClientIDStringMsgOne(entity pl, string ident) {
+    if (!infokeyf(pl,INFOKEY_P_CSQCACTIVE))
+        return;
+    msg_entity = pl;
+    WriteByte(MSG_ONE, SVC_CGAMEPACKET);
+    WriteByte(MSG_ONE, MSG_ID);
+    WriteString(MSG_ONE, ident);
+}
+
 void UpdateClientIDString(entity pl) {
     string ident = time < pl.ident_time ? pl.ident_string : "";
 
+    
     if (ident == "")  // No need to send null, we'll expire clientside.
         return;
 
-    msg_entity = pl;
-    WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
-    WriteByte(MSG_MULTICAST, MSG_ID);
-    WriteString(MSG_MULTICAST, ident);
-    multicast('0 0 0', MULTICAST_ONE);
+    if (!allow_ezquake) {
+        msg_entity = pl;
+        WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
+        WriteByte(MSG_MULTICAST, MSG_ID);
+        WriteString(MSG_MULTICAST, ident);
+        multicast('0 0 0', MULTICAST_ONE);
+    }
+    else {
+        UpdateClientIDStringMsgOne(pl, ident); //changing from multicast so we don't crash ezquakers
+
+        local entity spec = find(world, classname, "observer"); // sending to all tracking spectators
+        while (spec != world) {
+            if (spec.goalentity == pl)
+                UpdateClientIDStringMsgOne(spec, ident);
+            spec = find (spec, classname, "observer");
+        }
+    }
+
+
 }
+
+
 
 void UpdateClientStatusBar(entity pl)
 {

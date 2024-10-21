@@ -13,6 +13,7 @@ void () SpectatorDisconnect;
 void () SpectatorImpulseCommand;
 void () SpectatorThink;
 void () Admin_Aliases;
+void () EZQ_SkinUpdater;
 
 void () SpectatorConnect = {
     SetDimensions(TRUE);
@@ -62,6 +63,13 @@ void () SpectatorConnect = {
     TeamFortress_StartTimers();
     TeamFortress_RemovePracticeSpawn(self);
     TeamFortress_SetSpeed(self);
+
+    if (!infokeyf(self,INFOKEY_P_CSQCACTIVE)) {
+        self.ezq_skin_updater = spawn();
+        self.ezq_skin_updater.owner = self;
+        self.ezq_skin_updater.think = EZQ_SkinUpdater;
+        self.ezq_skin_updater.nextthink = time + 5;
+    }
 };
 
 void () SpectatorDisconnect = {

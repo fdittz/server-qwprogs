@@ -289,7 +289,7 @@ static float NB_UseMinPing() {
 }
 
 void ActivateOrgGame() {
-    if (!vanilla_inventory) {
+    if (!fo_config.vanilla_inventory) {
         disable_resup_gren = 2;  // No gren2 pickups
 
         drop_gren1 = 0;  // No grenades in backpacks
@@ -751,7 +751,8 @@ void () DecodeLevelParms = {
         // override map-set class restrictions [off]
         override_mapclasses = CF_GetSetting("omc", "override_mapclasses", "off");
 
-        vanilla_inventory = CF_GetSetting("vinv", "vanlla_inventory", "off");
+        // allow ezquake [off]
+        allow_ezquake = CF_GetSetting("aezq", "allow_ezquake", "off");
 
         Role_None.gren1_limits[0] = 0;
         Role_None.gren1_limits[1] = FO_GetGrenadeSetting("mg1_1", "max_gren1_scout", ftos(PC_SCOUT_GRENADE_MAX_1));
@@ -1052,7 +1053,7 @@ void () DecodeLevelParms = {
             scoutscanspike = FALSE;
             fo_config.old_ng_rof = TRUE;
             disable_resup_gren = 0;
-            vanilla_inventory = TRUE;
+            fo_config.vanilla_inventory = TRUE;
         }
 
         st = infokey(world, "huetf");
@@ -1105,7 +1106,8 @@ void () DecodeLevelParms = {
             round_delay_time = 10;
             fo_config.old_ng_rof = TRUE;
             disable_resup_gren = 0;
-            vanilla_inventory = TRUE;
+            fo_config.vanilla_inventory = TRUE;
+            allow_ezquake = TRUE;
         }
 
         // Must be after we've set up conditional options (e.g. hwguy reload).
@@ -2817,10 +2819,12 @@ void (entity pov, entity target) EZQ_CheckAndUpdateTargetSkin = {
 void (entity pov, string class_name) EZQ_CheckAndUpdateAllSkinsByClassname = {
     local entity target = find(world, classname, class_name);
     while (target != world) {
-        if (!target.is_undercover)
-            EZQ_CheckAndUpdateTargetSkin(pov, target);
-        else
-            EZQ_Spy_SetClientSkin(pov, target);
+        if (!target.has_disconnected) {
+            if (!target.is_undercover)
+                EZQ_CheckAndUpdateTargetSkin(pov, target);
+            else
+                EZQ_Spy_SetClientSkin(pov, target);
+        }
         target = find(target, classname, class_name);
    }
 }
@@ -2832,7 +2836,7 @@ void (entity pov) EZQ_CheckAndUpdateAllSkins = {
 
 void () EZQ_SkinUpdater =  {
     EZQ_CheckAndUpdateAllSkins(self.owner);
-    self.nextthink = time + 0.1;
+    self.nextthink = time + 1;
 }
 
 
@@ -3246,6 +3250,11 @@ void (entity pov, entity target) SetSkinInfoFor = {
 }
 
 void () ClientConnect = {
+    if (!infokeyf(self,INFOKEY_P_CSQCACTIVE) && !allow_ezquake) {
+        sprint(self, PRINT_HIGH, "FTE/CSQC is required for this server, please download the latest client package at www.fortressone.org\n");
+        dropclient(self);
+        return;
+    }
 
     bprint(PRINT_HIGH, self.netname, " entered the game\n");
     sprint(self, PRINT_HIGH, "FortressOne: Weapon Prediction ", wp_version, "\n");
@@ -3312,7 +3321,7 @@ void () ClientConnect = {
         self.ezq_skin_updater = spawn();
         self.ezq_skin_updater.owner = self;
         self.ezq_skin_updater.think = EZQ_SkinUpdater;
-        self.ezq_skin_updater.nextthink = time + 1;
+        self.ezq_skin_updater.nextthink = time + 5;
     }
 };
 

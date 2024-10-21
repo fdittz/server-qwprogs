@@ -780,10 +780,9 @@ void FO_Grenades_Init() {
         class_grenades[PC_CIVILIAN].gren[0] = GREN_NONE;
         class_grenades[PC_CIVILIAN].gren[1] = GREN_NONE;
 
-        if (vanilla_inventory) {
+        if (fo_config.vanilla_inventory) {
             class_grenades[PC_SCOUT].gren[0]    = GREN_CALTROP;
             class_grenades[PC_SOLDIER].gren[1]  = GREN_NAIL;
-        
         }
 
 }
